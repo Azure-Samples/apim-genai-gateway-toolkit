@@ -1,0 +1,21 @@
+<!-- 
+    Policy fragment to implement a round-robin load balancing algorithm.
+
+    Expected named values
+    - payg-endpoint-1,payg-endpoint-2: The backend endpoints to be load balanced.
+ -->
+<fragment>
+	<cache-lookup-value key="backend-counter" variable-name="backend-counter" default-value="@(0)" />
+	<set-variable name="backend-counter" value="@(((int)context.Variables["backend-counter"])+1)" />
+	<cache-store-value key="backend-counter" value="@((int)context.Variables["backend-counter"])" duration="1200" />
+	<set-variable name="backend-pool" value="@{
+            JArray backends = new JArray();
+            backends.Add("{{payg-endpoint-1}}");
+            backends.Add("{{payg-endpoint-2}}");
+            return backends;
+        }" />
+	<set-variable name="total-backend-count" value="@(((JArray)context.Variables["backend-pool"]).Count)" />
+	<set-variable name="chosen-index" value="@((int)context.Variables["backend-counter"]%(int)context.Variables["total-backend-count"])" />
+	<set-variable name="selected-url" value="@(((JArray)context.Variables["backend-pool"])[(int)context.Variables["chosen-index"]].ToString())" />
+	<set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+</fragment>
