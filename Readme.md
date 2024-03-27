@@ -18,6 +18,15 @@ The aim of this accelerator is to provide a quick start for deploying a GenAI Ga
 - Azure Subscription
 - Azure CLI
 
+### Policy Fragments
+
+- The repository contains policies in the format of [Policy fragments](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments)
+- You can manually [create these fragments](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments#create-a-policy-fragment) in your APIM instance and can refer them in the corresponding API operations.
+
+### Managed Identity between APIM and Azure OpenAI
+
+These examples use Managed Identity to authenticate between APIM and Azure OpenAI. [Follow these 3 steps](https://learn.microsoft.com/en-us/azure/api-management/api-management-authenticate-authorize-azure-openai#authenticate-with-managed-identity) to setup the Managed identity between APIM and Azure OpenAI
+
 ## Policies
 
 ## Deployment
