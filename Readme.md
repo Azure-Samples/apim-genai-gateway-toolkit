@@ -16,6 +16,7 @@ The aim of this accelerator is to provide a quick start for deploying a GenAI Ga
 ## Prerequisites
 
 - Azure Subscription
+- Azure CLI
 
 ### Policy Fragments
 
@@ -28,6 +29,18 @@ These examples use Managed Identity to authenticate between APIM and Azure OpenA
 
 ## Policies
 
+## Deployment
 
+The repository contains Bicep files ([/infra](./infra/)) and associated scripts ([/scripts](./scripts/)) that deploy GenAI Gateway infrastructure to Azure.
 
+First, sign in with the Azure CLI:
 
+```bash
+az login
+```
+
+Next, deploy the infrastructure, passing in a unique string for `--username` (used in resource names) and an Azure Region for `--location`:
+
+```bash
+./scripts/deploy-bicep.sh --username "{USERNAME}" --location "{AZURE_REGION}"
+```
