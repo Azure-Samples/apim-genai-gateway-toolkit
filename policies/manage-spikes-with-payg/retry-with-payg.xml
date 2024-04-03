@@ -1,0 +1,42 @@
+<!-- 
+    Policy fragment to use Pay As You Go (PAYG) endpoints when the PTU endpoints are busy.
+
+    should be used inside the <inbound> section of the policy
+
+    Expected named values
+    - ptu-endpoint-1, payg-endpoint-1, payg-endpoint-2: The backend endpoints to be load balanced.
+ -->
+<fragment>
+    <!-- Exponential retry policy: If the HTTP status code of the response is 300 or greater, the request is retried. 
+     Maximum retries: 3. Initial retry interval: 1 second. Maximum retry interval: 10 seconds. 
+     Retry interval increase per retry: 2 seconds -->
+    <retry condition="@(context.Response.StatusCode == 429)" count="3" interval="1" max-interval="10" delta="2">
+        <!-- The retry policy executes its child policies once and then retries their execution until the retry condition becomes false or retry count is exhausted. -->
+        <choose>
+            <when condition="@(context.Response.StatusCode == 429)">
+                <!-- 
+                        Below code block allows you to load balance the payg endpoints when the PTU endpoints are busy.
+                        Similar policy fragment as that `load-balancing-round-robin/load-balancing-payg.xml` but with a different cache key to prevent conflict
+                        Note: This is load balancing on the retry path, and not the initial request path.
+                    -->
+                <cache-lookup-value key="retry-backend-counter" variable-name="retry-backend-counter" default-value="@(0)" />
+                <set-variable name="retry-backend-counter" value="@(((int)context.Variables["retry-backend-counter"])+1)" />
+                <cache-store-value key="retry-backend-counter" value="@((int)context.Variables["retry-backend-counter"])" duration="2400" />
+                <set-variable name="retry-backend-pool" value="@{
+                        JArray backends = new JArray();
+                        backends.Add("{{payg-endpoint-1}}");
+                        backends.Add("{{payg-endpoint-2}}");
+                        return backends;
+                    }" />
+                <set-variable name="retry-backend-count" value="@(((JArray)context.Variables["retry-backend-pool"]).Count)" />
+                <set-variable name="retry-chosen-index" value="@((int)context.Variables["retry-backend-counter"]%(int)context.Variables["retry-backend-count"])" />
+                <set-variable name="selected-url" value="@(((JArray)context.Variables["retry-backend-pool"])[(int)context.Variables["retry-chosen-index"]].ToString())" />
+                <set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+            </when>
+            <otherwise>
+                <!-- The backend will point to the `ptu endpoint` for the initial request -->
+                <set-variable name="selected-url" value="{{ptu-endpoint-1}}" />
+                <set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+            </otherwise>
+        </choose>
+    </fragment>
