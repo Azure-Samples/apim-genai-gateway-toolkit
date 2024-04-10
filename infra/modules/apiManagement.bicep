@@ -112,7 +112,7 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
   parent: apiManagementService
   name: 'simpleRoundRobin'
   properties: {
-    value: '<fragment><cache-lookup-value key="backend-counter" variable-name="backend-counter" default-value="@(0)" /><set-variable name="backend-counter" value="@(((int)context.Variables["backend-counter"])+1)" /><cache-store-value key="backend-counter" value="@((int)context.Variables["backend-counter"])" duration="1200" /><set-variable name="backend-pool" value="@{ JArray backends = new JArray(); backends.Add("{{payg-endpoint-1}}"); backends.Add("{{payg-endpoint-2}}"); return backends; }" /><set-variable name="total-backend-count" value="@(((JArray)context.Variables["backend-pool"]).Count)" /><set-variable name="chosen-index" value="@((int)context.Variables["backend-counter"]%(int)context.Variables["total-backend-count"])" /><set-variable name="selected-url" value="@(((JArray)context.Variables["backend-pool"])[(int)context.Variables["chosen-index"]].ToString())" /><set-backend-service base-url="@((string)context.Variables["selected-url"])" /></fragment>'
+    value: loadTextContent('../../policies/load-balancing/simple-round-robin.xml')
     format: 'rawxml'
   }
 }
@@ -121,7 +121,7 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
   parent: apiManagementService
   name: 'weightedRoundRobin'
   properties: {
-    value: '<fragment><set-variable name="all-endpoints" value="@{ JArray endpoints = new JArray(); endpoints.Add(new JObject() { { "url", "{{payg-endpoint-1}}" }, { "weight", 2 }, }); endpoints.Add(new JObject() { { "url", "{{payg-endpoint-2}}" }, { "weight", 3 }, }); return endpoints; }" /><set-variable name="selected-url" value="@{ var endpoints = (JArray)context.Variables["all-endpoints"]; var totalWeight = endpoints.Sum(e => (int)e["weight"]); var randomNumber = new Random().Next(totalWeight); var weightSum = 0; foreach (var endpoint in endpoints) { weightSum += (int)endpoint["weight"]; if (randomNumber < weightSum) { return endpoint["url"].ToString(); } } return endpoints[0]["url"].ToString(); }" /><set-backend-service base-url="@((string)context.Variables["selected-url"])" /></fragment>'
+    value: loadTextContent('../../policies/load-balancing/weighted-round-robin.xml')
     format: 'rawxml'
   }
 }
@@ -130,7 +130,7 @@ resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/poli
   parent: apiManagementService
   name: 'retryWithPayAsYouGo'
   properties: {
-    value: '<fragment><retry condition="@(context.Response.StatusCode == 429)" count="3" interval="1" max-interval="10" delta="2"><choose><when condition="@(context.Response.StatusCode == 429)"><set-variable name="selected-url" value="{{payg-endpoint-1}}" /><set-backend-service base-url="@((string)context.Variables["selected-url"])" /></when><otherwise><set-variable name="selected-url" value="{{ptu-endpoint-1}}" /><set-backend-service base-url="@((string)context.Variables["selected-url"])" /></otherwise></choose><forward-request timeout="120" fail-on-error-status-code="true" buffer-response="false" /></retry></fragment>'
+    value: loadTextContent('../../policies/manage-spikes-with-payg/retry-with-payg.xml')
     format: 'rawxml'
   }
 }
