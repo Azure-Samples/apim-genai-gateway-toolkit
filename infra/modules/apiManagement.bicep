@@ -90,9 +90,9 @@ resource completionsOperation 'Microsoft.ApiManagement/service/apis/operations@2
 
 resource chatOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
   parent: azureOpenAIAPI
-  name: 'chat'
+  name: 'chatCompletions'
   properties: {
-    displayName: 'chat'
+    displayName: 'chatCompletions'
     method: 'POST'
     urlTemplate: '/chat/completions'
   }
