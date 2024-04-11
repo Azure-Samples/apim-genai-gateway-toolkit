@@ -115,6 +115,7 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
     value: loadTextContent('../../policies/load-balancing/simple-round-robin.xml')
     format: 'rawxml'
   }
+  dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
 }
 
 resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -124,6 +125,7 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
     value: loadTextContent('../../policies/load-balancing/weighted-round-robin.xml')
     format: 'rawxml'
   }
+  dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
 }
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -133,6 +135,7 @@ resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/poli
     value: loadTextContent('../../policies/manage-spikes-with-payg/retry-with-payg.xml')
     format: 'rawxml'
   }
+  dependsOn: [ptuEndpointOneNamedValue, payAsYouGoEndpointOneNamedValue]
 }
 
 resource ptuEndpointOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
