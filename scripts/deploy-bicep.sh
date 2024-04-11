@@ -121,7 +121,7 @@ cat << EOF > "$script_dir/../infra/azuredeploy.parameters.json"
     "uniqueUserName": {
       "value": "${USERNAME}"
     },
-    "policyFragmentIDToTest": {
+    "policyFragment": {
       "value": "${POLICYFRAGMENT}"
     },
     "ptuDeploymentOneBaseUrl": {

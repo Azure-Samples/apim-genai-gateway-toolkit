@@ -17,11 +17,11 @@ param payAsYouGoDeploymentTwoBaseUrl string
 
 @description('The name of the policy fragment to test')
 @allowed([
-  'simpleRoundRobin'
-  'weightedRoundRobin'
-  'retryWithPayAsYouGo'
+  'simple-round-robin'
+  'weighted-round-robin'
+  'retry-with-payg'
 ])
-param policyFragmentIDToTest string = 'simpleRoundRobin'
+param policyFragment string = 'simple-round-robin'
 
 var resourceGroupName = 'rg-${uniqueUserName}'
 var apiManagementName = 'apim-${uniqueUserName}'
@@ -44,7 +44,7 @@ module apiManagement 'modules/apiManagement.bicep' = {
     ptuDeploymentOneBaseUrl: ptuDeploymentOneBaseUrl
     payAsYouGoDeploymentOneBaseUrl: payAsYouGoDeploymentOneBaseUrl
     payAsYouGoDeploymentTwoBaseUrl: payAsYouGoDeploymentTwoBaseUrl
-    policyFragmentIDToTest: policyFragmentIDToTest
+    policyFragment: policyFragment
   }
 }
 

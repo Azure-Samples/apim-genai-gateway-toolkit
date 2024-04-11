@@ -39,11 +39,11 @@ param payAsYouGoDeploymentTwoBaseUrl string
 
 @description('The name of the policy fragment to test')
 @allowed([
-  'simpleRoundRobin'
-  'weightedRoundRobin'
-  'retryWithPayAsYouGo'
+  'simple-round-robin'
+  'weighted-round-robin'
+  'retry-with-payg'
 ])
-param policyFragmentIDToTest string = 'simpleRoundRobin'
+param policyFragment string = 'simple-round-robin'
 
 resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
   name: apiManagementServiceName
@@ -60,7 +60,7 @@ resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-previe
 
 resource azureOpenAIAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'AOAIAPI'
+  name: 'aoai-api'
   properties: {
     path: '/'
     displayName: 'AOAIAPI'
@@ -90,7 +90,7 @@ resource completionsOperation 'Microsoft.ApiManagement/service/apis/operations@2
 
 resource chatOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
   parent: azureOpenAIAPI
-  name: 'chatCompletions'
+  name: 'chat-completions'
   properties: {
     displayName: 'chatCompletions'
     method: 'POST'
@@ -102,15 +102,15 @@ resource azureOpenAIAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@202
   parent: azureOpenAIAPI
   name: 'policy'
   properties: {
-    value: '<policies><inbound><base /><include-fragment fragment-id="${policyFragmentIDToTest}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
+    value: '<policies><inbound><base /><include-fragment fragment-id="${policyFragment}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
     format: 'rawxml'
   }
-  dependsOn: [simpleRoundRobinPolicyFragment]
+  dependsOn: [simpleRoundRobinPolicyFragment, weightedRoundRobinPolicyFragment, retryWithPayAsYouGoPolicyFragment]
 }
 
 resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'simpleRoundRobin'
+  name: 'simple-round-robin'
   properties: {
     value: loadTextContent('../../policies/load-balancing/simple-round-robin.xml')
     format: 'rawxml'
@@ -119,7 +119,7 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
 
 resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'weightedRoundRobin'
+  name: 'weighted-round-robin'
   properties: {
     value: loadTextContent('../../policies/load-balancing/weighted-round-robin.xml')
     format: 'rawxml'
@@ -128,7 +128,7 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'retryWithPayAsYouGo'
+  name: 'retry-with-payg'
   properties: {
     value: loadTextContent('../../policies/manage-spikes-with-payg/retry-with-payg.xml')
     format: 'rawxml'
