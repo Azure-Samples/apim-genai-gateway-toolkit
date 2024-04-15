@@ -1,2 +1,4 @@
-/output.json
-/infra/azuredeploy.parameters.json
+output.json
+output-simulator-base.json
+output-simulators.json
+azuredeploy.parameters.json

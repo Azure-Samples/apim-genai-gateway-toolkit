@@ -122,6 +122,7 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
   parent: apiManagementService
   name: 'simple-round-robin'
   properties: {
+    
     value: loadTextContent('../../policies/load-balancing/simple-round-robin.xml')
     format: 'rawxml'
   }

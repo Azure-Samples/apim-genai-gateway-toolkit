@@ -39,6 +39,7 @@ Once that is done, open the repository in Visual Studio Code and select `Dev Con
 If you are manually installing the pre-requisites, you will need the following:
 
 - Azure CLI
+- Docker (if using the OpenAI API simulator)
 - a bash terminal (see [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install) if you are on Windows)
 
 
@@ -52,10 +53,10 @@ First, sign in with the Azure CLI:
 az login
 ```
 
-Next, deploy the infrastructure, passing in a unique string for `--username` (used in resource names), an Azure Region for `--location`, and the base urls for the various real or simulated Azure Open AI Service endpoints:
+Next, deploy the infrastructure, passing in a unique string for `--username` (used in resource names), an Azure Region for `--location`, the base name of the policy fragment file to test, and the base urls for the various real or simulated Azure Open AI Service endpoints:
 
 ```bash
-./scripts/deploy-bicep.sh --username "{USERNAME}" --location "{AZURE_REGION}" --ptuEndpoint1 "{PTU_DEPLOYMENT_1_BASE_URL}" --paygEndpoint1 "{PAYG_DEPLOYMENT_1_BASE_URL}" --paygEndpoint2 "{PAYG_DEPLOYMENT_2_BASE_URL}"
+./scripts/deploy-bicep.sh --username "{USERNAME}" --location "{AZURE_REGION}" --ptuEndpoint1 "{PTU_DEPLOYMENT_1_BASE_URL}" --paygEndpoint1 "{PAYG_DEPLOYMENT_1_BASE_URL}" --paygEndpoint2 "{PAYG_DEPLOYMENT_2_BASE_URL}" --policyFragment "{POLICY_FRAGMENT_FILE_NAME}"
 ```
 
 ### Managed Identity between APIM and Azure OpenAI
