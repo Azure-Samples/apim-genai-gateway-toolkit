@@ -29,6 +29,11 @@ These examples use Managed Identity to authenticate between APIM and Azure OpenA
 
 ## Policies
 
+The repository contains policy fragments for the following scenarios:
+
+- [Load balancing between two endpoints](./policies/load-balancing-round-robin/load-balancing-payg.xml)
+- [Managing the PTU spikes with PAYG endpoints](./policies/manage-spikes-with-payg/retry-with-payg.xml)
+
 ## Deployment
 
 The repository contains Bicep files ([/infra](./infra/)) and associated scripts ([/scripts](./scripts/)) that deploy GenAI Gateway infrastructure to Azure.
