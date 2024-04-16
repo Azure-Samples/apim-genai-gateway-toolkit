@@ -37,14 +37,6 @@ param payAsYouGoDeploymentOneBaseUrl string
 @description('The base url of the second Azure Open AI Service Pay-As-You-Go deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param payAsYouGoDeploymentTwoBaseUrl string
 
-@description('The name of the policy fragment to test')
-@allowed([
-  'simple-round-robin'
-  'weighted-round-robin'
-  'retry-with-payg'
-])
-param policyFragment string = 'simple-round-robin'
-
 resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
   name: apiManagementServiceName
   location: location
@@ -58,54 +50,72 @@ resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-previe
   }
 }
 
-resource azureOpenAIAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-api'
+  name: 'aoai-api-simple-round-robin'
   properties: {
-    path: '/'
-    displayName: 'AOAIAPI'
+    path: '/simple-round-robin'
+    displayName: 'AOAIAPI-SimpleRoundRobin'
     protocols: ['https']
   }
 }
 
-resource embeddingsOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
-  parent: azureOpenAIAPI
-  name: 'embeddings'
+resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-weighted-round-robin'
+  properties: {
+    path: '/weighted-round-robin'
+    displayName: 'AOAIAPI-WeightedRoundRobin'
+    protocols: ['https']
+  }
+}
+
+resource azureOpenAIRetryWithPayAsYouGoAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-retry-with-payg'
+  properties: {
+    path: '/retry-with-payg'
+    displayName: 'AOAIAPI-RetryWithPayAsYouGo'
+    protocols: ['https']
+  }
+}
+
+var apiNames = [azureOpenAISimpleRoundRobinAPI.name, azureOpenAIWeightedRoundRobinAPI.name, azureOpenAIRetryWithPayAsYouGoAPI.name]
+
+resource embeddingsOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = [for apiName in apiNames: {
+  name: '${apiManagementServiceName}/${apiName}/embeddings'
   properties: {
     displayName: 'embeddings'
     method: 'POST'
     urlTemplate: '/embeddings'
   }
-}
+}]
 
-resource completionsOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
-  parent: azureOpenAIAPI
-  name: 'completions'
+resource completionsOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = [for apiName in apiNames: {
+  name: '${apiManagementServiceName}/${apiName}/completions'
   properties: {
     displayName: 'completions'
     method: 'POST'
     urlTemplate: '/completions'
   }
-}
+}]
 
-resource chatOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = {
-  parent: azureOpenAIAPI
-  name: 'chat-completions'
+resource chatOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = [for apiName in apiNames: {
+  name: '${apiManagementServiceName}/${apiName}/chat-completions'
   properties: {
     displayName: 'chatCompletions'
     method: 'POST'
     urlTemplate: '/chat/completions'
   }
-}
+}]
 
-resource azureOpenAIAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIAPI
+resource azureOpenAISimpleRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAISimpleRoundRobinAPI
   name: 'policy'
   properties: {
-    value: '<policies><inbound><base /><include-fragment fragment-id="${policyFragment}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
+    value: '<policies><inbound><base /><include-fragment fragment-id="${simpleRoundRobinPolicyFragment.name}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
     format: 'rawxml'
   }
-  dependsOn: [simpleRoundRobinPolicyFragment, weightedRoundRobinPolicyFragment, retryWithPayAsYouGoPolicyFragment]
 }
 
 resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -118,6 +128,15 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
 }
 
+resource azureOpenAIWeightedRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIWeightedRoundRobinAPI
+  name: 'policy'
+  properties: {
+    value: '<policies><inbound><base /><include-fragment fragment-id="${weightedRoundRobinPolicyFragment.name}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
+    format: 'rawxml'
+  }
+}
+
 resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'weighted-round-robin'
@@ -126,6 +145,15 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
+}
+
+resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIRetryWithPayAsYouGoAPI
+  name: 'policy'
+  properties: {
+    value: '<policies><inbound><base /></inbound><backend><include-fragment fragment-id="${retryWithPayAsYouGoPolicyFragment.name}" /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
+    format: 'rawxml'
+  }
 }
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {

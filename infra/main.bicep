@@ -15,14 +15,6 @@ param payAsYouGoDeploymentOneBaseUrl string
 @description('The base url of the second Azure Open AI Service Pay-As-You-Go deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param payAsYouGoDeploymentTwoBaseUrl string
 
-@description('The name of the policy fragment to test')
-@allowed([
-  'simple-round-robin'
-  'weighted-round-robin'
-  'retry-with-payg'
-])
-param policyFragment string = 'simple-round-robin'
-
 var resourceGroupName = 'rg-${uniqueUserName}'
 var apiManagementName = 'apim-${uniqueUserName}'
 
@@ -44,7 +36,6 @@ module apiManagement 'modules/apiManagement.bicep' = {
     ptuDeploymentOneBaseUrl: ptuDeploymentOneBaseUrl
     payAsYouGoDeploymentOneBaseUrl: payAsYouGoDeploymentOneBaseUrl
     payAsYouGoDeploymentTwoBaseUrl: payAsYouGoDeploymentTwoBaseUrl
-    policyFragment: policyFragment
   }
 }
 

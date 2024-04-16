@@ -19,7 +19,6 @@ help()
       echo "Arguments"
       echo "    --username, -u            : REQUIRED: Unique name to assign in all deployed services, your high school hotmail alias is a great idea!"
       echo "    --location, -l            : REQUIRED: Azure region to deploy to"
-      echo "    --policyFragment, -f      : REQUIRED: Name of the policy fragment to test"
       echo "    --ptuEndpoint1, -x        : REQUIRED: Base url of first AOAI PTU deployment"
       echo "    --paygEndpoint1, -y       : REQUIRED: Base url of first AOAI PAYG deployment"
       echo "    --paygEndpoint2, -z       : REQUIRED: Base url of second AOAI PAYG deployment"
@@ -27,15 +26,14 @@ help()
       exit 1
 }
 
-SHORT=u:,l:,f:,x:,y:,z:,h
-LONG=username:,location:,policyFragment:,ptuEndpoint1:,paygEndpoint1:,paygEndpoint2:,help
+SHORT=u:,l:,x:,y:,z:,h
+LONG=username:,location:,ptuEndpoint1:,paygEndpoint1:,paygEndpoint2:,help
 OPTS=$(getopt -a -n files --options $SHORT --longoptions $LONG -- "$@")
 
 eval set -- "$OPTS"
 
 USERNAME=''
 LOCATION=''
-POLICYFRAGMENT=''
 PTUENDPOINT1=''
 PAYGENDPOINT1=''
 PAYGENDPOINT2=''
@@ -49,10 +47,6 @@ do
       ;;
     -l | --location )
       LOCATION="$2"
-      shift 2
-      ;;
-    -f | --policyFragment )
-      POLICYFRAGMENT="$2"
       shift 2
       ;;
     -x | --ptuEndpoint1 )
@@ -90,11 +84,6 @@ if [[ ${#LOCATION} -eq 0 ]]; then
   exit 6
 fi
 
-if [[ ${#POLICYFRAGMENT} -eq 0 ]]; then
-  echo 'ERROR: Missing required parameter --policyFragment | -f' 1>&2
-  exit 6
-fi
-
 if [[ ${#PTUENDPOINT1} -eq 0 ]]; then
   echo 'ERROR: Missing required parameter --ptuEndpoint1 | -x' 1>&2
   exit 6
@@ -120,9 +109,6 @@ cat << EOF > "$script_dir/../infra/azuredeploy.parameters.json"
     },
     "uniqueUserName": {
       "value": "${USERNAME}"
-    },
-    "policyFragment": {
-      "value": "${POLICYFRAGMENT}"
     },
     "ptuDeploymentOneBaseUrl": {
       "value": "${PTUENDPOINT1}"

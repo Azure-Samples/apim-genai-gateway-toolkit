@@ -8,9 +8,6 @@
     "uniqueUserName": {
       "value": "myusername"
     },
-    "policyFragment": {
-      "value": "simple-round-robin"
-    },
     "ptuDeploymentOneBaseUrl": {
       "value": "https://openaiptu1deployment.azurewebsites.net"
     },
