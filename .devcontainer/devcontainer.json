@@ -6,6 +6,13 @@
 	"image": "mcr.microsoft.com/devcontainers/base:jammy",
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"yzhang.markdown-all-in-one"
+			]
+		}
 	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
