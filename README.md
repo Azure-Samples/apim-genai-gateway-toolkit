@@ -52,10 +52,10 @@ First, sign in with the Azure CLI:
 az login
 ```
 
-Next, deploy the infrastructure, passing in a unique string for `--username` (used in resource names) and an Azure Region for `--location`:
+Next, deploy the infrastructure, passing in a unique string for `--username` (used in resource names), an Azure Region for `--location`, and the base urls for the various real or simulated Azure Open AI Service endpoints:
 
 ```bash
-./scripts/deploy-bicep.sh --username "{USERNAME}" --location "{AZURE_REGION}"
+./scripts/deploy-bicep.sh --username "{USERNAME}" --location "{AZURE_REGION}" --ptuEndpoint1 "{PTU_DEPLOYMENT_1_BASE_URL}" --paygEndpoint1 "{PAYG_DEPLOYMENT_1_BASE_URL}" --paygEndpoint2 "{PAYG_DEPLOYMENT_2_BASE_URL}"
 ```
 
 ### Managed Identity between APIM and Azure OpenAI
