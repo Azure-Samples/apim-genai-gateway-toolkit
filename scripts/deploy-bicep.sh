@@ -11,24 +11,25 @@ script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 help()
 {
     echo ""
-      echo "<This command will deploy the whole required infrastructure for this project by using Bicep>"
-      echo ""
-      echo "Command"
-      echo "    deploy-bicep.sh : Will deploy all required services services."
-      echo ""
-      echo "Arguments"
-      echo "    --username, -u            : REQUIRED: Unique name to assign in all deployed services, your high school hotmail alias is a great idea!"
-      echo "    --location, -l            : REQUIRED: Azure region to deploy to"
-      echo "    --ptuEndpoint1, -x        : Base url of first AOAI PTU deployment (required if --use-simulator is not set)"
-      echo "    --paygEndpoint1, -y       : Base url of first AOAI PAYG deployment (required if --use-simulator is not set)"
-      echo "    --paygEndpoint2, -z       : Base url of second AOAI PAYG deployment (required if --use-simulator is not set)"
-      echo "    --use-simulator, -z       : Use simulated AOAI endpoints"
-      echo ""
-      exit 1
+    echo "<This command will deploy the whole required infrastructure for this project by using Bicep>"
+    echo ""
+    echo "Command"
+    echo "    deploy-bicep.sh : Will deploy all required services services."
+    echo ""
+    echo "Arguments"
+    echo "    --username, -u            : REQUIRED: Unique name to assign in all deployed services, your high school hotmail alias is a great idea!"
+    echo "    --location, -l            : REQUIRED: Azure region to deploy to"
+    echo "    --ptuEndpoint1, -x        : Base url of first AOAI PTU deployment (required if --use-simulator is not set)"
+    echo "    --paygEndpoint1, -y       : Base url of first AOAI PAYG deployment (required if --use-simulator is not set)"
+    echo "    --paygEndpoint2, -z       : Base url of second AOAI PAYG deployment (required if --use-simulator is not set)"
+    echo "    --use-simulator           : Use simulated AOAI endpoints"
+    echo "    --simulator-api-key,      : API key to use for calling the simulator (generate using generate-api-key.sh)"
+    echo ""
+    exit 1
 }
 
 SHORT=u:,l:,x:,y:,z:,h
-LONG=username:,location:,ptuEndpoint1:,paygEndpoint1:,paygEndpoint2:,use-simulator,help
+LONG=username:,location:,ptuEndpoint1:,paygEndpoint1:,paygEndpoint2:,use-simulator,simulator-api-key:,help
 OPTS=$(getopt -a -n files --options $SHORT --longoptions $LONG -- "$@")
 
 eval set -- "$OPTS"
@@ -66,6 +67,10 @@ do
     --use-simulator )
       USE_SIMULATOR=1
       shift 1
+      ;;
+    --simulator-api-key )
+      SIMULATOR_API_KEY="$2"
+      shift 2
       ;;
     -h | --help)
       help
@@ -108,6 +113,12 @@ fi
 
 
 if [[ ${USE_SIMULATOR} -eq 1 ]]; then
+  
+  if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
+    echo 'ERROR: Missing required parameter --simulator-api-key' 1>&2
+    exit 6
+  fi
+
   echo "Using OpenAI API Simulator"
   
   #
@@ -186,6 +197,7 @@ EOF
   # Deploy simulator instances
   #
 
+
   cd "$script_dir/../infra/"
 cat << EOF > "$script_dir/../infra/azuredeploy.parameters.json"
 {
@@ -197,6 +209,9 @@ cat << EOF > "$script_dir/../infra/azuredeploy.parameters.json"
     },
     "uniqueUserName": {
       "value": "${USERNAME}"
+    },
+    "simulatorApiKey": {
+      "value": "${SIMULATOR_API_KEY}"
     }
   }
 }
@@ -239,14 +254,16 @@ EOF
     echo "PAYG2 Endpoint not found in simulator deployment output"
     exit 1
   fi
+  PAYGENDPOINT2="https://${payg2_fqdn}"
 
 fi
 
 
-  #
-  # Deploy APIM, policies etc
-  #
+#
+# Deploy APIM, policies etc
+#
 
+# TODO - pass endpoint api keys here
 cat << EOF > "$script_dir/../infra/azuredeploy.parameters.json"
 {
   "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",

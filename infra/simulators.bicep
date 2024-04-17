@@ -6,6 +6,10 @@ param location string
 @description('This value will explain who is the author of specific resources and will be reflected in every deployed tool')
 param uniqueUserName string
 
+@description('The API key the simulator will use to authenticate requests')
+@secure()
+param simulatorApiKey string
+
 var resourceGroupName = 'rg-${uniqueUserName}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
@@ -18,7 +22,7 @@ module simulatorPTU1 'modules/simulatorInstance.bicep' = {
   params: {
     location: location
     uniqueUserName: uniqueUserName
-    simulatorApiKey: '' // TODO need to generate and pass in
+    simulatorApiKey: simulatorApiKey
     apiSimulatorNameSuffix: 'ptu1'
     simulatorMode: 'generate'
     extensionPath: '' // no extensions used currently
@@ -37,7 +41,7 @@ module simulatorPAYG1 'modules/simulatorInstance.bicep' = {
   params: {
     location: location
     uniqueUserName: uniqueUserName
-    simulatorApiKey: '' // TODO need to generate and pass in
+    simulatorApiKey: simulatorApiKey
     apiSimulatorNameSuffix: 'payg1'
     simulatorMode: 'generate'
     extensionPath: '' // no extensions used currently
@@ -56,7 +60,7 @@ module simulatorPAYG2 'modules/simulatorInstance.bicep' = {
   params: {
     location: location
     uniqueUserName: uniqueUserName
-    simulatorApiKey: '' // TODO need to generate and pass in
+    simulatorApiKey: simulatorApiKey
     apiSimulatorNameSuffix: 'payg2'
     simulatorMode: 'generate'
     extensionPath: '' // no extensions used currently

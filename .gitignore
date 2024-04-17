@@ -2,3 +2,5 @@ output.json
 output-simulator-base.json
 output-simulators.json
 azuredeploy.parameters.json
+
+scripts/simulator/
