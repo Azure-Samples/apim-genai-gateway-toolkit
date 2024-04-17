@@ -17,20 +17,26 @@ help()
       echo "    deploy-bicep.sh : Will deploy all required services services."
       echo ""
       echo "Arguments"
-      echo "    --username, -u      : REQUIRED: Unique name to assign in all deployed services, your high school hotmail alias is a great idea!"
-      echo "    --location, -l      : REQUIRED: Azure region to deploy to"
+      echo "    --username, -u            : REQUIRED: Unique name to assign in all deployed services, your high school hotmail alias is a great idea!"
+      echo "    --location, -l            : REQUIRED: Azure region to deploy to"
+      echo "    --ptuEndpoint1, -x        : REQUIRED: Base url of first AOAI PTU deployment"
+      echo "    --paygEndpoint1, -y       : REQUIRED: Base url of first AOAI PAYG deployment"
+      echo "    --paygEndpoint2, -z       : REQUIRED: Base url of second AOAI PAYG deployment"
       echo ""
       exit 1
 }
 
-SHORT=u:,l:,h
-LONG=username:,location:,help
+SHORT=u:,l:,x:,y:,z:,h
+LONG=username:,location:,ptuEndpoint1:,paygEndpoint1:,paygEndpoint2:,help
 OPTS=$(getopt -a -n files --options $SHORT --longoptions $LONG -- "$@")
 
 eval set -- "$OPTS"
 
 USERNAME=''
 LOCATION=''
+PTUENDPOINT1=''
+PAYGENDPOINT1=''
+PAYGENDPOINT2=''
 
 while :
 do
@@ -41,6 +47,18 @@ do
       ;;
     -l | --location )
       LOCATION="$2"
+      shift 2
+      ;;
+    -x | --ptuEndpoint1 )
+      PTUENDPOINT1="$2"
+      shift 2
+      ;;
+    -y | --paygEndpoint1 )
+      PAYGENDPOINT1="$2"
+      shift 2
+      ;;
+    -z | --paygEndpoint2 )
+      PAYGENDPOINT2="$2"
       shift 2
       ;;
     -h | --help)
@@ -66,6 +84,21 @@ if [[ ${#LOCATION} -eq 0 ]]; then
   exit 6
 fi
 
+if [[ ${#PTUENDPOINT1} -eq 0 ]]; then
+  echo 'ERROR: Missing required parameter --ptuEndpoint1 | -x' 1>&2
+  exit 6
+fi
+
+if [[ ${#PAYGENDPOINT1} -eq 0 ]]; then
+  echo 'ERROR: Missing required parameter --paygEndpoint1 | -y' 1>&2
+  exit 6
+fi
+
+if [[ ${#PAYGENDPOINT2} -eq 0 ]]; then
+  echo 'ERROR: Missing required parameter --paygEndpoint2 | -z' 1>&2
+  exit 6
+fi
+
 cat << EOF > "$script_dir/../infra/azuredeploy.parameters.json"
 {
   "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
@@ -76,6 +109,15 @@ cat << EOF > "$script_dir/../infra/azuredeploy.parameters.json"
     },
     "uniqueUserName": {
       "value": "${USERNAME}"
+    },
+    "ptuDeploymentOneBaseUrl": {
+      "value": "${PTUENDPOINT1}"
+    },
+    "payAsYouGoDeploymentOneBaseUrl": {
+      "value": "${PAYGENDPOINT1}"
+    },
+    "payAsYouGoDeploymentTwoBaseUrl": {
+      "value": "${PAYGENDPOINT2}"
     }
   }
 }

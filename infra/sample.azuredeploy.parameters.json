@@ -7,6 +7,15 @@
     },
     "uniqueUserName": {
       "value": "myusername"
+    },
+    "ptuDeploymentOneBaseUrl": {
+      "value": "https://openaiptu1deployment.azurewebsites.net"
+    },
+    "payAsYouGoDeploymentOneBaseUrl": {
+      "value": "https://openaipayg1deployment.azurewebsites.net"
+    },
+    "payAsYouGoDeploymentTwoBaseUrl": {
+      "value": "https://openaipayg2deployment.azurewebsites.net"
     }
   }
 }
