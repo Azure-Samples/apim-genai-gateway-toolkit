@@ -32,4 +32,5 @@ module apiManagement 'modules/apiManagement.bicep' = {
   }
 }
 
-output apiManagementName string = apiManagement.outputs.apiManagementServiceName
+output apimResourceGroupName string = apimResourceGroupName
+output apimName string = apimName

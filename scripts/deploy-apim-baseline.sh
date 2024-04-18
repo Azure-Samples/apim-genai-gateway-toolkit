@@ -59,3 +59,5 @@ output=$(az deployment sub create \
   --output json)
 echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../infra/apim-baseline/output.json"
 echo -e "\n"
+
+echo "Bicep deployment completed"
