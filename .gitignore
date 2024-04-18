@@ -1,2 +1,3 @@
 /output.json
-/infra/azuredeploy.parameters.json
+/infra/*/azuredeploy.parameters.json
+.env
