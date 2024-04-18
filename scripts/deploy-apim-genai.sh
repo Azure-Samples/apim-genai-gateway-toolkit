@@ -41,7 +41,7 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
         "value": "${API_MANAGEMENT_SERVICE_NAME}"
     },
     "ptuDeploymentOneBaseUrl": {
-        "value": "${PAYG_DEPLOYMENT_1_BASE_URL}"
+        "value": "${PTU_DEPLOYMENT_1_BASE_URL}"
     },
     "payAsYouGoDeploymentOneBaseUrl": {
         "value": "${PAYG_DEPLOYMENT_1_BASE_URL}"
