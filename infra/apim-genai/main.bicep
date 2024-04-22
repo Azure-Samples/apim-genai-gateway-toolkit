@@ -1,10 +1,7 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
-@description('Specifies the supported Azure location (region) where the resources will be deployed')
-param location string
-
-@description('This value will explain who is the author of specific resources and will be reflected in every deployed tool')
-param uniqueUserName string
+@description('The name of the API Management service instance')
+param apiManagementServiceName string
 
 @description('The base url of the first Azure Open AI Service PTU deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param ptuDeploymentOneBaseUrl string
@@ -15,24 +12,10 @@ param payAsYouGoDeploymentOneBaseUrl string
 @description('The base url of the second Azure Open AI Service Pay-As-You-Go deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param payAsYouGoDeploymentTwoBaseUrl string
 
-var resourceGroupName = 'rg-${uniqueUserName}'
-var apiManagementName = 'apim-${uniqueUserName}'
-
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: resourceGroupName
-  location: location
-}
-
 module apiManagement 'modules/apiManagement.bicep' = {
   name: 'apiManagementDeploy'
-  scope: resourceGroup
   params: {
-    location: resourceGroup.location
-    apiManagementServiceName: apiManagementName
-    sku: 'Developer'
-    skuCount: 1
-    publisherName: uniqueUserName
-    publisherEmail: '${uniqueUserName}@microsoft.com'
+    apiManagementServiceName: apiManagementServiceName
     ptuDeploymentOneBaseUrl: ptuDeploymentOneBaseUrl
     payAsYouGoDeploymentOneBaseUrl: payAsYouGoDeploymentOneBaseUrl
     payAsYouGoDeploymentTwoBaseUrl: payAsYouGoDeploymentTwoBaseUrl
