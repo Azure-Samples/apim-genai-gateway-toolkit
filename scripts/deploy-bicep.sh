@@ -197,7 +197,6 @@ EOF
   # Deploy simulator instances
   #
 
-
   cd "$script_dir/../infra/"
 cat << EOF > "$script_dir/../infra/azuredeploy.parameters.json"
 {
@@ -230,7 +229,7 @@ EOF
     --output json \
     | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../output-simulators.json"
 
-  echo "Simulator base bicep deployment ($deployment_name) starting..."
+  echo "Simulator base bicep deployment ($deployment_name) completed"
 
   #
   # Get simulator endpoints to use in APIM deployment
