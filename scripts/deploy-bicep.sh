@@ -23,7 +23,7 @@ help()
     echo "    --paygEndpoint1, -y       : Base url of first AOAI PAYG deployment (required if --use-simulator is not set)"
     echo "    --paygEndpoint2, -z       : Base url of second AOAI PAYG deployment (required if --use-simulator is not set)"
     echo "    --use-simulator           : Use simulated AOAI endpoints"
-    echo "    --simulator-api-key,      : API key to use for calling the simulator (generate using generate-api-key.sh)"
+    echo "    --simulator-api-key,      : API key to use for calling the simulator (if blank a key will be generated and stored in generated-keys.json)"
     echo ""
     exit 1
 }
@@ -111,16 +111,29 @@ if [[ ${USE_SIMULATOR} -eq 0 ]]; then
   fi
 fi
 
+# Ensure output-keys.json exists and add empty JSON object if not
+if [[ ! -f "$script_dir/../generated-keys.json" ]]; then
+  echo "{}" > "$script_dir/../generated-keys.json"
+fi
+
 
 if [[ ${USE_SIMULATOR} -eq 1 ]]; then
-  
-  if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
-    echo 'ERROR: Missing required parameter --simulator-api-key' 1>&2
-    exit 6
-  fi
-
   echo "Using OpenAI API Simulator"
   
+  # if key passed, use and write out
+  # if key not passed, load from file and generate if not present
+  if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
+    SIMULATOR_API_KEY=$(jq -r .simulatorApiKey < "$script_dir/../generated-keys.json")
+    if [[ "${SIMULATOR_API_KEY}" == "null" ]] || [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
+      echo 'SIMULATOR_API_KEY not set and no stored value found - generating key'
+      SIMULATOR_API_KEY=$(bash "$script_dir/generate-api-key.sh")
+    else
+      echo "Loaded SIMULATOR_API_KEY from generated-keys.json"
+    fi
+    jq ".simulatorApiKey = \"${SIMULATOR_API_KEY}\"" < "$script_dir/../generated-keys.json" > "/tmp/generated-keys.json"
+    cp "/tmp/generated-keys.json" "$script_dir/../generated-keys.json"
+  fi
+
   #
   # Clone simulator
   #
