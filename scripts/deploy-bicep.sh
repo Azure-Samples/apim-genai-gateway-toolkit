@@ -111,6 +111,15 @@ if [[ ${USE_SIMULATOR} -eq 0 ]]; then
   fi
 fi
 
+#
+# This script uses a number of files to store generated keys and outputs from the deployment:
+# - generated-keys.json: stores generated keys (e.g. API Key for the API simulator)
+# - output-simulator-base.json: stores the output from the base simulator deployment (e.g. container registry details)
+# - output-simulators.json: stores the output from the simulator instances deployment (e.g. simulator endpoints)
+# - output.json: stores the output from the main deployment (e.g. APIM endpoints)
+#
+
+
 # Ensure output-keys.json exists and add empty JSON object if not
 if [[ ! -f "$script_dir/../generated-keys.json" ]]; then
   echo "{}" > "$script_dir/../generated-keys.json"
@@ -138,11 +147,17 @@ if [[ ${USE_SIMULATOR} -eq 1 ]]; then
   # Clone simulator
   #
   simulator_path="$script_dir/simulator"
+  simulator_tag=v0.1
   if [[ -d "$simulator_path" ]]; then
     echo "Simulator folder already exists - skipping clone."
   else
     echo "Cloning simulator..."
-    git clone https://github.com/stuartleeks/aoai-simulated-api "$simulator_path"
+    git clone \
+      --depth 1 \
+      --branch $simulator_tag \
+      --config advice.detachedHead=false \
+      https://github.com/stuartleeks/aoai-simulated-api \
+      "$simulator_path"
     echo -e "\n*\n" > "$simulator_path/.gitignore"
   fi
 
@@ -183,7 +198,6 @@ EOF
   # Build and push docker image
   #
   echo "Building simulator docker image..."
-
   acr_login_server=$(cat "$script_dir/../output-simulator-base.json"  | jq -r .containerRegistryLoginServer)
   if [[ -z "$acr_login_server" ]]; then
     echo "Container registry login server not found in output.json"
@@ -204,7 +218,26 @@ EOF
 
   echo -e "\n"
 
-  # TODO: upload simulator deployment config files to file share
+  
+  #
+  # Upload simulator deployment config files to file share
+  #
+  echo "Uploading simulator config files to file share..."
+  storage_account_name=$(cat $script_dir/../output-simulator-base.json  | jq -r .storageAccountName)
+  if [[ -z "$storage_account_name" ]]; then
+    echo "Storage account name (storageAccountName) not found in output-simulator-base.json"
+    exit 1
+  fi
+
+  file_share_name=$(cat $script_dir/../output-simulator-base.json  | jq -r .fileShareName)
+  if [[ -z "$file_share_name" ]]; then
+    echo "File share name (fileShareName) not found in output-simulator-base.json"
+    exit 1
+  fi
+
+  storage_key=$(az storage account keys list --account-name "$storage_account_name" -o tsv --query '[0].value')
+
+  az storage file upload-batch --destination "$file_share_name" --source "$script_dir/../infra/simulator_file_content" --account-name "$storage_account_name" --account-key "$storage_key"
 
   #
   # Deploy simulator instances

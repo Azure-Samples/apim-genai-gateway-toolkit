@@ -27,7 +27,7 @@ module simulatorPTU1 'modules/simulatorInstance.bicep' = {
     simulatorMode: 'generate'
     extensionPath: '' // no extensions used currently
     logLevel: 'INFO'
-    openAIDeploymentConfigPath:'' // TODO: pass this in once we are uploading
+    openAIDeploymentConfigPath:'/mnt/simulator/simulator_deployment_config.json'
     azureOpenAIEndpoint:'' // only needed for record mode
     azureOpenAIKey:'' // only needed for record mode
     recordingAutoSave: 'false' // only needed for record mode
@@ -46,7 +46,7 @@ module simulatorPAYG1 'modules/simulatorInstance.bicep' = {
     simulatorMode: 'generate'
     extensionPath: '' // no extensions used currently
     logLevel: 'INFO'
-    openAIDeploymentConfigPath:'' // TODO: pass this in once we are uploading
+    openAIDeploymentConfigPath:'/mnt/simulator/simulator_deployment_config.json'
     azureOpenAIEndpoint:'' // only needed for record mode
     azureOpenAIKey:'' // only needed for record mode
     recordingAutoSave: 'false' // only needed for record mode
@@ -65,7 +65,7 @@ module simulatorPAYG2 'modules/simulatorInstance.bicep' = {
     simulatorMode: 'generate'
     extensionPath: '' // no extensions used currently
     logLevel: 'INFO'
-    openAIDeploymentConfigPath:'' // TODO: pass this in once we are uploading
+    openAIDeploymentConfigPath:'/mnt/simulator/simulator_deployment_config.json'
     azureOpenAIEndpoint:'' // only needed for record mode
     azureOpenAIKey:'' // only needed for record mode
     recordingAutoSave: 'false' // only needed for record mode
