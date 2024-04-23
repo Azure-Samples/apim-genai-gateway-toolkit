@@ -1,0 +1,45 @@
+<fragment>
+    <rate-limit-by-key calls="500"
+        renewal-period="60"
+        counter-key="GlobalTokensLimit"
+        increment-condition="@(context.Response.StatusCode >= 200 && context.Response.StatusCode < 400)"
+        increment-count="@(context.Response.Body.As<JObject>(true).SelectToken("usage.total_tokens").ToObject<int>())"
+        remaining-calls-variable-name="globalRemainingTokens"
+        remaining-calls-header-name="globalRemainingTokens"
+        total-calls-header-name="globalTotalTokens" />
+
+    <choose>
+        <when condition="@(context.Request.Headers.ContainsKey("x-higher-limit"))">
+            <rate-limit-by-key calls="@{
+                var defaultTokens = 300;
+                if (context.Variables["globalRemainingTokens"] is int globalRemainingTokens && globalRemainingTokens > 0)
+                {
+                    defaultTokens += (int)(globalRemainingTokens * 0.1); 
+                }
+                return defaultTokens;
+                }"
+                renewal-period="60"
+                counter-key="highRateLimitSvc"
+                increment-condition="@(context.Response.StatusCode >= 200 && context.Response.StatusCode < 400)"
+                increment-count="@(context.Response.Body.As<JObject>(true).SelectToken("usage.total_tokens").ToObject<int>())"
+                remaining-calls-header-name="remainingHighRateLimit"
+                total-calls-header-name="totakHighRateLimit" />
+        </when>
+        <otherwise>
+            <rate-limit-by-key calls="@{
+                var defaultTokens = 100;
+                if (context.Variables["globalRemainingTokens"] is int globalRemainingTokens && globalRemainingTokens > 0)
+                {
+                    defaultTokens += (int)(globalRemainingTokens * 0.1); 
+                }
+                return defaultTokens;
+                }"
+                renewal-period="60"
+                counter-key="lowRateLimitSvc"
+                increment-condition="@(context.Response.StatusCode >= 200 && context.Response.StatusCode < 400)"
+                increment-count="@(context.Response.Body.As<JObject>(true).SelectToken("usage.total_tokens").ToObject<int>())"
+                remaining-calls-header-name="remainingLowRateLimit"
+                total-calls-header-name="totalLowRateLimit" />
+        </otherwise>
+
+    </fragment>
