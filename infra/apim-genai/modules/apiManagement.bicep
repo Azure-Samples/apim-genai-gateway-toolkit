@@ -44,7 +44,17 @@ resource azureOpenAIRetryWithPayAsYouGoAPI 'Microsoft.ApiManagement/service/apis
   }
 }
 
-var apiNames = [azureOpenAISimpleRoundRobinAPI.name, azureOpenAIWeightedRoundRobinAPI.name, azureOpenAIRetryWithPayAsYouGoAPI.name]
+resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-rate-limting'
+  properties: {
+    path: '/rate-limiting'
+    displayName: 'AOAIAPI-RateLimiting'
+    protocols: ['https']
+  }
+}
+
+var apiNames = [azureOpenAISimpleRoundRobinAPI.name, azureOpenAIWeightedRoundRobinAPI.name, azureOpenAIRetryWithPayAsYouGoAPI.name, azureOpenAIAdaptiveRateLimitingAPI.name]
 
 resource embeddingsOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = [for apiName in apiNames: {
   name: '${apiManagementServiceName}/${apiName}/embeddings'
@@ -110,6 +120,26 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
 }
+
+resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'adaptive-rate-limiting'
+  properties: {
+    value: loadTextContent('../../../policies/rate-limiting/adaptive-rate-limiting.xml')
+    format: 'rawxml'
+  }
+}
+
+resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIAdaptiveRateLimitingAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../policies/rate-limiting/policy-adaptive-rate-limiting.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [payAsYouGoEndpointOneNamedValue]
+}
+
 
 resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
   parent: azureOpenAIRetryWithPayAsYouGoAPI
