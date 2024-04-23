@@ -21,6 +21,8 @@ resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@20
     path: '/simple-round-robin'
     displayName: 'AOAIAPI-SimpleRoundRobin'
     protocols: ['https']
+    value: loadTextContent('../../openapi-spec.json')
+    format: 'openapi+json' 
   }
 }
 
@@ -31,6 +33,8 @@ resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@
     path: '/weighted-round-robin'
     displayName: 'AOAIAPI-WeightedRoundRobin'
     protocols: ['https']
+    value: loadTextContent('../../openapi-spec.json')
+    format: 'openapi+json' 
   }
 }
 
@@ -41,6 +45,8 @@ resource azureOpenAIRetryWithPayAsYouGoAPI 'Microsoft.ApiManagement/service/apis
     path: '/retry-with-payg'
     displayName: 'AOAIAPI-RetryWithPayAsYouGo'
     protocols: ['https']
+    value: loadTextContent('../../openapi-spec.json')
+    format: 'openapi+json' 
   }
 }
 
@@ -51,37 +57,10 @@ resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/api
     path: '/rate-limiting'
     displayName: 'AOAIAPI-RateLimiting'
     protocols: ['https']
+    value: loadTextContent('../../openapi-spec.json')
+    format: 'openapi+json' 
   }
 }
-
-var apiNames = [azureOpenAISimpleRoundRobinAPI.name, azureOpenAIWeightedRoundRobinAPI.name, azureOpenAIRetryWithPayAsYouGoAPI.name, azureOpenAIAdaptiveRateLimitingAPI.name]
-
-resource embeddingsOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = [for apiName in apiNames: {
-  name: '${apiManagementServiceName}/${apiName}/embeddings'
-  properties: {
-    displayName: 'embeddings'
-    method: 'POST'
-    urlTemplate: '/embeddings'
-  }
-}]
-
-resource completionsOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = [for apiName in apiNames: {
-  name: '${apiManagementServiceName}/${apiName}/completions'
-  properties: {
-    displayName: 'completions'
-    method: 'POST'
-    urlTemplate: '/completions'
-  }
-}]
-
-resource chatOperation 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' = [for apiName in apiNames: {
-  name: '${apiManagementServiceName}/${apiName}/chat-completions'
-  properties: {
-    displayName: 'chatCompletions'
-    method: 'POST'
-    urlTemplate: '/chat/completions'
-  }
-}]
 
 resource azureOpenAISimpleRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
   parent: azureOpenAISimpleRoundRobinAPI
