@@ -8,29 +8,282 @@ if [[ -f "$script_dir/../.env" ]]; then
 	source "$script_dir/../.env"
 fi
 
-if [[ ${#PTU_DEPLOYMENT_1_BASE_URL} -eq 0 ]]; then
-  echo 'ERROR: Missing environment variable PTU_DEPLOYMENT_1_BASE_URL' 1>&2
-  exit 6
-else
-  PTU_DEPLOYMENT_1_BASE_URL="${PTU_DEPLOYMENT_1_BASE_URL%$'\r'}"
+cd "$script_dir/../infra/apim-genai"
+
+if [[ "${USE_SIMULATOR}" != "true" ]]; then
+  if [[ ${#PTU_DEPLOYMENT_1_BASE_URL} -eq 0 ]]; then
+    echo 'ERROR: Missing environment variable PTU_DEPLOYMENT_1_BASE_URL' 1>&2
+    exit 6
+  else
+    PTU_DEPLOYMENT_1_BASE_URL="${PTU_DEPLOYMENT_1_BASE_URL%$'\r'}"
+  fi
+
+  if [[ ${#PAYG_DEPLOYMENT_1_BASE_URL} -eq 0 ]]; then
+    echo 'ERROR: Missing environment variable PAYG_DEPLOYMENT_1_BASE_URL' 1>&2
+    exit 6
+  else
+    PAYG_DEPLOYMENT_1_BASE_URL="${PAYG_DEPLOYMENT_1_BASE_URL%$'\r'}"  
+  fi
+
+  if [[ ${#PAYG_DEPLOYMENT_2_BASE_URL} -eq 0 ]]; then
+    echo 'ERROR: Missing environment variable PAYG_DEPLOYMENT_2_BASE_URL' 1>&2
+    exit 6
+  else
+    PAYG_DEPLOYMENT_2_BASE_URL="${PAYG_DEPLOYMENT_2_BASE_URL%$'\r'}"  
+  fi
 fi
 
-if [[ ${#PAYG_DEPLOYMENT_1_BASE_URL} -eq 0 ]]; then
-  echo 'ERROR: Missing environment variable PAYG_DEPLOYMENT_1_BASE_URL' 1>&2
-  exit 6
-else
-  PAYG_DEPLOYMENT_1_BASE_URL="${PAYG_DEPLOYMENT_1_BASE_URL%$'\r'}"  
+
+#
+# This script uses a number of files to store generated keys and outputs from the deployment:
+# - generated-keys.json: stores generated keys (e.g. API Key for the API simulator)
+# - output-simulator-base.json: stores the output from the base simulator deployment (e.g. container registry details)
+# - output-simulators.json: stores the output from the simulator instances deployment (e.g. simulator endpoints)
+# - output.json: stores the output from the main deployment (e.g. APIM endpoints)
+#
+
+RESOURCE_GROUP_NAME=$(jq -r '.apimResourceGroupName // ""' < "$script_dir/../infra/apim-baseline/output.json")
+API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$script_dir/../infra/apim-baseline/output.json")
+
+
+# Ensure output-keys.json exists and add empty JSON object if not
+if [[ ! -f "$script_dir/../generated-keys.json" ]]; then
+  echo "{}" > "$script_dir/../generated-keys.json"
 fi
 
-if [[ ${#PAYG_DEPLOYMENT_2_BASE_URL} -eq 0 ]]; then
-  echo 'ERROR: Missing environment variable PAYG_DEPLOYMENT_2_BASE_URL' 1>&2
-  exit 6
-else
-  PAYG_DEPLOYMENT_2_BASE_URL="${PAYG_DEPLOYMENT_2_BASE_URL%$'\r'}"  
+
+if [[ "${USE_SIMULATOR}" == "true" ]]; then
+  echo "Using OpenAI API Simulator"
+
+  output_simulator_base="$script_dir/../infra/apim-genai/output-simulator-base.json"
+  output_simulators="$script_dir/../infra/apim-genai/output-simulators.json"
+  
+  # if key passed, use and write out
+  # if key not passed, load from file and generate if not present
+  if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
+    SIMULATOR_API_KEY=$(jq -r '.simulatorApiKey // ""' < "$script_dir/../generated-keys.json")
+    if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
+      echo 'SIMULATOR_API_KEY not set and no stored value found - generating key'
+      SIMULATOR_API_KEY=$(bash "$script_dir/generate-api-key.sh")
+    else
+      echo "Loaded SIMULATOR_API_KEY from generated-keys.json"
+    fi
+    jq ".simulatorApiKey = \"${SIMULATOR_API_KEY}\"" < "$script_dir/../generated-keys.json" > "/tmp/generated-keys.json"
+    cp "/tmp/generated-keys.json" "$script_dir/../generated-keys.json"
+  fi
+
+  #
+  # Clone simulator
+  #
+  simulator_path="$script_dir/simulator"
+  simulator_tag=v0.1
+  if [[ -d "$simulator_path" ]]; then
+    echo "Simulator folder already exists - skipping clone."
+  else
+    echo "Cloning simulator..."
+    git clone \
+      --depth 1 \
+      --branch $simulator_tag \
+      --config advice.detachedHead=false \
+      https://github.com/stuartleeks/aoai-simulated-api \
+      "$simulator_path"
+    echo -e "\n*\n" > "$simulator_path/.gitignore"
+  fi
+
+  #
+  # Deploy simulator base resources
+  #
+
+
+cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
+{
+  "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourceGroupName" : {
+      "value": "${RESOURCE_GROUP_NAME}"
+    },
+    "workloadName" :{ 
+        "value": "${RESOURCE_NAME_PREFIX}"
+    },
+    "environment" :{ 
+        "value": "${ENVIRONMENT_TAG}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    }
+  }
+}
+EOF
+  echo "Simulator base bicep parameters file created"
+
+  deployment_name="deployment-${RESOURCE_NAME_PREFIX}-sim-base"
+  echo "Simulator base bicep deployment ($deployment_name) starting..."
+  az deployment sub create \
+    --location "$AZURE_LOCATION" \
+    --template-file base.bicep \
+    --name "$deployment_name" \
+    --parameters azuredeploy.parameters.json \
+    --output json \
+    | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
+    if [[ "$(cat $output_simulator_base)" == "" ]]; then
+      echo "Simulator base bicep deployment ($deployment_name) failed"
+      exit 6
+    fi
+
+
+  #
+  # Build and push docker image
+  #
+  echo "Building simulator docker image..."
+  acr_login_server=$(cat $output_simulator_base  | jq -r '.containerRegistryLoginServer // ""')
+  if [[ -z "$acr_login_server" ]]; then
+    echo "Container registry login server not found in output-simulator-base.json"
+    exit 1
+  fi
+  acr_name=$(cat $output_simulator_base  | jq -r '.containerRegistryName // ""')
+  if [[ -z "$acr_name" ]]; then
+    echo "Container registry name not found in output-simulator-base.json"
+    exit 1
+  fi
+
+  src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
+
+  docker build -t ${acr_login_server}/aoai-simulated-api:latest "$src_path" -f "$src_path/Dockerfile"
+
+  az acr login --name $acr_name
+  docker push ${acr_login_server}/aoai-simulated-api:latest
+
+  echo -e "\n"
+
+  
+  #
+  # Upload simulator deployment config files to file share
+  #
+  echo "Uploading simulator config files to file share..."
+  storage_account_name=$(cat $output_simulator_base  | jq -r '.storageAccountName // ""')
+  if [[ -z "$storage_account_name" ]]; then
+    echo "Storage account name (storageAccountName) not found in output-simulator-base.json"
+    exit 1
+  fi
+
+  file_share_name=$(cat $output_simulator_base  | jq -r '.fileShareName // ""')
+  if [[ -z "$file_share_name" ]]; then
+    echo "File share name (fileShareName) not found in output-simulator-base.json"
+    exit 1
+  fi
+
+  storage_key=$(az storage account keys list --account-name "$storage_account_name" -o tsv --query '[0].value')
+
+  az storage file upload-batch --destination "$file_share_name" --source "$script_dir/../infra/apim-genai/simulator_file_content" --account-name "$storage_account_name" --account-key "$storage_key"
+
+  #
+  # Deploy simulator instances
+  #
+
+  key_vault_name=$(cat $output_simulator_base  | jq -r '.keyVaultName // ""')
+  if [[ -z "$key_vault_name" ]]; then
+    echo "Key vault name (keyVaultName) not found in output-simulator-base.json"
+    exit 1
+  fi
+  app_insights_name=$(cat $output_simulator_base  | jq -r '.appInsightsName // ""')
+  if [[ -z "$app_insights_name" ]]; then
+    echo "App Insights name (appInsightsName) not found in output-simulator-base.json"
+    exit 1
+  fi
+  container_app_env_name=$(cat $output_simulator_base  | jq -r '.containerAppEnvName // ""')
+  if [[ -z "$container_app_env_name" ]]; then
+    echo "Container app env name (containerAppEnvName) not found in output-simulator-base.json"
+    exit 1
+  fi
+
+cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
+{
+  "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourceGroupName" : {
+      "value": "${RESOURCE_GROUP_NAME}"
+    },
+    "workloadName" :{ 
+        "value": "${RESOURCE_NAME_PREFIX}"
+    },
+    "environment" :{ 
+        "value": "${ENVIRONMENT_TAG}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "simulatorApiKey": {
+      "value": "${SIMULATOR_API_KEY}"
+    },
+    "containerAppEnvName": {
+      "value": "${container_app_env_name}"
+    },
+    "containerRegistryName": {
+      "value": "${acr_name}"
+    },
+    "keyVaultName": {
+      "value": "${key_vault_name}"
+    },
+    "storageAccountName": {
+      "value": "${storage_account_name}"
+    },
+    "appInsightsName": {
+      "value": "${app_insights_name}"
+    }
+  }
+}
+EOF
+  echo "Simulators bicep parameters file created"
+
+  cd "$script_dir/../infra/apim-genai"
+
+  deployment_name="deployment-${RESOURCE_NAME_PREFIX}-sims"
+  echo "Simulator base bicep deployment ($deployment_name) starting..."
+  az deployment sub create \
+    --location "$AZURE_LOCATION" \
+    --template-file simulators.bicep \
+    --name "$deployment_name" \
+    --parameters azuredeploy.parameters.json \
+    --output json \
+    | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
+    if [[ "$(cat $output_simulator_base)" == "" ]]; then
+      echo "Simulators bicep deployment ($deployment_name) failed"
+      exit 6
+    fi
+  echo "Simulators bicep deployment ($deployment_name) completed"
+
+  #
+  # Get simulator endpoints to use in APIM deployment
+  #
+  ptu1_fqdn=$(cat "$output_simulators"  | jq -r '.ptu1Fqdn // ""')
+  if [[ -z "${ptu1_fqdn}" ]]; then
+    echo "PTU1 Endpoint not found in simulator deployment output"
+    exit 1
+  fi
+  PTU_DEPLOYMENT_1_BASE_URL="https://${ptu1_fqdn}"
+  
+  payg1_fqdn=$(cat "$output_simulators"  | jq -r '.payg1Fqdn // ""')
+  if [[ -z "${payg1_fqdn}" ]]; then
+    echo "PAYG1 Endpoint not found in simulator deployment output"
+    exit 1
+  fi
+  PAYG_DEPLOYMENT_1_BASE_URL="https://${payg1_fqdn}"
+
+  payg2_fqdn=$(cat "$output_simulators"  | jq -r '.payg2Fqdn // ""')
+  if [[ -z "${payg2_fqdn}" ]]; then
+    echo "PAYG2 Endpoint not found in simulator deployment output"
+    exit 1
+  fi
+  PAYG_DEPLOYMENT_2_BASE_URL="https://${payg2_fqdn}"
+
 fi
 
-RESOURCE_GROUP_NAME=$(jq -r ".apimResourceGroupName" "$script_dir/../infra/apim-baseline/output.json")
-API_MANAGEMENT_SERVICE_NAME=$(jq -r ".apimName" "$script_dir/../infra/apim-baseline/output.json")
+
+#
+# Deploy APIM policies etc
+#
 
 cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
 {

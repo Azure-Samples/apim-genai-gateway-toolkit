@@ -39,6 +39,7 @@ Once that is done, open the repository in Visual Studio Code and select `Dev Con
 If you are manually installing the pre-requisites, you will need the following:
 
 - Azure CLI
+- Docker (if using the OpenAI API simulator)
 - a bash terminal (see [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install) if you are on Windows)
 
 

@@ -1,0 +1,42 @@
+{
+	"deployment1" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 60000
+	},
+	"gpt-35-turbo-1k-token" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 1000
+	},
+	"gpt-35-turbo-2k-token" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 2000
+	},
+	"gpt-35-turbo-5k-token" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 5000
+	},
+	"gpt-35-turbo-10k-token" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 10000
+	},
+	"gpt-35-turbo-20k-token" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 20000
+	},
+	"gpt-35-turbo-50k-token" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 50000
+	},
+	"gpt-35-turbo-100k-token" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 100000
+	},
+	"gpt-35-turbo-100m-token" : {
+		"model": "gpt-3.5-turbo",
+		"tokensPerMinute" : 100000000
+	},
+	"embedding" : {
+		"model": "text-embedding-ada-002",
+		"tokensPerMinute" : 10000
+	}
+}

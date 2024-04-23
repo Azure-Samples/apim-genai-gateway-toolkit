@@ -1,16 +1,19 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
-	"name": "Ubuntu",
+	"name": "APIM GenAI Gateway",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/base:jammy",
 	"features": {
-		"ghcr.io/devcontainers/features/azure-cli:1": {}
+		"ghcr.io/devcontainers/features/azure-cli:1": {},
+		"ghcr.io/devcontainers/features/docker-in-docker": {},
+		"ghcr.io/stuartleeks/dev-container-features/shell-history": {}
 	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"yzhang.markdown-all-in-one"
+				"yzhang.markdown-all-in-one",
+				"ms-azuretools.vscode-bicep"
 			]
 		}
 	}

@@ -29,6 +29,7 @@ module apiManagement 'modules/apiManagement.bicep' = {
   scope: resourceGroup
   params: {
     apiManagementServiceName: apimName
+    location: location
   }
 }
 
