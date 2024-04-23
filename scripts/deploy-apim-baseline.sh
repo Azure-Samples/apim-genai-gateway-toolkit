@@ -8,6 +8,8 @@ if [[ -f "$script_dir/../.env" ]]; then
 	source "$script_dir/../.env"
 fi
 
+cd  "$script_dir/../infra/apim-baseline"
+
 if [[ ${#AZURE_LOCATION} -eq 0 ]]; then
   echo 'ERROR: Missing environment variable AZURE_LOCATION' 1>&2
   exit 6
@@ -40,6 +42,9 @@ cat << EOF > "$script_dir/../infra/apim-baseline/azuredeploy.parameters.json"
     "environment" :{ 
         "value": "${ENVIRONMENT_TAG}"
     },
+    "location" :{ 
+        "value": "${AZURE_LOCATION}"
+    }
   }
 }
 EOF
@@ -47,7 +52,6 @@ EOF
 deployment_name="deployment-${RESOURCE_NAME_PREFIX}"
 
 echo "$deployment_name"
-cd  "$script_dir/../infra/apim-baseline"
 echo "=="
 echo "== Starting bicep deployment ${deployment_name}"
 echo "=="
