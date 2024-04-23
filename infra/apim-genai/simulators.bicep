@@ -3,14 +3,34 @@ targetScope = 'subscription'
 @description('Specifies the supported Azure location (region) where the resources will be deployed')
 param location string
 
-@description('This value will explain who is the author of specific resources and will be reflected in every deployed tool')
-param uniqueUserName string
+@description('A short name for the workload being deployed alphanumberic only')
+@maxLength(8)
+param workloadName string
+
+@description('The environment for which the deployment is being executed')
+@allowed([
+  'dev'
+  'uat'
+  'prod'
+  'dr'
+])
+param environment string
+
+@description('The name of the resource group to deploy into')
+param resourceGroupName string
+
+var resourceSuffix = '${workloadName}-${environment}'
+
 
 @description('The API key the simulator will use to authenticate requests')
 @secure()
 param simulatorApiKey string
 
-var resourceGroupName = 'rg-${uniqueUserName}'
+param containerAppEnvName string
+param containerRegistryName string
+param keyVaultName string
+param storageAccountName string
+param appInsightsName string
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
   name: resourceGroupName
@@ -21,7 +41,12 @@ module simulatorPTU1 'modules/simulatorInstance.bicep' = {
   name: 'simulatorPTU1'
   params: {
     location: location
-    uniqueUserName: uniqueUserName
+    resourceSuffix: resourceSuffix
+    containerAppEnvName: containerAppEnvName
+    containerRegistryName: containerRegistryName
+    keyVaultName: keyVaultName
+    storageAccountName: storageAccountName
+    appInsightsName: appInsightsName
     simulatorApiKey: simulatorApiKey
     apiSimulatorNameSuffix: 'ptu1'
     simulatorMode: 'generate'
@@ -40,7 +65,12 @@ module simulatorPAYG1 'modules/simulatorInstance.bicep' = {
   name: 'simulatorPAYG1'
   params: {
     location: location
-    uniqueUserName: uniqueUserName
+    resourceSuffix: resourceSuffix
+    containerAppEnvName: containerAppEnvName
+    containerRegistryName: containerRegistryName
+    keyVaultName: keyVaultName
+    storageAccountName: storageAccountName
+    appInsightsName: appInsightsName
     simulatorApiKey: simulatorApiKey
     apiSimulatorNameSuffix: 'payg1'
     simulatorMode: 'generate'
@@ -59,7 +89,12 @@ module simulatorPAYG2 'modules/simulatorInstance.bicep' = {
   name: 'simulatorPAYG2'
   params: {
     location: location
-    uniqueUserName: uniqueUserName
+    resourceSuffix: resourceSuffix
+    containerAppEnvName: containerAppEnvName
+    containerRegistryName: containerRegistryName
+    keyVaultName: keyVaultName
+    storageAccountName: storageAccountName
+    appInsightsName: appInsightsName
     simulatorApiKey: simulatorApiKey
     apiSimulatorNameSuffix: 'payg2'
     simulatorMode: 'generate'

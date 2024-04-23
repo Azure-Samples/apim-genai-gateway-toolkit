@@ -1,33 +1,6 @@
 @description('The name of the API Management service instance')
 param apiManagementServiceName string
 
-@description('The email address of the owner of the service')
-param publisherEmail string
-
-@description('The name of the owner of the service')
-param publisherName string
-
-@description('The pricing tier of this API Management service')
-@allowed([
-  'Consumption'
-  'Developer'
-  'Basic'
-  'Standard'
-  'Premium'
-])
-param sku string = 'Developer'
-
-@description('The instance size of this API Management service.')
-@allowed([
-  0
-  1
-  2
-])
-param skuCount int = 1
-
-@description('Location for all resources.')
-param location string = resourceGroup().location
-
 @description('The base url of the first Azure Open AI Service PTU deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param ptuDeploymentOneBaseUrl string
 
@@ -37,17 +10,8 @@ param payAsYouGoDeploymentOneBaseUrl string
 @description('The base url of the second Azure Open AI Service Pay-As-You-Go deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param payAsYouGoDeploymentTwoBaseUrl string
 
-resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
+resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-preview' existing = {
   name: apiManagementServiceName
-  location: location
-  sku: {
-    name: sku
-    capacity: skuCount
-  }
-  properties: {
-    publisherEmail: publisherEmail
-    publisherName: publisherName
-  }
 }
 
 resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
@@ -122,8 +86,7 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
   parent: apiManagementService
   name: 'simple-round-robin'
   properties: {
-    
-    value: loadTextContent('../../policies/load-balancing/simple-round-robin.xml')
+    value: loadTextContent('../../../policies/load-balancing/simple-round-robin.xml')
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
@@ -142,7 +105,7 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
   parent: apiManagementService
   name: 'weighted-round-robin'
   properties: {
-    value: loadTextContent('../../policies/load-balancing/weighted-round-robin.xml')
+    value: loadTextContent('../../../policies/load-balancing/weighted-round-robin.xml')
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
@@ -161,7 +124,7 @@ resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/poli
   parent: apiManagementService
   name: 'retry-with-payg'
   properties: {
-    value: loadTextContent('../../policies/manage-spikes-with-payg/retry-with-payg.xml')
+    value: loadTextContent('../../../policies/manage-spikes-with-payg/retry-with-payg.xml')
     format: 'rawxml'
   }
   dependsOn: [ptuEndpointOneNamedValue, payAsYouGoEndpointOneNamedValue]

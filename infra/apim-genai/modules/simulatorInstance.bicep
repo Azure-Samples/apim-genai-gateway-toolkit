@@ -8,7 +8,7 @@ targetScope = 'resourceGroup'
 param location string = resourceGroup().location
 
 @description('This value will explain who is the author of specific resources and will be reflected in every deployed tool')
-param uniqueUserName string
+param resourceSuffix string
 
 @description('The mode the simulator should run in')
 param simulatorMode string
@@ -35,15 +35,16 @@ param openAIDeploymentConfigPath string
 
 param logLevel string
 
-// extract these to a common module to have a single, shared place for these across base/main?
-var containerRegistryName = replace('aoaisim-${uniqueUserName}', '-', '')
-var keyVaultName = replace('aoaisim-${uniqueUserName}', '-', '')
-var storageAccountName = replace('aoaisim${uniqueUserName}', '-', '')
-var containerAppEnvName = 'aoaisim-${uniqueUserName}'
-var logAnalyticsName = 'aoaisim-${uniqueUserName}'
-var appInsightsName = 'aoaisim-${uniqueUserName}'
+param containerAppEnvName string
+param containerRegistryName string
+param keyVaultName string
+param storageAccountName string
+param appInsightsName string
 
-var apiSimulatorName = 'aoaisim-${uniqueUserName}-${apiSimulatorNameSuffix}'
+// extract these to a common module to have a single, shared place for these across base/main?
+
+
+var apiSimulatorName = 'aoaisim-${resourceSuffix}-${apiSimulatorNameSuffix}'
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -58,7 +59,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-12-01-pr
 resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
 }
-var keyVaultUri = vault.properties.vaultUri
+// var keyVaultUri = vault.properties.vaultUri
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
   name: storageAccountName

@@ -7,16 +7,16 @@
 @description('Specifies the supported Azure location (region) where the resources will be deployed')
 param location string = resourceGroup().location
 
-@description('This value will explain who is the author of specific resources and will be reflected in every deployed tool')
-param uniqueUserName string
+@description('Suffix to apply to created resources')
+param resourceSuffix string
 
 
-var containerRegistryName = replace('aoaisim-${uniqueUserName}', '-', '')
-var keyVaultName = replace('aoaisim-${uniqueUserName}', '-', '')
-var storageAccountName = replace('aoaisim${uniqueUserName}', '-', '')
-var containerAppEnvName = 'aoaisim-${uniqueUserName}'
-var logAnalyticsName = 'aoaisim-${uniqueUserName}'
-var appInsightsName = 'aoaisim-${uniqueUserName}'
+var containerRegistryName = replace('aoaisim-${resourceSuffix}', '-', '')
+var keyVaultName = replace('aoaisim-${resourceSuffix}', '-', '')
+var storageAccountName = replace('aoaisim${resourceSuffix}', '-', '')
+var containerAppEnvName = 'aoaisim-${resourceSuffix}'
+var logAnalyticsName = 'aoaisim-${resourceSuffix}'
+var appInsightsName = 'aoaisim-${resourceSuffix}'
 
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-12-01-preview' = {
@@ -123,4 +123,7 @@ output containerRegistryLoginServer string = containerRegistry.properties.loginS
 output containerRegistryName string = containerRegistry.name
 output storageAccountName string = storageAccount.name
 output fileShareName string = simulatorFileShare.name
-
+output keyVaultName string = vault.name
+output logAnalyticsName string = logAnalytics.name
+output appInsightsName string = appInsights.name
+output containerAppEnvName string = containerAppEnv.name
