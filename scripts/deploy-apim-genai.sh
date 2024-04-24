@@ -45,31 +45,33 @@ fi
 RESOURCE_GROUP_NAME=$(jq -r '.apimResourceGroupName // ""' < "$script_dir/../infra/apim-baseline/output.json")
 API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$script_dir/../infra/apim-baseline/output.json")
 
+output_generated_keys="$script_dir/../infra/apim-genai/generated-keys.json"
+output_simulator_base="$script_dir/../infra/apim-genai/output-simulator-base.json"
+output_simulators="$script_dir/../infra/apim-genai/output-simulators.json"
+
 
 # Ensure output-keys.json exists and add empty JSON object if not
-if [[ ! -f "$script_dir/../generated-keys.json" ]]; then
-  echo "{}" > "$script_dir/../generated-keys.json"
+if [[ ! -f "$output_generated_keys" ]]; then
+  echo "{}" > "$output_generated_keys"
 fi
 
 
 if [[ "${USE_SIMULATOR}" == "true" ]]; then
   echo "Using OpenAI API Simulator"
 
-  output_simulator_base="$script_dir/../infra/apim-genai/output-simulator-base.json"
-  output_simulators="$script_dir/../infra/apim-genai/output-simulators.json"
   
   # if key passed, use and write out
   # if key not passed, load from file and generate if not present
   if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
-    SIMULATOR_API_KEY=$(jq -r '.simulatorApiKey // ""' < "$script_dir/../generated-keys.json")
+    SIMULATOR_API_KEY=$(jq -r '.simulatorApiKey // ""' < "$output_generated_keys")
     if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
       echo 'SIMULATOR_API_KEY not set and no stored value found - generating key'
       SIMULATOR_API_KEY=$(bash "$script_dir/generate-api-key.sh")
     else
       echo "Loaded SIMULATOR_API_KEY from generated-keys.json"
     fi
-    jq ".simulatorApiKey = \"${SIMULATOR_API_KEY}\"" < "$script_dir/../generated-keys.json" > "/tmp/generated-keys.json"
-    cp "/tmp/generated-keys.json" "$script_dir/../generated-keys.json"
+    jq ".simulatorApiKey = \"${SIMULATOR_API_KEY}\"" < "$output_generated_keys" > "/tmp/generated-keys.json"
+    cp "/tmp/generated-keys.json" "$output_generated_keys"
   fi
 
   #
