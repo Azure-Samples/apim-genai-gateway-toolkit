@@ -59,7 +59,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-12-01-pr
 resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
 }
-// var keyVaultUri = vault.properties.vaultUri
+var keyVaultUri = vault.properties.vaultUri
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
   name: storageAccountName
@@ -172,23 +172,23 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
         targetPort: 8000
       }
       // TODO: include secrets in deployment (and update env vars with references)
-      // secrets: [
-      //   {
-      //     name: 'simulator-api-key'
-      //     keyVaultUrl: '${keyVaultUri}secrets/simulator-api-key-${apiSimulatorNameSuffix}'
-      //     identity: managedIdentity.id
-      //   }
-      //   {
-      //     name: 'azure-openai-key'
-      //     keyVaultUrl: '${keyVaultUri}secrets/azure-openai-key-${apiSimulatorNameSuffix}'
-      //     identity: managedIdentity.id
-      //   }
-      //   {
-      //     name: 'app-insights-connection-string'
-      //     keyVaultUrl: '${keyVaultUri}secrets/app-insights-connection-string-${apiSimulatorNameSuffix}'
-      //     identity: managedIdentity.id
-      //   }
-      // ]
+      secrets: [
+        {
+          name: 'simulator-api-key'
+          keyVaultUrl: '${keyVaultUri}secrets/simulator-api-key-${apiSimulatorNameSuffix}'
+          identity: managedIdentity.id
+        }
+        // {
+        //   name: 'azure-openai-key'
+        //   keyVaultUrl: '${keyVaultUri}secrets/azure-openai-key-${apiSimulatorNameSuffix}'
+        //   identity: managedIdentity.id
+        // }
+        {
+          name: 'app-insights-connection-string'
+          keyVaultUrl: '${keyVaultUri}secrets/app-insights-connection-string-${apiSimulatorNameSuffix}'
+          identity: managedIdentity.id
+        }
+      ]
       registries: [
         {
           identity: managedIdentity.id
@@ -206,7 +206,7 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
             memory: '2Gi'
           }
           env: [
-            // { name: 'SIMULATOR_API_KEY', secretRef: 'simulator-api-key' }
+            { name: 'SIMULATOR_API_KEY', secretRef: 'simulator-api-key' }
             { name: 'SIMULATOR_MODE', value: simulatorMode }
             { name: 'RECORDING_DIR', value: recordingDir }
             { name: 'RECORDING_AUTO_SAVE', value: recordingAutoSave }
@@ -215,7 +215,7 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
             // { name: 'AZURE_OPENAI_KEY', secretRef: 'azure-openai-key' }
             { name: 'OPENAI_DEPLOYMENT_CONFIG_PATH', value: openAIDeploymentConfigPath }
             { name: 'LOG_LEVEL', value: logLevel }
-            // { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'app-insights-connection-string' }
+            { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'app-insights-connection-string' }
             // Ensure cloudRoleName is set in telemetry
             // https://opentelemetry-python.readthedocs.io/en/latest/sdk/environment_variables.html#opentelemetry.sdk.environment_variables.OTEL_SERVICE_NAME
             { name: 'OTEL_SERVICE_NAME', value: apiSimulatorName }
