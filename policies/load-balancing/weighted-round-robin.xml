@@ -4,31 +4,39 @@
                 endpoints.Add(new JObject()
                 {
                     { "url", "{{payg-endpoint-1}}" },
+                    { "api-key", "{{payg-key-1}}" },
                     { "weight", 2 },
                 });
 
                 endpoints.Add(new JObject()
                 {
                     { "url", "{{payg-endpoint-2}}" },
+                    { "api-key", "{{payg-key-2}}" },
                     { "weight", 3 },
                 });
 
                 return endpoints;
             }" />
-	<set-variable name="selected-url" value="@{
-        var endpoints = (JArray)context.Variables["all-endpoints"];
+	<set-variable name="selected-index" value="@{
+            var endpoints = (JArray)context.Variables["all-endpoints"];
             var totalWeight = endpoints.Sum(e => (int)e["weight"]);
             var randomNumber = new Random().Next(totalWeight);
             var weightSum = 0;
-            foreach (var endpoint in endpoints)
+            for(int i = 0; i < endpoints.Count; i++)
             {
+                JObject endpoint = (JObject)endpoints[i];
                 weightSum += (int)endpoint["weight"];
                 if (randomNumber < weightSum)
                 {
-                    return endpoint["url"].ToString();
+                    return i;
                 }
             }
-            return endpoints[0]["url"].ToString();
+            return 0;
     }" />
+    <set-variable name="selected-url" value="@(((JObject)((JArray)context.Variables["all-endpoints"])[(Int32)context.Variables["selected-index"]]).Value<string>("url"))" />
+    <set-variable name="selected-api-key" value="@(((JObject)((JArray)context.Variables["all-endpoints"])[(Int32)context.Variables["selected-index"]]).Value<string>("api-key"))" />
+    <set-header name="api-key" exists-action="override">
+        <value>@(context.Variables.GetValueOrDefault<string>("selected-api-key", "none"))</value>
+    </set-header>
 	<set-backend-service base-url="@((string)context.Variables["selected-url"])" />
 </fragment>
