@@ -96,6 +96,7 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   # Deploy simulator base resources
   #
 
+  user_id=$(az ad signed-in-user show --output tsv --query id)
 
 cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
 {
@@ -113,6 +114,9 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
     },
     "location": {
       "value": "${AZURE_LOCATION}"
+    },
+    "additionalKeyVaulSecretReaderPrincipalId": {
+      "value": "${user_id}"
     }
   }
 }
@@ -128,11 +132,24 @@ EOF
     --parameters azuredeploy.parameters.json \
     --output json \
     | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
-    if [[ "$(cat $output_simulator_base)" == "" ]]; then
-      echo "Simulator base bicep deployment ($deployment_name) failed"
-      exit 6
-    fi
+  if [[ "$(cat $output_simulator_base)" == "" ]]; then
+    echo "Simulator base bicep deployment ($deployment_name) failed"
+    exit 6
+  fi
 
+  # if app insights key not stored, create and store
+  app_insights_name=$(cat $output_simulator_base  | jq -r '.appInsightsName // ""')
+  if [[ -z "$app_insights_name" ]]; then
+    echo "App Insights name (appInsightsName) not found in output-simulator-base.json"
+    exit 1
+  fi
+  app_insights_key=$(jq -r '.appInsightsKey // ""' < "$output_generated_keys")
+  if [[ ${#app_insights_key} -eq 0 ]]; then
+    echo 'Creating app insights key'
+    app_insights_key=$(az monitor app-insights api-key create  --resource-group $RESOURCE_GROUP_NAME --app $app_insights_name --api-key automation --query 'apiKey' --output tsv)
+    jq ".appInsightsKey = \"${app_insights_key}\"" < "$output_generated_keys" > "/tmp/generated-keys.json"
+    cp "/tmp/generated-keys.json" "$output_generated_keys"
+  fi
 
   #
   # Build and push docker image
@@ -187,11 +204,6 @@ EOF
   key_vault_name=$(cat $output_simulator_base  | jq -r '.keyVaultName // ""')
   if [[ -z "$key_vault_name" ]]; then
     echo "Key vault name (keyVaultName) not found in output-simulator-base.json"
-    exit 1
-  fi
-  app_insights_name=$(cat $output_simulator_base  | jq -r '.appInsightsName // ""')
-  if [[ -z "$app_insights_name" ]]; then
-    echo "App Insights name (appInsightsName) not found in output-simulator-base.json"
     exit 1
   fi
   container_app_env_name=$(cat $output_simulator_base  | jq -r '.containerAppEnvName // ""')
