@@ -298,11 +298,20 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
     "ptuDeploymentOneBaseUrl": {
         "value": "${PTU_DEPLOYMENT_1_BASE_URL}"
     },
+    "ptuDeploymentOneApiKey": {
+        "value": "${SIMULATOR_API_KEY}"
+    },
     "payAsYouGoDeploymentOneBaseUrl": {
         "value": "${PAYG_DEPLOYMENT_1_BASE_URL}"
     },
+    "payAsYouGoDeploymentOneApiKey": {
+        "value": "${SIMULATOR_API_KEY}"
+    },
     "payAsYouGoDeploymentTwoBaseUrl": {
         "value": "${PAYG_DEPLOYMENT_2_BASE_URL}"
+    },
+    "payAsYouGoDeploymentTwoApiKey": {
+        "value": "${SIMULATOR_API_KEY}"
     }
   }
 }

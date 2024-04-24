@@ -4,11 +4,20 @@ param apiManagementServiceName string
 @description('The base url of the first Azure Open AI Service PTU deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param ptuDeploymentOneBaseUrl string
 
+@description('The api key url of the first Azure Open AI Service PTU deployment')
+param ptuDeploymentOneApiKey string
+
 @description('The base url of the first Azure Open AI Service Pay-As-You-Go deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param payAsYouGoDeploymentOneBaseUrl string
 
+@description('The api key url of the first Azure Open AI Service Pay-As-You-Go deployment')
+param payAsYouGoDeploymentOneApiKey string
+
 @description('The base url of the second Azure Open AI Service Pay-As-You-Go deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param payAsYouGoDeploymentTwoBaseUrl string
+
+@description('The api key url of the second Azure Open AI Service Pay-As-You-Go deployment')
+param payAsYouGoDeploymentTwoApiKey string
 
 resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-preview' existing = {
   name: apiManagementServiceName
@@ -59,6 +68,33 @@ resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/api
     protocols: ['https']
     value: loadTextContent('../../openapi-spec.json')
     format: 'openapi+json' 
+  }
+}
+
+resource azureOpenAIProduct 'Microsoft.ApiManagement/service/products@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-product'
+  properties: {
+    displayName: 'aoai-product'
+    subscriptionRequired: true
+    state: 'published'
+    approvalRequired: false
+  }
+}
+
+var apiNames = [azureOpenAISimpleRoundRobinAPI.name, azureOpenAIWeightedRoundRobinAPI.name, azureOpenAIRetryWithPayAsYouGoAPI.name, azureOpenAIAdaptiveRateLimitingAPI.name]
+
+resource azureOpenAIProductAPIAssociation 'Microsoft.ApiManagement/service/products/apis@2023-05-01-preview' = [for apiName in apiNames: {
+  name: '${apiManagementServiceName}/${azureOpenAIProduct.name}/${apiName}'
+}]
+
+resource azureOpenAIProductSubscription 'Microsoft.ApiManagement/service/subscriptions@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-product-subscription'
+  properties: {
+    displayName: 'aoai-product-subscription'
+    state: 'active'
+    scope: azureOpenAIProduct.id
   }
 }
 
@@ -148,6 +184,15 @@ resource ptuEndpointOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2
   }
 }
 
+resource ptuApiKeyOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'ptu-key-1'
+  properties: {
+    displayName: 'ptu-key-1'
+    value: ptuDeploymentOneApiKey
+  }
+}
+
 resource payAsYouGoEndpointOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'payg-endpoint-1'
@@ -157,12 +202,30 @@ resource payAsYouGoEndpointOneNamedValue 'Microsoft.ApiManagement/service/namedV
   }
 }
 
+resource payAsYouGoApiKeyOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'payg-key-1'
+  properties: {
+    displayName: 'payg-key-1'
+    value: payAsYouGoDeploymentOneApiKey
+  }
+}
+
 resource payAsYouGoEndpointTwoNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'payg-endpoint-2'
   properties: {
     displayName: 'payg-endpoint-2'
     value: payAsYouGoDeploymentTwoBaseUrl
+  }
+}
+
+resource payAsYouGoApiKeyTwoNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'payg-key-2'
+  properties: {
+    displayName: 'payg-key-2'
+    value: payAsYouGoDeploymentTwoApiKey
   }
 }
 
