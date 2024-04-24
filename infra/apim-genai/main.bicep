@@ -35,3 +35,4 @@ module apiManagement 'modules/apiManagement.bicep' = {
 }
 
 output apiManagementName string = apiManagement.outputs.apiManagementServiceName
+output apiManagementAzureOpenAIProductSubscriptionKey string = apiManagement.outputs.apiManagementAzureOpenAIProductSubscriptionKey

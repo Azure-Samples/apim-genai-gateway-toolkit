@@ -230,3 +230,4 @@ resource payAsYouGoApiKeyTwoNamedValue 'Microsoft.ApiManagement/service/namedVal
 }
 
 output apiManagementServiceName string = apiManagementService.name
+output apiManagementAzureOpenAIProductSubscriptionKey string = azureOpenAIProductSubscription.listSecrets().primaryKey
