@@ -1,8 +1,10 @@
+<!-- currently using only the first 2 elements in the array being set. will be extended with weights -->
 <fragment>
     <cache-lookup-value key="preferredBackendsInCache"
         variable-name="preferredBackendsFromCache" />
     <set-variable name="mostPreferredBackend"
-        value="@((string)((JArray)context.Variables["preferredBackendsFromCache"])[0])" />
+        value="@((string)((JArray)context.Variables["preferredBackendsFromCache"]).ElementAtOrDefault(0))" />
     <set-variable name="lessPreferredBackend"
-        value="@((string)((JArray)context.Variables["preferredBackendsFromCache"])[1])" />
+        value="@((string)((JArray)context.Variables["preferredBackendsFromCache"]).ElementAtOrDefault(1))" />
+    <set-variable name="default-url" value="{{payg-endpoint-1}}" />
 </fragment> 
