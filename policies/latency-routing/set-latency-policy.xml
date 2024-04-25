@@ -5,6 +5,9 @@
         <cache-store-value key="preferredBackendsInCache" value="@((JArray)context.Variables["preferredBackends"])" duration="12000" />
         <return-response response-variable-name="existing context variable">
             <set-status code="200" reason="Ok" />
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
             <set-body>{"message": "preferred backends are set successfully"}</set-body>
         </return-response>
     </inbound>

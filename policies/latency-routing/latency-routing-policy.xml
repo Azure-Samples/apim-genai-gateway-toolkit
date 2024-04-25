@@ -1,0 +1,17 @@
+<policies>
+    <inbound>
+        <base />
+    </inbound>
+    <backend>
+        <include-fragment fragment-id="latency-routing" />
+    </backend>
+    <outbound>
+        <base />
+         <set-header name="x-apim-backend" exists-action="override">
+            <value>@((string)context.Variables["selected-url"])</value>
+        </set-header>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

@@ -1,0 +1,32 @@
+<fragment>
+    <cache-lookup-value key="preferredBackendsInCache"
+        variable-name="preferredBackendsFromCache" />
+    <set-variable name="mostPreferredBackend"
+        value="@((string)((JArray)context.Variables["preferredBackendsFromCache"])[0])" />
+    <set-variable name="lessPreferredBackend"
+        value="@((string)((JArray)context.Variables["preferredBackendsFromCache"])[1])" />
+</fragment>
+
+<fragment>
+    <retry condition="@(context.Response.StatusCode == 429)"
+        count="3"
+        interval="1"
+        max-interval="10"
+        delta="2">
+        <choose>
+            <!-- use less preferred backend on the retry -->
+            <when condition="@(context.Response.StatusCode == 429)">
+                <set-variable name="selected-url"
+                    value="{{lessPreferredBackend}}" />
+            </when>
+            <otherwise>
+                <set-variable name="selected-url"
+                    value="{{mostPreferredBackend}}" />
+            </otherwise>
+        </choose>
+        <set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+        <forward-request timeout="120"
+            fail-on-error-status-code="true"
+            buffer-response="false" />
+    </retry>
+</fragment>
