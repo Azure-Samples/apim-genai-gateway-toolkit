@@ -62,15 +62,6 @@ resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/api
   }
 }
 
-resource azureOpenAISimpleRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAISimpleRoundRobinAPI
-  name: 'policy'
-  properties: {
-    value: '<policies><inbound><base /><include-fragment fragment-id="${simpleRoundRobinPolicyFragment.name}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
-    format: 'rawxml'
-  }
-}
-
 resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'simple-round-robin'
@@ -81,11 +72,11 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
 }
 
-resource azureOpenAIWeightedRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIWeightedRoundRobinAPI
+resource azureOpenAISimpleRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAISimpleRoundRobinAPI
   name: 'policy'
   properties: {
-    value: '<policies><inbound><base /><include-fragment fragment-id="${weightedRoundRobinPolicyFragment.name}" /></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
+    value: loadTextContent('../../../policies/load-balancing/simple-round-robin-policy.xml')
     format: 'rawxml'
   }
 }
@@ -98,6 +89,15 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue]
+}
+
+resource azureOpenAIWeightedRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIWeightedRoundRobinAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../policies/load-balancing/weighted-round-robin-policy.xml')
+    format: 'rawxml'
+  }
 }
 
 resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -113,20 +113,10 @@ resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/
   parent: azureOpenAIAdaptiveRateLimitingAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../policies/rate-limiting/policy-adaptive-rate-limiting.xml')
+    value: loadTextContent('../../../policies/rate-limiting/adaptive-rate-limiting-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue]
-}
-
-
-resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIRetryWithPayAsYouGoAPI
-  name: 'policy'
-  properties: {
-    value: '<policies><inbound><base /></inbound><backend><include-fragment fragment-id="${retryWithPayAsYouGoPolicyFragment.name}" /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>'
-    format: 'rawxml'
-  }
 }
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -137,6 +127,16 @@ resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/poli
     format: 'rawxml'
   }
   dependsOn: [ptuEndpointOneNamedValue, payAsYouGoEndpointOneNamedValue]
+}
+
+
+resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIRetryWithPayAsYouGoAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../policies/manage-spikes-with-payg/retry-with-payg-policy.xml')
+    format: 'rawxml'
+  }
 }
 
 resource ptuEndpointOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
