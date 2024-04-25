@@ -18,7 +18,7 @@ resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@20
   parent: apiManagementService
   name: 'aoai-api-simple-round-robin'
   properties: {
-    path: '/simple-round-robin'
+    path: '/simple-round-robin/openai'
     displayName: 'AOAIAPI-SimpleRoundRobin'
     protocols: ['https']
     value: loadTextContent('../../openapi-spec.json')
@@ -30,7 +30,7 @@ resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@
   parent: apiManagementService
   name: 'aoai-api-weighted-round-robin'
   properties: {
-    path: '/weighted-round-robin'
+    path: '/weighted-round-robin/openai'
     displayName: 'AOAIAPI-WeightedRoundRobin'
     protocols: ['https']
     value: loadTextContent('../../openapi-spec.json')
@@ -42,7 +42,7 @@ resource azureOpenAIRetryWithPayAsYouGoAPI 'Microsoft.ApiManagement/service/apis
   parent: apiManagementService
   name: 'aoai-api-retry-with-payg'
   properties: {
-    path: '/retry-with-payg'
+    path: '/retry-with-payg/openai'
     displayName: 'AOAIAPI-RetryWithPayAsYouGo'
     protocols: ['https']
     value: loadTextContent('../../openapi-spec.json')
@@ -54,7 +54,7 @@ resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/api
   parent: apiManagementService
   name: 'aoai-api-rate-limting'
   properties: {
-    path: '/rate-limiting'
+    path: '/rate-limiting/openai'
     displayName: 'AOAIAPI-RateLimiting'
     protocols: ['https']
     value: loadTextContent('../../openapi-spec.json')
