@@ -1,0 +1,20 @@
+<policies>
+    <inbound>
+        <base />
+        <set-variable name="preferredBackends" value="@((JArray)context.Request.Body.As<JObject>(preserveContent: true).SelectToken("preferredBackends"))" />
+        <cache-store-value key="preferredBackendsInCache" value="@((JArray)context.Variables["preferredBackends"])" duration="12000" />
+        <return-response response-variable-name="existing context variable">
+            <set-status code="200" reason="Ok" />
+            <set-body>{"message": "preferred backends are set successfully"}</set-body>
+        </return-response>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
