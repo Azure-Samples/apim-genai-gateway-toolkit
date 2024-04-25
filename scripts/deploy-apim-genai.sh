@@ -78,19 +78,19 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   # Clone simulator
   #
   simulator_path="$script_dir/simulator"
-  simulator_tag=v0.2
+  simulator_tag=${SIMULATOR_GIT_TAG:=v0.2}
   if [[ -d "$simulator_path" ]]; then
     echo "Simulator folder already exists - skipping clone."
   else
-    echo "Cloning simulator..."
+    echo "Cloning simulator (tag: ${simulator_tag})..."
     git clone \
       --depth 1 \
       --branch $simulator_tag \
       --config advice.detachedHead=false \
       https://github.com/stuartleeks/aoai-simulated-api \
       "$simulator_path"
-    echo -e "\n*\n" > "$simulator_path/.gitignore"
   fi
+
 
   #
   # Deploy simulator base resources
