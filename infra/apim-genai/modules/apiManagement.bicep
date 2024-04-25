@@ -66,7 +66,7 @@ resource azureOpenAILatencyRoutingAPI 'Microsoft.ApiManagement/service/apis@2023
   parent: apiManagementService
   name: 'aoai-api-latency-routing'
   properties: {
-    path: '/latency-routing'
+    path: '/latency-routing/openai'
     displayName: 'AOAIAPI-LatencyRouting'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
@@ -163,11 +163,19 @@ resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/servic
   }
 }
 
-resource latencyRoutingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+resource latencyRoutingInboundPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'latency-routing'
+  name: 'latency-routing-inbound'
   properties: {
-    value: loadTextContent('../../../policies/latency-routing/latency-routing.xml')
+    value: loadTextContent('../../../policies/latency-routing/latency-routing-inbound.xml')
+    format: 'rawxml'
+  }
+}
+resource latencyRoutingBackendPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'latency-routing-backend'
+  properties: {
+    value: loadTextContent('../../../policies/latency-routing/latency-routing-backend.xml')
     format: 'rawxml'
   }
 }
@@ -179,6 +187,7 @@ resource azureOpenAILatencyRoutingPolicy 'Microsoft.ApiManagement/service/apis/p
     value: loadTextContent('../../../policies/latency-routing/latency-routing-policy.xml')
     format: 'rawxml'
   }
+  dependsOn: [latencyRoutingInboundPolicyFragment, latencyRoutingBackendPolicyFragment]
 }
 
 resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {

@@ -1,0 +1,8 @@
+<fragment>
+    <cache-lookup-value key="preferredBackendsInCache"
+        variable-name="preferredBackendsFromCache" />
+    <set-variable name="mostPreferredBackend"
+        value="@((string)((JArray)context.Variables["preferredBackendsFromCache"])[0])" />
+    <set-variable name="lessPreferredBackend"
+        value="@((string)((JArray)context.Variables["preferredBackendsFromCache"])[1])" />
+</fragment> 

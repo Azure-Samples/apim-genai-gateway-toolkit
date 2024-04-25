@@ -1,9 +1,10 @@
 <policies>
     <inbound>
         <base />
+        <include-fragment fragment-id="latency-routing-inbound" />
     </inbound>
     <backend>
-        <include-fragment fragment-id="latency-routing" />
+        <include-fragment fragment-id="latency-routing-backend" />
     </backend>
     <outbound>
         <base />
