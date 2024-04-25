@@ -30,5 +30,8 @@
             }
             return endpoints[0]["url"].ToString();
     }" />
+    <set-header name="api-key" exists-action="override">
+        <value>{{ptu-key-1}}</value>
+    </set-header>
 	<set-backend-service base-url="@((string)context.Variables["selected-url"])" />
 </fragment>

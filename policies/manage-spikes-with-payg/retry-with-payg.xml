@@ -33,6 +33,9 @@
             </otherwise>
         </choose>
 
+        <set-header name="api-key" exists-action="override">
+            <value>{{ptu-key-1}}</value>
+        </set-header>
         <forward-request timeout="120" fail-on-error-status-code="true" buffer-response="false" />
     </retry>
 </fragment>
