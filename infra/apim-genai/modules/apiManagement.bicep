@@ -21,7 +21,7 @@ resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@20
     path: '/simple-round-robin/openai'
     displayName: 'AOAIAPI-SimpleRoundRobin'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -33,7 +33,7 @@ resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@
     path: '/weighted-round-robin/openai'
     displayName: 'AOAIAPI-WeightedRoundRobin'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -45,7 +45,7 @@ resource azureOpenAIRetryWithPayAsYouGoAPI 'Microsoft.ApiManagement/service/apis
     path: '/retry-with-payg/openai'
     displayName: 'AOAIAPI-RetryWithPayAsYouGo'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -57,7 +57,7 @@ resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/api
     path: '/rate-limiting/openai'
     displayName: 'AOAIAPI-RateLimiting'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -69,7 +69,19 @@ resource azureOpenAILatencyRoutingAPI 'Microsoft.ApiManagement/service/apis@2023
     path: '/latency-routing'
     displayName: 'AOAIAPI-LatencyRouting'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json' 
+  }
+}
+
+resource helperAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'helper-apis'
+  properties: {
+    path: '/helpers'
+    displayName: 'Helper APIs'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/support-api-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -165,6 +177,15 @@ resource azureOpenAILatencyRoutingPolicy 'Microsoft.ApiManagement/service/apis/p
   name: 'policy'
   properties: {
     value: loadTextContent('../../../policies/latency-routing/latency-routing-policy.xml')
+    format: 'rawxml'
+  }
+}
+
+resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: helperAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../policies/latency-routing/set-latency-policy.xml')
     format: 'rawxml'
   }
 }

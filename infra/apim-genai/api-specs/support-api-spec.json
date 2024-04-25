@@ -1,0 +1,59 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+      "title": "Simulator support APIs  ",
+      "version": "1.0",
+      "description": "APIs that are needed to drive the scenarios"
+    },
+    "paths": {
+      "/set-preferred-backends": {
+        "summary": "sets the preference of the Host URLs based on the latency",
+        "post": {
+          "operationId": "setPreferredBackends",
+          "requestBody": {
+            "description": "array of URLs ordered by the preference",
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "preferredBackends"
+                  ]
+                },
+                "example": {
+                  "preferredBackends": [
+                    "https://url1.com",
+                    "https://url2.com"
+                  ]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "example": {
+                    "message": "preferred backends are set"
+                  },
+                  "schema": {
+                    "type": "object",
+                    "description": "",
+                    "example": "",
+                    "externalDocs": {
+                      "url": "",
+                      "description": ""
+                    }
+                  }
+                }
+              },
+              "description": "",
+              "links": {}
+            }
+          },
+          "description": "pass in an array of URLs ordered by the preference"
+        }
+      }
+    }
+  }
