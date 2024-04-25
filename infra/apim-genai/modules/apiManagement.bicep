@@ -106,9 +106,9 @@ resource azureOpenAIProduct 'Microsoft.ApiManagement/service/products@2023-05-01
   }
 }
 
-var apiNames = [azureOpenAISimpleRoundRobinAPI.name, azureOpenAIWeightedRoundRobinAPI.name, azureOpenAIRetryWithPayAsYouGoAPI.name, azureOpenAIAdaptiveRateLimitingAPI.name]
+var azureOpenAIAPINames = [azureOpenAISimpleRoundRobinAPI.name, azureOpenAIWeightedRoundRobinAPI.name, azureOpenAIRetryWithPayAsYouGoAPI.name, azureOpenAIAdaptiveRateLimitingAPI.name, azureOpenAILatencyRoutingAPI.name]
 
-resource azureOpenAIProductAPIAssociation 'Microsoft.ApiManagement/service/products/apis@2023-05-01-preview' = [for apiName in apiNames: {
+resource azureOpenAIProductAPIAssociation 'Microsoft.ApiManagement/service/products/apis@2023-05-01-preview' = [for apiName in azureOpenAIAPINames: {
   name: '${apiManagementServiceName}/${azureOpenAIProduct.name}/${apiName}'
 }]
 
