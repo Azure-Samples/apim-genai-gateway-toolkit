@@ -114,9 +114,9 @@ output resourceGroupName string = resourceGroup.name
 output ptu1ContainerAppName string = simulatorPTU1.outputs.acaName
 output ptu1Fqdn string = simulatorPTU1.outputs.apiSimFqdn
 
-output payg1ContainerAppName string = simulatorPTU1.outputs.acaName
-output payg1Fqdn string = simulatorPTU1.outputs.apiSimFqdn
+output payg1ContainerAppName string = simulatorPAYG1.outputs.acaName
+output payg1Fqdn string = simulatorPAYG1.outputs.apiSimFqdn
 
-output payg2ContainerAppName string = simulatorPTU1.outputs.acaName
-output payg2Fqdn string = simulatorPTU1.outputs.apiSimFqdn
+output payg2ContainerAppName string = simulatorPAYG2.outputs.acaName
+output payg2Fqdn string = simulatorPAYG2.outputs.apiSimFqdn
 
