@@ -30,7 +30,7 @@ resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@20
     path: '/simple-round-robin/openai'
     displayName: 'AOAIAPI-SimpleRoundRobin'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -42,7 +42,7 @@ resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@
     path: '/weighted-round-robin/openai'
     displayName: 'AOAIAPI-WeightedRoundRobin'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -54,7 +54,7 @@ resource azureOpenAIRetryWithPayAsYouGoAPI 'Microsoft.ApiManagement/service/apis
     path: '/retry-with-payg/openai'
     displayName: 'AOAIAPI-RetryWithPayAsYouGo'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -66,7 +66,31 @@ resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/api
     path: '/rate-limiting/openai'
     displayName: 'AOAIAPI-RateLimiting'
     protocols: ['https']
-    value: loadTextContent('../../openapi-spec.json')
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json' 
+  }
+}
+
+resource azureOpenAILatencyRoutingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-latency-routing'
+  properties: {
+    path: '/latency-routing/openai'
+    displayName: 'AOAIAPI-LatencyRouting'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json' 
+  }
+}
+
+resource helperAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'helper-apis'
+  properties: {
+    path: '/helpers'
+    displayName: 'Helper APIs'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/support-api-spec.json')
     format: 'openapi+json' 
   }
 }
@@ -171,6 +195,42 @@ resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/servic
   name: 'policy'
   properties: {
     value: loadTextContent('../../../policies/manage-spikes-with-payg/retry-with-payg-policy.xml')
+    format: 'rawxml'
+  }
+}
+
+resource latencyRoutingInboundPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'latency-routing-inbound'
+  properties: {
+    value: loadTextContent('../../../policies/latency-routing/latency-routing-inbound.xml')
+    format: 'rawxml'
+  }
+}
+resource latencyRoutingBackendPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'latency-routing-backend'
+  properties: {
+    value: loadTextContent('../../../policies/latency-routing/latency-routing-backend.xml')
+    format: 'rawxml'
+  }
+}
+
+resource azureOpenAILatencyRoutingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAILatencyRoutingAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../policies/latency-routing/latency-routing-policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [latencyRoutingInboundPolicyFragment, latencyRoutingBackendPolicyFragment]
+}
+
+resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: helperAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../policies/latency-routing/set-latency-policy.xml')
     format: 'rawxml'
   }
 }
