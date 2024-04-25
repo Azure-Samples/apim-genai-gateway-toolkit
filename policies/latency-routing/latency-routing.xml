@@ -5,9 +5,7 @@
         value="@((string)((JArray)context.Variables["preferredBackendsFromCache"])[0])" />
     <set-variable name="lessPreferredBackend"
         value="@((string)((JArray)context.Variables["preferredBackendsFromCache"])[1])" />
-</fragment>
 
-<fragment>
     <retry condition="@(context.Response.StatusCode == 429)"
         count="3"
         interval="1"
