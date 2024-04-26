@@ -70,18 +70,41 @@ class TestCoordinationUser(HttpUser):
 
     @task
     def orchestrate_test(self):
-        time.sleep(120)  # sleep for 2 minutes
-
-        # Reverse the latencies
-        logging.info("⚙️ Updating simulator latencies (PAYG1 slow, PAYG2 fast)")
-        set_simulator_completions_latency(simulator_endpoint_payg1, 1000)
-        set_simulator_completions_latency(simulator_endpoint_payg2, 10)
-
-        # wait so that there's time to see the effect in the telemetry
-        time.sleep(30)
+        logging.info("🚀 Starting test")
+        # Run for 1 minute
+        time.sleep(60)
 
         # Measure the latencies and update APIM
         logging.info("⌚ Measuring latencies and updating APIM")
         measure_latency_and_update_apim()
 
-        time.sleep(120)  # sleep for 2 minutes
+        # Run for 1 minute
+        time.sleep(60)
+
+        # Measure the latencies and update APIM
+        logging.info("⌚ Measuring latencies and updating APIM")
+        measure_latency_and_update_apim()
+
+        # Reverse the latencies
+        # Note that this happening _after_ the latency measurement
+        # means that we will see the latency increase in the front-end requests
+        # until the next measure/update cycle
+        logging.info("⚙️ Updating simulator latencies (PAYG1 slow, PAYG2 fast)")
+        set_simulator_completions_latency(simulator_endpoint_payg1, 1000)
+        set_simulator_completions_latency(simulator_endpoint_payg2, 10)
+
+        # Run for 1 minute
+        time.sleep(60)
+
+        # Measure the latencies and update APIM
+        logging.info("⌚ Measuring latencies and updating APIM")
+        measure_latency_and_update_apim()
+
+        # Run for 1 minute
+        time.sleep(60)
+
+        # Measure the latencies and update APIM
+        logging.info("⌚ Measuring latencies and updating APIM")
+        measure_latency_and_update_apim()
+
+        time.sleep(60)  # sleep for 2 minutes
