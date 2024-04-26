@@ -24,5 +24,9 @@
 	<set-variable name="selected-url" value="@(((JArray)context.Variables["backend-pool"])[(int)context.Variables["chosen-index"]].ToString())" />
 
     <!-- set the backend service URL to the selected backend URL -->
+    
+    <set-header name="api-key" exists-action="override">
+        <value>{{ptu-key-1}}</value>
+    </set-header>
 	<set-backend-service base-url="@((string)context.Variables["selected-url"])" />
 </fragment>

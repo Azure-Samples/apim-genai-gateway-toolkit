@@ -2,6 +2,9 @@
     <inbound>
         <base />
         <include-fragment fragment-id="adaptive-rate-limiting" />
+        <set-header name="api-key" exists-action="override">
+            <value>{{ptu-key-1}}</value>
+        </set-header>
         <set-backend-service base-url="{{payg-endpoint-1}}" />
     </inbound>
     <backend>
