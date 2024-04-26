@@ -29,3 +29,25 @@ This script runs a load test for 5 minutes which repeatedly sends requests to th
 
 
 After the load test is complete, the script waits for the metrics to be ingested into Application Insights and then queries the results.
+
+The initial output from a test run will look something like this:
+
+![alt text](docs/output-1.png)
+
+In the above output you can see each of the steps outlined in the description of the test steps.
+Notices that after the `Updating simulator latencies` output, the order of the backends is changed and the PAYG2 endpoint is now listed first (and with the lower latency).
+
+Once the metrics have been ingested the script will show the results of a couple of queries that illustrate the behaviour:
+
+![alt text](docs/output-2.png)
+
+For each of these queries the query text is included as well as a `Run in App Insights` link which will take you directly to the Application Insights blade in the Azure Portal so that you can run the query and explore the data further.
+
+The first query shows the mean request latency for requests sent via the APIM gateway.
+In this chart you can see the spike that occurs after the back-end latencies are re-configured and before APIM is updated with the latest latency data:
+
+![alt text](docs/query-gw.png)
+
+The second query shows the mean request latency of each of the back-end APIs (i.e. the simulated OpenAI endpoints):
+
+![alt text](docs/query-backend.png)

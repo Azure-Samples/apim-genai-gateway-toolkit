@@ -6,13 +6,14 @@ import requests
 from opentelemetry import metrics
 from azure.monitor.opentelemetry import configure_azure_monitor
 
-
-apim_key = os.getenv("APIM_KEY")
-apim_endpoint = os.getenv("APIM_ENDPOINT")
-app_insights_connection_string = os.getenv("APP_INSIGHTS_CONNECTION_STRING")
-simulator_endpoint_payg1 = os.getenv("SIMULATOR_ENDPOINT_PAYG1")
-simulator_endpoint_payg2 = os.getenv("SIMULATOR_ENDPOINT_PAYG2")
-simulator_api_key = os.getenv("SIMULATOR_API_KEY")
+from .config import (
+    apim_endpoint,
+    apim_key,
+    app_insights_connection_string,
+    simulator_api_key,
+    simulator_endpoint_payg1,
+    simulator_endpoint_payg2,
+)
 
 deployment_name = "gpt-35-turbo-100k-token"
 
@@ -100,7 +101,12 @@ def measure_latency_and_update_apim():
 
     # sort with lowest latency first
     endpoints_with_latency = sorted(endpoints_with_latency, key=lambda x: x["latency"])
-    logging.info(">>> Endpoints with latency: %s", str(endpoints_with_latency))
+    for endpoint in endpoints_with_latency:
+        logging.info(
+            "    %s: %s ms",
+            endpoint["endpoint"],
+            endpoint["latency"] * 1000,
+        )
     sorted_endpoints = [endpoint["endpoint"] for endpoint in endpoints_with_latency]
 
     payload = {"preferredBackends": sorted_endpoints}
@@ -110,4 +116,4 @@ def measure_latency_and_update_apim():
         headers={"ocp-apim-subscription-key": apim_key},
     )
     response.raise_for_status()
-    logging.info("Updated APIM with preferred backends: %s", response.text)
+    logging.info("    Updated APIM with preferred backends: %s", response.text)
