@@ -151,11 +151,9 @@ EOF
 
   src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
 
-  docker build -t ${acr_login_server}/aoai-simulated-api:latest "$src_path" -f "$src_path/Dockerfile"
-
   az acr login --name $acr_name
-  docker push ${acr_login_server}/aoai-simulated-api:latest
-
+  az acr build --image ${acr_login_server}/aoai-simulated-api:latest --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
+  
   echo -e "\n"
 
   
