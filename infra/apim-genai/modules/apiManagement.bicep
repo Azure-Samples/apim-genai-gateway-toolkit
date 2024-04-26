@@ -289,5 +289,47 @@ resource payAsYouGoApiKeyTwoNamedValue 'Microsoft.ApiManagement/service/namedVal
   }
 }
 
+resource ptuBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'ptu-backend-1'
+  properties:{
+    protocol: 'http'
+    url: ptuDeploymentOneBaseUrl
+    credentials: {
+      header: {
+        'api-key': [ptuDeploymentOneApiKey]
+      }
+    }
+  }
+}
+
+resource payAsYouGoBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'payg-backend-1'
+  properties:{
+    protocol: 'http'
+    url: payAsYouGoDeploymentOneBaseUrl
+    credentials: {
+      header: {
+        'api-key': [payAsYouGoDeploymentOneApiKey]
+      }
+    }
+  }
+}
+
+resource payAsYouGoBackendTwo 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'payg-backend-2'
+  properties:{
+    protocol: 'http'
+    url: payAsYouGoDeploymentTwoBaseUrl
+    credentials: {
+      header: {
+        'api-key': [payAsYouGoDeploymentTwoApiKey]
+      }
+    }
+  }
+}
+
 output apiManagementServiceName string = apiManagementService.name
 output apiManagementAzureOpenAIProductSubscriptionKey string = azureOpenAIProductSubscription.listSecrets().primaryKey
