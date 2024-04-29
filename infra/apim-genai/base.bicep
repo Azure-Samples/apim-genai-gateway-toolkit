@@ -19,6 +19,10 @@ param environment string
 @description('Specifies the supported Azure location (region) where the resources will be deployed')
 param location string
 
+@description('Principal ID of the additional user to assign the Key Vault Secrets Reader role to')
+@secure()
+param additionalKeyVaulSecretReaderPrincipalId string = '' // used to enable the current user to retrieve the app insights connection string
+
 var resourceSuffix = '${workloadName}-${environment}-${location}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
@@ -31,6 +35,7 @@ module simulatorBase 'modules/simulatorBase.bicep' = {
   params: {
     location: location
     resourceSuffix: resourceSuffix
+    additionalKeyVaulSecretReaderPrincipalId: additionalKeyVaulSecretReaderPrincipalId
   }
 }
 

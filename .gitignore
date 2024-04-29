@@ -5,3 +5,5 @@
 /scripts/simulator
 
 .env
+
+__pycache__
