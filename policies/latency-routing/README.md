@@ -2,10 +2,42 @@
 
 ## Scenario
 
-In this scenario, an external script will define the preferred instance to route the request based on the latency. APIM will then route the request to the preferred instance.
+In this scenario we have multiple backends and want to route to whichever back-end has the lowest latency.
 
-## How the policy works
+## How the capability works
 
+
+To achieve the latency-based routing, the API Management (APIM) configuration includes policy configuration that uses data specifiyng the preferred back-end order.
+The preferred backends are stored in the cache and the cache value can be updated by calling an API endpoint added specifically for this purpose (`/helpers/set-preferred-backends`).
+
+Since different calls to OpenAI will have different expected latencies it wouldn't make sense to use the measured latencies of live traffic to make the routing decision.
+Instead, a scheduled task outside of APIM periodically measures the current latency of the back-ends using the same query for each backend.
+Using this data the task calls the `/helpers/set-prefered-backends` endpoint to update the preferred backend order.
+
+The different components in this setup are shown below:
+
+
+```
+                                                                                                          
+                                                  +------------------+                                    
+                    +------------------+          |                  |                                    
++-----------+       |                  +--------->|  OpenAI (PAYG1)  |           +-----------------------+
+|           |       |                  |          |                  |<----------+                       |
+|  Client   +------>|  Gen AI Gateway  |          +------------------+           |   Scheduled Task      |
+|           |       |  (APIM)          |                                         |   (measure latency    |
+|           |       |                  |          +------------------+           |    and update APIM)   |
++-----------+       |                  +--------->|                  |<----------+                       |
+                    +------------------+          |  OpenAI (PAYG2)  |           +--------+--------------+
+                       ^                          |                  |                    |               
+                       |                          +------------------+                    |               
+                       |                                                                  |               
+                       |/helpers/set-preferred-backends                                   |               
+                       |                                                                  |               
+                       +------------------------------------------------------------------+               
+                                                                                                          
+```
+
+To summarize:
 - Using the `set-preferred-backends` API, the preferred backends are stored in the cache. The preferred backends are an array of URLs of the host in the preferred order.
 - The `latency-routing` policy will use the `preferred-backends` array from cache to route the request to the preferred instance.
 - In cases, where the `preferred-instance` responds back with 429s, the request will then be routed to the second preferred instance.
@@ -21,7 +53,7 @@ This script runs a load test for 5 minutes which repeatedly sends requests to th
 
 1. When the script starts, it configures the latencies for the simulated APIs so that PAYG1 is fast and PAYG2 is slow.
 
-2. Every minute the script measures the latency of the back-end APIs and calls the `set-preferred-backends` endpoint in APIM to pass the ordered list of backends (fastest first). In a real implementation this would be a separate component that runs as a scheduled job.
+2. Every minute the script measures the latency of the back-end APIs and calls the `set-preferred-backends` endpoint in APIM to pass the ordered list of backends (fastest first). This simulates the scheduled task in the diagram above.
 
 3. Two minutes into the test, the script re-configures the simulator latencies so that PAYG1 is slow and PAYG2 is fast. This occurs just after the back-end latencies are measured so there is a minute of the test where the APIM latency information is stale. During this time the request latency via APIM will be higher.
 
