@@ -7,17 +7,17 @@
         <choose>
             <!-- use less preferred backend on the retry -->
             <when condition="@(context.Response.StatusCode == 429)">
-                <set-variable name="preferred-url"
+                <set-variable name="preferred-backend-id"
                     value="@((string)context.Variables["lessPreferredBackend"])" />
             </when>
             <otherwise>
-                <set-variable name="preferred-url"
+                <set-variable name="preferred-backend-id"
                     value="@((string)context.Variables["mostPreferredBackend"])" />
             </otherwise>
         </choose>
-        <set-variable name="selected-url"
-            value="@(String.IsNullOrEmpty((string)context.Variables["preferred-url"]) ? (string)context.Variables["default-url"] : (string)context.Variables["preferred-url"])"/>
-        <set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+        <set-variable name="selected-backend-id"
+            value="@(String.IsNullOrEmpty((string)context.Variables["preferred-backend-id"]) ? (string)context.Variables["default-backend-id"] : (string)context.Variables["preferred-backend-id"])"/>
+        <set-backend-service backend-id="@((string)context.Variables["selected-backend-id"])" />
         <forward-request timeout="120"
             fail-on-error-status-code="true"
             buffer-response="false" />
