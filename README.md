@@ -6,10 +6,11 @@
 		- [Using Visual Studio Code Dev Containers](#using-visual-studio-code-dev-containers)
 		- [Prerequisites for non Dev Container setup](#prerequisites-for-non-dev-container-setup)
 	- [Deploying the Accelerator](#deploying-the-accelerator)
-		- [Managed Identity between APIM and Azure OpenAI](#managed-identity-between-apim-and-azure-openai)
-	- [Testing Accelerator Capabilities](#testing-accelerator-capabilities)
-		- [Policy Fragments](#policy-fragments)
 	- [Gateway Capabilities](#gateway-capabilities)
+	- [Testing Gateway Capabilities](#testing-gateway-capabilities)
+	- [Additional notes](#additional-notes)
+		- [Policy Fragments](#policy-fragments)
+		- [Managed Identity between APIM and Azure OpenAI](#managed-identity-between-apim-and-azure-openai)
 
 
 ## Introduction
@@ -42,6 +43,7 @@ If you are manually installing the pre-requisites, you will need the following:
   - including the `application-insights` extension (`az extension add --name  application-insights`)
 - Docker (if using the OpenAI API simulator)
 - Python 3 (to run scenario tests)
+- `jq` (to parse JSON responses in bash scripts)
 - a bash terminal (see [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install) if you are on Windows)
 
 
@@ -69,19 +71,6 @@ az login
 ./scripts/deploy-apim-genai.sh
 ```
 
-### Managed Identity between APIM and Azure OpenAI
-
-These examples use Managed Identity to authenticate between APIM and Azure OpenAI. [Follow these 3 steps](https://learn.microsoft.com/en-us/azure/api-management/api-management-authenticate-authorize-azure-openai#authenticate-with-managed-identity) to setup the Managed identity between APIM and Azure OpenAI
-
-## Testing Accelerator Capabilities
-
-TODO - Add instructions on how to test 
-
-### Policy Fragments
-
-- The repository contains policies in the format of [Policy fragments](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments)
-- You can manually [create these fragments](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments#create-a-policy-fragment) in your APIM instance and can refer them in the corresponding API operations.
-
 
 ## Gateway Capabilities
 
@@ -89,5 +78,25 @@ This repo currently contains the policies showing how to implement these GenAI G
 
 | Capability                                                                      | Description                                                             |
 | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [Load balancing (round-robin)](./policies/load-balancing-round-robin/Readme.md) | Load balance traffic across PAYG endpoints using round-robin algorithm. |
+| [Latency-based routing](./capabilities/latency-routing/README.md) | Route traffic to the endpoint with the lowest latency. |
+| [Load balancing (round-robin)](./capabilities/load-balancing-round-robin/Readme.md) | Load balance traffic across PAYG endpoints using round-robin algorithm. |
+| [Managing spikes with PAYG](./capabilities/manage-spikes-with-payg/README.md) | Manage spikes in traffic by routing traffic to PAYG endpoints when a PTU is out of capacity. |
+| [Adaptive rate limiting](./capabilities/rate-limiting/README.md) | Dynamically adjust rate-limits applied to different workloads|
+
+## Testing Gateway Capabilities
+
+The easiest way to see the gateway capabilities in action is to deploy the gateway along with the OpenAI API Simualtor (set the `USE_SIMULATOR` option in your `.env` file to `true`).
+
+Once you have the gateway and simulator deployed, see the `README.md` in the relevant capability folder for instructions on how to test the capability. (NOTE: currently not all capabilities have tests implemented)
+
+## Additional notes
+
+### Policy Fragments
+
+- The repository contains policies in the format of [Policy fragments](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments)
+- You can manually [create these fragments](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments#create-a-policy-fragment) in your APIM instance and can refer them in the corresponding API operations.
+
+### Managed Identity between APIM and Azure OpenAI
+
+These examples use Managed Identity to authenticate between APIM and Azure OpenAI. [Follow these 3 steps](https://learn.microsoft.com/en-us/azure/api-management/api-management-authenticate-authorize-azure-openai#authenticate-with-managed-identity) to setup the Managed identity between APIM and Azure OpenAI
 
