@@ -238,12 +238,22 @@ class QueryProcessor:
                 continue
 
             if group_definition:
+                if columns and len(columns) > 0:
+                    raise ValueError(
+                        "Cannot specify columns when using group_definition"
+                    )
                 result = result.group_by(
                     group_definition.id_column,
                     group_definition.group_column,
                     group_definition.value_column,
                     group_definition.missing_value,
                 )
+                columns = [
+                    col
+                    for col in result.columns
+                    if col.startswith(group_definition.value_column + "_")
+                ]
+                columns = sorted(columns)
 
             if is_chart:
                 self.__output_chart(result, title, columns, chart_config)

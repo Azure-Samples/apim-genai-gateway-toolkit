@@ -199,10 +199,6 @@ def on_test_stop(environment, **kwargs):
         | render timechart 
         """,
         is_chart=True,
-        columns=[
-            "latency_s_aoaisim-gwsl-dev-payg2",
-            "latency_s_aoaisim-gwsl-dev-payg1",
-        ],
         chart_config={
             "height": 10,
             "colors": [
