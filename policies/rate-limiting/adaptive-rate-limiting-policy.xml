@@ -2,7 +2,7 @@
     <inbound>
         <base />
         <include-fragment fragment-id="adaptive-rate-limiting" />
-        <set-backend-service base-url="{{payg-endpoint-1}}" />
+        <set-backend-service backend-id="payg-backend-1" />
     </inbound>
     <backend>
         <base />

@@ -9,7 +9,7 @@
     <outbound>
         <base />
          <set-header name="x-apim-backend" exists-action="override">
-            <value>@((string)context.Variables["selected-url"])</value>
+            <value>@((string)context.Variables["selected-backend-id"])</value>
         </set-header>
     </outbound>
     <on-error>

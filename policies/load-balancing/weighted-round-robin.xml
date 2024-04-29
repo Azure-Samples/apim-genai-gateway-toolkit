@@ -1,34 +1,34 @@
 <fragment>
-	<set-variable name="all-endpoints" value="@{
-                JArray endpoints = new JArray();
-                endpoints.Add(new JObject()
-                {
-                    { "url", "{{payg-endpoint-1}}" },
-                    { "weight", 2 },
-                });
+	<set-variable name="all-backends" value="@{
+            JArray backends = new JArray();
+            backends.Add(new JObject()
+            {
+                { "id", "payg-backend-1" },
+                { "weight", 2 },
+            });
 
-                endpoints.Add(new JObject()
-                {
-                    { "url", "{{payg-endpoint-2}}" },
-                    { "weight", 3 },
-                });
+            backends.Add(new JObject()
+            {
+                { "id", "payg-backend-2" },
+                { "weight", 3 },
+            });
 
-                return endpoints;
-            }" />
-	<set-variable name="selected-url" value="@{
-        var endpoints = (JArray)context.Variables["all-endpoints"];
-            var totalWeight = endpoints.Sum(e => (int)e["weight"]);
+            return backends;
+    }" />
+	<set-variable name="selected-backend-id" value="@{
+            var backends = (JArray)context.Variables["all-backends"];
+            var totalWeight = backends.Sum(e => (int)e["weight"]);
             var randomNumber = new Random().Next(totalWeight);
             var weightSum = 0;
-            foreach (var endpoint in endpoints)
+            foreach (var backend in backends)
             {
-                weightSum += (int)endpoint["weight"];
+                weightSum += (int)backend["weight"];
                 if (randomNumber < weightSum)
                 {
-                    return endpoint["url"].ToString();
+                    return backend["id"].ToString();
                 }
             }
-            return endpoints[0]["url"].ToString();
+            return backends[0]["id"].ToString();
     }" />
-	<set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+	<set-backend-service backend-id="@((string)context.Variables["selected-backend-id"])" />
 </fragment>
