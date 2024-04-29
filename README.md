@@ -4,7 +4,7 @@
 	- [Introduction](#introduction)
 	- [Getting Started](#getting-started)
 		- [Using Visual Studio Code Dev Containers](#using-visual-studio-code-dev-containers)
-		- [Prerequisites](#prerequisites)
+		- [Prerequisites for non Dev Container setup](#prerequisites-for-non-dev-container-setup)
 	- [Deploying the Accelerator](#deploying-the-accelerator)
 		- [Managed Identity between APIM and Azure OpenAI](#managed-identity-between-apim-and-azure-openai)
 	- [Testing Accelerator Capabilities](#testing-accelerator-capabilities)
@@ -34,12 +34,14 @@ Follow the [Dev Containers Getting Started Guide](https://code.visualstudio.com/
 
 Once that is done, open the repository in Visual Studio Code and select `Dev Containers: Reopen in Container` from the command palette. This will create an environment with all the pre-requisites installed.
 
-### Prerequisites
+### Prerequisites for non Dev Container setup
 
 If you are manually installing the pre-requisites, you will need the following:
 
 - Azure CLI
+  - including the `application-insights` extension (`az extension add --name  application-insights`)
 - Docker (if using the OpenAI API simulator)
+- Python 3 (to run scenario tests)
 - a bash terminal (see [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install) if you are on Windows)
 
 

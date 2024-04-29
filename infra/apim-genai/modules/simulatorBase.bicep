@@ -10,6 +10,9 @@ param location string = resourceGroup().location
 @description('Suffix to apply to created resources')
 param resourceSuffix string
 
+@description('Principal ID of the additional user to assign the Key Vault Secrets Reader role to')
+@secure()
+param additionalKeyVaulSecretReaderPrincipalId string = ''
 
 var containerRegistryName = replace('aoaisim-${resourceSuffix}', '-', '')
 var keyVaultName = replace('aoaisim-${resourceSuffix}', '-', '')
@@ -17,7 +20,6 @@ var storageAccountName = replace('aoaisim${resourceSuffix}', '-', '')
 var containerAppEnvName = 'aoaisim-${resourceSuffix}'
 var logAnalyticsName = 'aoaisim-${resourceSuffix}'
 var appInsightsName = 'aoaisim-${resourceSuffix}'
-
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-12-01-preview' = {
   name: containerRegistryName
@@ -34,7 +36,7 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: location
   properties: {
-    accessPolicies:[]
+    accessPolicies: []
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 90
@@ -53,6 +55,23 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
+resource keyVaultSecretsUserRoleDefinition 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
+  scope: subscription()
+  name: '4633458b-17de-408a-b874-0445c86b69e6' // https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide?tabs=azure-cli
+}
+
+resource additionalSecretReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' =
+  if (additionalKeyVaulSecretReaderPrincipalId != '') {
+    name: guid(resourceGroup().id, vault.name, additionalKeyVaulSecretReaderPrincipalId, 'assignSecretsReaderRole')
+    scope: vault
+    properties: {
+      description: 'Assign Key Vault Secrets Reader role to ACA identity'
+      principalId: additionalKeyVaulSecretReaderPrincipalId
+      principalType: 'User'
+      roleDefinitionId: keyVaultSecretsUserRoleDefinition.id
+    }
+  }
+
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
   location: location
@@ -60,12 +79,10 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
-
 }
 resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' = {
-  parent:storageAccount
+  parent: storageAccount
   name: 'default'
-
 }
 resource simulatorFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
   parent: fileService
@@ -90,8 +107,6 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     WorkspaceResourceId: logAnalytics.id
   }
 }
-
-
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
   name: containerAppEnvName
