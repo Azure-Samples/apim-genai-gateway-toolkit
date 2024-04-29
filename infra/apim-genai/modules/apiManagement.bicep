@@ -135,7 +135,7 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
   parent: apiManagementService
   name: 'simple-round-robin'
   properties: {
-    value: loadTextContent('../../../policies/load-balancing/simple-round-robin.xml')
+    value: loadTextContent('../../../capabilities/load-balancing/simple-round-robin.xml')
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue, ptuApiKeyOneNamedValue]
@@ -145,7 +145,7 @@ resource azureOpenAISimpleRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/a
   parent: azureOpenAISimpleRoundRobinAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../policies/load-balancing/simple-round-robin-policy.xml')
+    value: loadTextContent('../../../capabilities/load-balancing/simple-round-robin-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [simpleRoundRobinPolicyFragment]
@@ -155,7 +155,7 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
   parent: apiManagementService
   name: 'weighted-round-robin'
   properties: {
-    value: loadTextContent('../../../policies/load-balancing/weighted-round-robin.xml')
+    value: loadTextContent('../../../capabilities/load-balancing/weighted-round-robin.xml')
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue, ptuApiKeyOneNamedValue]
@@ -165,7 +165,7 @@ resource azureOpenAIWeightedRoundRobinAPIPolicy 'Microsoft.ApiManagement/service
   parent: azureOpenAIWeightedRoundRobinAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../policies/load-balancing/weighted-round-robin-policy.xml')
+    value: loadTextContent('../../../capabilities/load-balancing/weighted-round-robin-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [weightedRoundRobinPolicyFragment]
@@ -175,7 +175,7 @@ resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/pol
   parent: apiManagementService
   name: 'adaptive-rate-limiting'
   properties: {
-    value: loadTextContent('../../../policies/rate-limiting/adaptive-rate-limiting.xml')
+    value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting.xml')
     format: 'rawxml'
   }
   dependsOn: [ptuApiKeyOneNamedValue]
@@ -185,7 +185,7 @@ resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/
   parent: azureOpenAIAdaptiveRateLimitingAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../policies/rate-limiting/adaptive-rate-limiting-policy.xml')
+    value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoEndpointOneNamedValue, adaptiveRateLimitingPolicyFragment]
@@ -195,7 +195,7 @@ resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/poli
   parent: apiManagementService
   name: 'retry-with-payg'
   properties: {
-    value: loadTextContent('../../../policies/manage-spikes-with-payg/retry-with-payg.xml')
+    value: loadTextContent('../../../capabilities/manage-spikes-with-payg/retry-with-payg.xml')
     format: 'rawxml'
   }
   dependsOn: [ptuEndpointOneNamedValue, payAsYouGoEndpointOneNamedValue, ptuApiKeyOneNamedValue]
@@ -205,7 +205,7 @@ resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/servic
   parent: azureOpenAIRetryWithPayAsYouGoAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../policies/manage-spikes-with-payg/retry-with-payg-policy.xml')
+    value: loadTextContent('../../../capabilities/manage-spikes-with-payg/retry-with-payg-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [retryWithPayAsYouGoPolicyFragment]
@@ -215,7 +215,7 @@ resource latencyRoutingInboundPolicyFragment 'Microsoft.ApiManagement/service/po
   parent: apiManagementService
   name: 'latency-routing-inbound'
   properties: {
-    value: loadTextContent('../../../policies/latency-routing/latency-routing-inbound.xml')
+    value: loadTextContent('../../../capabilities/latency-routing/latency-routing-inbound.xml')
     format: 'rawxml'
   }
   dependsOn: [ptuApiKeyOneNamedValue]
@@ -224,7 +224,7 @@ resource latencyRoutingBackendPolicyFragment 'Microsoft.ApiManagement/service/po
   parent: apiManagementService
   name: 'latency-routing-backend'
   properties: {
-    value: loadTextContent('../../../policies/latency-routing/latency-routing-backend.xml')
+    value: loadTextContent('../../../capabilities/latency-routing/latency-routing-backend.xml')
     format: 'rawxml'
   }
 }
@@ -233,7 +233,7 @@ resource azureOpenAILatencyRoutingPolicy 'Microsoft.ApiManagement/service/apis/p
   parent: azureOpenAILatencyRoutingAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../policies/latency-routing/latency-routing-policy.xml')
+    value: loadTextContent('../../../capabilities/latency-routing/latency-routing-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [latencyRoutingInboundPolicyFragment, latencyRoutingBackendPolicyFragment]
@@ -243,7 +243,7 @@ resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/pol
   parent: helperAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../policies/latency-routing/set-latency-policy.xml')
+    value: loadTextContent('../../../capabilities/latency-routing/set-latency-policy.xml')
     format: 'rawxml'
   }
 }
