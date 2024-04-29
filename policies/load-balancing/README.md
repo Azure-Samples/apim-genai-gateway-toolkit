@@ -1,4 +1,4 @@
-# Managing spike across PTU instances using PAYG deployments.
+# Load balancing across PAYG, PTU instances
 
 ## Scenario
 
