@@ -1,12 +1,21 @@
-# Load balancing PAYG endpoints
+# Load balancing across PAYG, PTU instances
 
-## Pre-requisites
+## Scenario
 
-- Authentication between APIM and Azure OpenAI backends using Managed Identity, should have been done.
-- Named value pairs for the backend endpoints should have been created in APIM. In this example, the named value pairs are `payg-endpoint-1` and `payg-endpoint-2` with the values as the backend endpoints.
+In this scenario, 2 different flavours of load balancing are done. Simple round robin and weighted round robin.
 
-## How to use this
+## How the policy works
 
-- [Create a policy fragment in APIM](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments#create-a-policy-fragment) with the content of `load-balancing-payg-endpoints.xml`
-- Update the list of backends in the policy fragment with the named value pairs created in the pre-requisites.
-- Refer the fragment in the corresponding API operation.
+### Simple Round Robin
+
+- All the pool of endpoints are defined as an array.
+- An incrementing counter is used to select the endpoint (index) from the array.
+- The counter is persisted in the cache to maintain the state across the requests.
+- The selected endpoint is then used to route the request.
+
+### Weighted Round Robin
+
+- All the pool of endpoints are defined as an `JArray` along with the weights for each endpoint.
+- A random number is generated from 0 to the sum of all the weights.
+- The endpoint is selected based on the random number generated, which is then used to route the request.
+- There is no persistence of the counter in this case.
