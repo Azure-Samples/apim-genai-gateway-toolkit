@@ -3,10 +3,10 @@ set -e
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-output_generated_keys="$script_dir/../../../infra/apim-genai/generated-keys.json"
-output_simulator_base="$script_dir/../../../infra/apim-genai/output-simulator-base.json"
-output_simulators="$script_dir/../../../infra/apim-genai/output-simulators.json"
-output_main="$script_dir/../../../infra/apim-genai/output.json"
+output_generated_keys="$script_dir/../infra/apim-genai/generated-keys.json"
+output_simulator_base="$script_dir/../infra/apim-genai/output-simulator-base.json"
+output_simulators="$script_dir/../infra/apim-genai/output-simulators.json"
+output_main="$script_dir/../infra/apim-genai/output.json"
 
 payg1_fqdn=$(jq -r '.payg1Fqdn // ""' < "$output_simulators")
 if [[ -z "${payg1_fqdn}" ]]; then
@@ -88,9 +88,17 @@ OTEL_SERVICE_NAME=locust \
 OTEL_METRIC_EXPORT_INTERVAL=10000 \
 LOCUST_WEB_PORT=8091 \
 locust \
-	-f "$script_dir/load_injectors.py" \
-	-H "$apim_base_url/latency-routing/" \
+	-f "$script_dir/end_to_end/scenario_round_robin_simple.py" \
+	-H "$apim_base_url/round-robin-simple/" \
 	--users 2 \
 	--run-time 5m \
 	--autostart \
 	--autoquit 0
+
+
+# ****** TODO can we parameterise this to avoid quite as much repetition?
+# parameterise:
+# - test file
+# - host endpoint path
+# - duration
+# - num users?

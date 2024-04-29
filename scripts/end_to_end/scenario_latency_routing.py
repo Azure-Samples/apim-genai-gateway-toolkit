@@ -6,17 +6,17 @@ import asciichartpy as asciichart
 from azure.identity import DefaultAzureCredential
 from locust import HttpUser, task, constant, events
 
-from helpers.app_insights import (
+from common.app_insights import (
     GroupDefinition,
     QueryProcessor,
     parse_app_id_from_connection_string,
 )
-from helpers.latency import (
+from common.latency import (
     measure_latency_and_update_apim,
     set_simulator_completions_latency,
     report_request_metric,
 )
-from helpers.config import (
+from common.config import (
     apim_key,
     app_insights_connection_string,
     simulator_endpoint_payg1,
