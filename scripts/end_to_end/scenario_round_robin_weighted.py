@@ -53,54 +53,6 @@ class CompletionUser(HttpUser):
         )
 
 
-class TestCoordinationUser(HttpUser):
-    """
-    TestCoordinationUser controls the request latencies etc to automate the demo
-    """
-
-    fixed_count = 1  # ensure we only have a single instance of this user
-
-    @task
-    def orchestrate_test(self):
-        # Run for 1 minute
-        time.sleep(60)
-
-        # Measure the latencies and update APIM
-        logging.info("⌚ Measuring latencies and updating APIM")
-        measure_latency_and_update_apim()
-
-        # Run for 1 minute
-        time.sleep(60)
-
-        # Measure the latencies and update APIM
-        logging.info("⌚ Measuring latencies and updating APIM")
-        measure_latency_and_update_apim()
-
-        # Reverse the latencies
-        # Note that this happening _after_ the latency measurement
-        # means that we will see the latency increase in the front-end requests
-        # until the next measure/update cycle
-        logging.info("⚙️ Updating simulator latencies (PAYG1 slow, PAYG2 fast)")
-        set_simulator_completions_latency(simulator_endpoint_payg1, 100)
-        set_simulator_completions_latency(simulator_endpoint_payg2, 10)
-
-        # Run for 1 minute
-        time.sleep(60)
-
-        # Measure the latencies and update APIM
-        logging.info("⌚ Measuring latencies and updating APIM")
-        measure_latency_and_update_apim()
-
-        # Run for 1 minute
-        time.sleep(60)
-
-        # Measure the latencies and update APIM
-        logging.info("⌚ Measuring latencies and updating APIM")
-        measure_latency_and_update_apim()
-
-        time.sleep(60)  # sleep for 2 minutes
-
-
 @events.init.add_listener
 def on_locust_init(environment, **kwargs):
     """
@@ -127,13 +79,9 @@ def on_test_start(environment, **kwargs):
     test_start_time = datetime.now(UTC)
     logging.info("👟 Setting up test...")
 
-    logging.info("⚙️ Setting initial simulator latencies (PAYG1 fast, PAYG2 slow)")
+    logging.info("⚙️ Resetting simulator latencies")
     set_simulator_completions_latency(simulator_endpoint_payg1, 10)
-    set_simulator_completions_latency(simulator_endpoint_payg2, 100)
-
-    time.sleep(1)
-    logging.info("⌚ Measuring API latencies and updating APIM")
-    measure_latency_and_update_apim()
+    set_simulator_completions_latency(simulator_endpoint_payg2, 10)
 
     logging.info("👟 Test setup done")
     logging.info("🚀 Running test...")
@@ -167,34 +115,14 @@ def on_test_stop(environment, **kwargs):
     query_processor.wait_for_non_zero_count(check_results_query)
 
     time_range = f"timestamp > datetime({test_start_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and timestamp < datetime({test_stop_time.strftime('%Y-%m-%dT%H:%M:%SZ')})"
-    query_processor.add_query(
-        title="Front-end latency",
-        query=f"""
-        customMetrics
-        | where name == "locust.request_latency" and {time_range}
-        | project timestamp, valueSum, valueCount
-        | summarize latency_s = sum(valueSum)/sum(valueCount) by bin(timestamp, 10s)
-        | order by timestamp asc
-        | render timechart
-        """,
-        is_chart=True,
-        columns=["latency_s"],
-        chart_config={
-            "height": 10,
-            "colors": [asciichart.blue],
-        },
-        timespan="P1D",
-        show_query=True,
-        include_link=True,
-    )
 
     query_processor.add_query(
-        title="Back-end latency (PAYG1 -> Blue, PAYG2 -> Yellow)",
+        title="Back-end API request count (PAYG1 -> Blue, PAYG2 -> Yellow)",
         query=f"""
         customMetrics
         | where name == "aoai-simulator.latency.full" and {time_range}
-        | project timestamp, cloud_RoleName, valueSum, valueCount
-        | summarize latency_s = sum(valueSum)/sum(valueCount) by cloud_RoleName, bin(timestamp, 10s)
+        | project timestamp, cloud_RoleName, valueCount
+        | summarize request_count = sum(valueCount) by cloud_RoleName, bin(timestamp, 10s)
         | order by timestamp asc
         | render timechart 
         """,
