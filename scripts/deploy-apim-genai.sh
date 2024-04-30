@@ -318,6 +318,12 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
   "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "workloadName" :{ 
+        "value": "${RESOURCE_NAME_PREFIX}"
+    },
+    "environment" :{ 
+        "value": "${ENVIRONMENT_TAG}"
+    },
     "apiManagementServiceName" :{ 
         "value": "${API_MANAGEMENT_SERVICE_NAME}"
     },
