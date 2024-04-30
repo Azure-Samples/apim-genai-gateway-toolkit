@@ -33,7 +33,7 @@ resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@20
   parent: apiManagementService
   name: 'aoai-api-simple-round-robin'
   properties: {
-    path: '/simple-round-robin/openai'
+    path: '/round-robin-simple/openai'
     displayName: 'AOAIAPI-SimpleRoundRobin'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
@@ -45,7 +45,7 @@ resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@
   parent: apiManagementService
   name: 'aoai-api-weighted-round-robin'
   properties: {
-    path: '/weighted-round-robin/openai'
+    path: '/round-robin-weighted/openai'
     displayName: 'AOAIAPI-WeightedRoundRobin'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
