@@ -19,23 +19,18 @@
             <when condition="@(context.Response.StatusCode == 429)">
                 <!-- If the PTU returns 429, the control enters this block -->
                 <!-- It is also possible to have a pool of backends and load balance them -->
-                <set-variable name="selected-url"
-                              value="{{payg-endpoint-1}}" />
-                <set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+                <set-variable name="selected-backend-id" value="payg-backend-1" />
+                <set-backend-service backend-id="@((string)context.Variables["selected-backend-id"])" />
             </when>
             <otherwise>
                 <!-- This is the default path of the request -->
                 <!-- The backend will point to the `ptu endpoint` or it is possible to load balance multiple 
                 PTU endpoints as well -->
-                <set-variable name="selected-url"
-                              value="{{ptu-endpoint-1}}" />
-                <set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+                <set-variable name="selected-backend-id" value="ptu-backend-1" />
+                <set-backend-service backend-id="@((string)context.Variables["selected-backend-id"])" />
             </otherwise>
         </choose>
 
-        <set-header name="api-key" exists-action="override">
-            <value>{{ptu-key-1}}</value>
-        </set-header>
         <forward-request timeout="120" fail-on-error-status-code="true" buffer-response="false" />
     </retry>
 </fragment>

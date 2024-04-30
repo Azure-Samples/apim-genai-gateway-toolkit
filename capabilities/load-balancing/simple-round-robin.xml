@@ -13,20 +13,17 @@
     <!-- backend pool contains all the Azure OpenAI backends, that needs to be load balanced. -->
 	<set-variable name="backend-pool" value="@{
             JArray backends = new JArray();
-            backends.Add("{{payg-endpoint-1}}");
-            backends.Add("{{payg-endpoint-2}}");
+            backends.Add("payg-backend-1");
+            backends.Add("payg-backend-2");
             return backends;
         }" />
 	
     <!-- select the backend URL from the pool for this request -->
     <set-variable name="total-backend-count" value="@(((JArray)context.Variables["backend-pool"]).Count)" />
 	<set-variable name="chosen-index" value="@((int)context.Variables["backend-counter"]%(int)context.Variables["total-backend-count"])" />
-	<set-variable name="selected-url" value="@(((JArray)context.Variables["backend-pool"])[(int)context.Variables["chosen-index"]].ToString())" />
+	<set-variable name="selected-backend-id" value="@(((JArray)context.Variables["backend-pool"])[(int)context.Variables["chosen-index"]].ToString())" />
 
     <!-- set the backend service URL to the selected backend URL -->
     
-    <set-header name="api-key" exists-action="override">
-        <value>{{ptu-key-1}}</value>
-    </set-header>
-	<set-backend-service base-url="@((string)context.Variables["selected-url"])" />
+    <set-backend-service backend-id="@((string)context.Variables["selected-backend-id"])" />
 </fragment>

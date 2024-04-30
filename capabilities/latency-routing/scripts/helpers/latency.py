@@ -87,29 +87,36 @@ def measure_latency_and_update_apim():
             logging.warning("Request to %s timed out", endpoint)
             return float("inf")
 
-    endpoints = [
-        f"{simulator_endpoint_payg1}/openai",
-        f"{simulator_endpoint_payg2}/openai",
-    ]
-    endpoints_with_latency = [
+    backends = [
         {
-            "endpoint": endpoint,
-            "latency": measure_latency(endpoint),
+            "endpoint": f"{simulator_endpoint_payg1}/openai",
+            "backend-id": "payg-backend-1"
+        },
+        {
+            "endpoint": f"{simulator_endpoint_payg2}/openai",
+            "backend-id": "payg-backend-2"
         }
-        for endpoint in endpoints
+    ]
+    backends_with_latency = [
+        {
+            "endpoint": backend["endpoint"],
+            "backend-id": backend["backend-id"],
+            "latency": measure_latency(backend["endpoint"]),
+        }
+        for backend in backends
     ]
 
     # sort with lowest latency first
-    endpoints_with_latency = sorted(endpoints_with_latency, key=lambda x: x["latency"])
-    for endpoint in endpoints_with_latency:
+    backends_with_latency = sorted(backends_with_latency, key=lambda x: x["latency"])
+    for backend in backends_with_latency:
         logging.info(
             "    %s: %s ms",
-            endpoint["endpoint"],
-            endpoint["latency"] * 1000,
+            backend["endpoint"],
+            backend["latency"] * 1000,
         )
-    sorted_endpoints = [endpoint["endpoint"] for endpoint in endpoints_with_latency]
+    sorted_backends = [backend["backend-id"] for backend in backends_with_latency]
 
-    payload = {"preferredBackends": sorted_endpoints}
+    payload = {"preferredBackends": sorted_backends}
     response = requests.post(
         url=f"{apim_endpoint}/helpers/set-preferred-backends",
         json=payload,

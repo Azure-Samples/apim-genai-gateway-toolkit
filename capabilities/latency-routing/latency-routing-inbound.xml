@@ -7,8 +7,5 @@
         value="@((string)((JArray)context.Variables["preferredBackendsFromCache"]).ElementAtOrDefault(0))" />
     <set-variable name="lessPreferredBackend"
         value="@((string)((JArray)context.Variables["preferredBackendsFromCache"]).ElementAtOrDefault(1))" />
-    <set-variable name="default-url" value="{{payg-endpoint-1}}" />
-    <set-header name="api-key" exists-action="override">
-        <value>{{ptu-key-1}}</value>
-    </set-header>
+    <set-variable name="default-backend-id" value="payg-backend-1" />
 </fragment> 

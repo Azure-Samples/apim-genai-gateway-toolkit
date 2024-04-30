@@ -138,7 +138,6 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
     value: loadTextContent('../../../capabilities/load-balancing/simple-round-robin.xml')
     format: 'rawxml'
   }
-  dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue, ptuApiKeyOneNamedValue]
 }
 
 resource azureOpenAISimpleRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -158,7 +157,6 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
     value: loadTextContent('../../../capabilities/load-balancing/weighted-round-robin.xml')
     format: 'rawxml'
   }
-  dependsOn: [payAsYouGoEndpointOneNamedValue, payAsYouGoEndpointTwoNamedValue, ptuApiKeyOneNamedValue]
 }
 
 resource azureOpenAIWeightedRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -178,7 +176,6 @@ resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/pol
     value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting.xml')
     format: 'rawxml'
   }
-  dependsOn: [ptuApiKeyOneNamedValue]
 }
 
 resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -188,7 +185,7 @@ resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/
     value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting-policy.xml')
     format: 'rawxml'
   }
-  dependsOn: [payAsYouGoEndpointOneNamedValue, adaptiveRateLimitingPolicyFragment]
+  dependsOn: [adaptiveRateLimitingPolicyFragment]
 }
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -198,7 +195,6 @@ resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/poli
     value: loadTextContent('../../../capabilities/manage-spikes-with-payg/retry-with-payg.xml')
     format: 'rawxml'
   }
-  dependsOn: [ptuEndpointOneNamedValue, payAsYouGoEndpointOneNamedValue, ptuApiKeyOneNamedValue]
 }
 
 resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -218,7 +214,6 @@ resource latencyRoutingInboundPolicyFragment 'Microsoft.ApiManagement/service/po
     value: loadTextContent('../../../capabilities/latency-routing/latency-routing-inbound.xml')
     format: 'rawxml'
   }
-  dependsOn: [ptuApiKeyOneNamedValue]
 }
 resource latencyRoutingBackendPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
@@ -248,57 +243,45 @@ resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/pol
   }
 }
 
-resource ptuEndpointOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+resource ptuBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'ptu-endpoint-1'
-  properties: {
-    displayName: 'ptu-endpoint-1'
-    value: ptuDeploymentOneBaseUrl
+  name: 'ptu-backend-1'
+  properties:{
+    protocol: 'http'
+    url: ptuDeploymentOneBaseUrl
+    credentials: {
+      header: {
+        'api-key': [ptuDeploymentOneApiKey]
+      }
+    }
   }
 }
 
-resource ptuApiKeyOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+resource payAsYouGoBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'ptu-key-1'
-  properties: {
-    displayName: 'ptu-key-1'
-    value: ptuDeploymentOneApiKey
+  name: 'payg-backend-1'
+  properties:{
+    protocol: 'http'
+    url: payAsYouGoDeploymentOneBaseUrl
+    credentials: {
+      header: {
+        'api-key': [payAsYouGoDeploymentOneApiKey]
+      }
+    }
   }
 }
 
-resource payAsYouGoEndpointOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+resource payAsYouGoBackendTwo 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'payg-endpoint-1'
-  properties: {
-    displayName: 'payg-endpoint-1'
-    value: payAsYouGoDeploymentOneBaseUrl
-  }
-}
-
-resource payAsYouGoApiKeyOneNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'payg-key-1'
-  properties: {
-    displayName: 'payg-key-1'
-    value: payAsYouGoDeploymentOneApiKey
-  }
-}
-
-resource payAsYouGoEndpointTwoNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'payg-endpoint-2'
-  properties: {
-    displayName: 'payg-endpoint-2'
-    value: payAsYouGoDeploymentTwoBaseUrl
-  }
-}
-
-resource payAsYouGoApiKeyTwoNamedValue 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'payg-key-2'
-  properties: {
-    displayName: 'payg-key-2'
-    value: payAsYouGoDeploymentTwoApiKey
+  name: 'payg-backend-2'
+  properties:{
+    protocol: 'http'
+    url: payAsYouGoDeploymentTwoBaseUrl
+    credentials: {
+      header: {
+        'api-key': [payAsYouGoDeploymentTwoApiKey]
+      }
+    }
   }
 }
 
