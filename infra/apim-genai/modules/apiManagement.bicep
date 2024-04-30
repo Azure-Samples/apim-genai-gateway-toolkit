@@ -121,6 +121,48 @@ resource azureOpenAIProductAPIAssociation 'Microsoft.ApiManagement/service/produ
   }
 ]
 
+resource ptuBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'ptu-backend-1'
+  properties:{
+    protocol: 'http'
+    url: ptuDeploymentOneBaseUrl
+    credentials: {
+      header: {
+        'api-key': [ptuDeploymentOneApiKey]
+      }
+    }
+  }
+}
+
+resource payAsYouGoBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'payg-backend-1'
+  properties:{
+    protocol: 'http'
+    url: payAsYouGoDeploymentOneBaseUrl
+    credentials: {
+      header: {
+        'api-key': [payAsYouGoDeploymentOneApiKey]
+      }
+    }
+  }
+}
+
+resource payAsYouGoBackendTwo 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'payg-backend-2'
+  properties:{
+    protocol: 'http'
+    url: payAsYouGoDeploymentTwoBaseUrl
+    credentials: {
+      header: {
+        'api-key': [payAsYouGoDeploymentTwoApiKey]
+      }
+    }
+  }
+}
+
 resource azureOpenAIProductSubscription 'Microsoft.ApiManagement/service/subscriptions@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'aoai-product-subscription'
@@ -138,6 +180,7 @@ resource simpleRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyF
     value: loadTextContent('../../../capabilities/load-balancing/simple-round-robin.xml')
     format: 'rawxml'
   }
+  dependsOn: [payAsYouGoBackendOne, payAsYouGoBackendTwo]
 }
 
 resource azureOpenAISimpleRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -157,6 +200,7 @@ resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/polic
     value: loadTextContent('../../../capabilities/load-balancing/weighted-round-robin.xml')
     format: 'rawxml'
   }
+  dependsOn: [payAsYouGoBackendOne, payAsYouGoBackendTwo]
 }
 
 resource azureOpenAIWeightedRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -176,6 +220,7 @@ resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/pol
     value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting.xml')
     format: 'rawxml'
   }
+  dependsOn: [payAsYouGoBackendOne, ptuBackendOne]
 }
 
 resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -243,47 +288,6 @@ resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/pol
   }
 }
 
-resource ptuBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'ptu-backend-1'
-  properties:{
-    protocol: 'http'
-    url: ptuDeploymentOneBaseUrl
-    credentials: {
-      header: {
-        'api-key': [ptuDeploymentOneApiKey]
-      }
-    }
-  }
-}
-
-resource payAsYouGoBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'payg-backend-1'
-  properties:{
-    protocol: 'http'
-    url: payAsYouGoDeploymentOneBaseUrl
-    credentials: {
-      header: {
-        'api-key': [payAsYouGoDeploymentOneApiKey]
-      }
-    }
-  }
-}
-
-resource payAsYouGoBackendTwo 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'payg-backend-2'
-  properties:{
-    protocol: 'http'
-    url: payAsYouGoDeploymentTwoBaseUrl
-    credentials: {
-      header: {
-        'api-key': [payAsYouGoDeploymentTwoApiKey]
-      }
-    }
-  }
-}
 
 output apiManagementServiceName string = apiManagementService.name
 output apiManagementAzureOpenAIProductSubscriptionKey string = azureOpenAIProductSubscription.listSecrets().primaryKey
