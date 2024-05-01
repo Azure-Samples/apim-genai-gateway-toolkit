@@ -23,6 +23,10 @@ param location string
 @secure()
 param additionalKeyVaulSecretReaderPrincipalId string = '' // used to enable the current user to retrieve the app insights connection string
 
+
+@description('The name of the Log Analytics workspace')
+param logAnalyticsName string
+
 var resourceSuffix = '${workloadName}-${environment}-${location}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
@@ -36,6 +40,7 @@ module simulatorBase 'modules/simulatorBase.bicep' = {
     location: location
     resourceSuffix: resourceSuffix
     additionalKeyVaulSecretReaderPrincipalId: additionalKeyVaulSecretReaderPrincipalId
+    logAnalyticsName: logAnalyticsName
   }
 }
 
@@ -46,5 +51,4 @@ output storageAccountName string = simulatorBase.outputs.storageAccountName
 output fileShareName string = simulatorBase.outputs.fileShareName
 
 output keyVaultName string = simulatorBase.outputs.keyVaultName
-output appInsightsName string = simulatorBase.outputs.appInsightsName
 output containerAppEnvName string = simulatorBase.outputs.containerAppEnvName

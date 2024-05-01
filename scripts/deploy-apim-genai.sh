@@ -48,11 +48,22 @@ API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$script_dir/../infra/ap
 output_generated_keys="$script_dir/../infra/apim-genai/generated-keys.json"
 output_simulator_base="$script_dir/../infra/apim-genai/output-simulator-base.json"
 output_simulators="$script_dir/../infra/apim-genai/output-simulators.json"
-
+output_base="$script_dir/../infra/apim-baseline/output.json"
 
 # Ensure output-keys.json exists and add empty JSON object if not
 if [[ ! -f "$output_generated_keys" ]]; then
   echo "{}" > "$output_generated_keys"
+fi
+
+app_insights_name=$(jq -r '.appInsightsName // ""' < "$output_base")
+if [[ -z "$app_insights_name" ]]; then
+  echo "App Insights name (appInsightsName) not found in output-base.json"
+  exit 1
+fi
+log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_base")
+if [[ -z "$log_analytics_name" ]]; then
+  echo "Log Analytics name (logAnalyticsName) not found in output-base.json"
+  exit 1
 fi
 
 
@@ -117,6 +128,9 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
     },
     "additionalKeyVaulSecretReaderPrincipalId": {
       "value": "${user_id}"
+    },
+    "logAnalyticsName": {
+      "value": "${log_analytics_name}"
     }
   }
 }
@@ -138,11 +152,6 @@ EOF
   fi
 
   # if app insights key not stored, create and store
-  app_insights_name=$(cat $output_simulator_base  | jq -r '.appInsightsName // ""')
-  if [[ -z "$app_insights_name" ]]; then
-    echo "App Insights name (appInsightsName) not found in output-simulator-base.json"
-    exit 1
-  fi
   app_insights_key=$(jq -r '.appInsightsKey // ""' < "$output_generated_keys")
   if [[ ${#app_insights_key} -eq 0 ]]; then
     echo 'Creating app insights key'

@@ -14,12 +14,15 @@ param resourceSuffix string
 @secure()
 param additionalKeyVaulSecretReaderPrincipalId string = ''
 
+@description('The name of the Log Analytics workspace')
+param logAnalyticsName string
+
+
 var containerRegistryName = replace('aoaisim-${resourceSuffix}', '-', '')
 var keyVaultName = replace('aoaisim-${resourceSuffix}', '-', '')
 var storageAccountName = replace('aoaisim${resourceSuffix}', '-', '')
 var containerAppEnvName = 'aoaisim-${resourceSuffix}'
-var logAnalyticsName = 'aoaisim-${resourceSuffix}'
-var appInsightsName = 'aoaisim-${resourceSuffix}'
+
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-12-01-preview' = {
   name: containerRegistryName
@@ -89,24 +92,10 @@ resource simulatorFileShare 'Microsoft.Storage/storageAccounts/fileServices/shar
   name: 'simulator'
 }
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' = {
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' existing = {
   name: logAnalyticsName
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-  }
 }
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: appInsightsName
-  location: location
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
-  }
-}
+
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
   name: containerAppEnvName
@@ -139,6 +128,4 @@ output containerRegistryName string = containerRegistry.name
 output storageAccountName string = storageAccount.name
 output fileShareName string = simulatorFileShare.name
 output keyVaultName string = vault.name
-output logAnalyticsName string = logAnalytics.name
-output appInsightsName string = appInsights.name
 output containerAppEnvName string = containerAppEnv.name
