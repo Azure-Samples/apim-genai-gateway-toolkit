@@ -10,7 +10,7 @@
             backends.Add(new JObject()
             {
                 { "id", "payg-backend-2" },
-                { "weight", 3 },
+                { "weight", 1 },
             });
 
             return backends;

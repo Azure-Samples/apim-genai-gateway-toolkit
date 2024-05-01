@@ -47,7 +47,7 @@ To summarize:
 To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
 This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
 
-Once the accelerator is deployed, open a bash terminal in the `capabilities/latency-routing` directory and run `./scripts/run-scenario.sh`.
+Once the accelerator is deployed, open a bash terminal in the route directory of the repo and run `./scripts/run-end-to-end-latency-routing.sh`.
 
 This script runs a load test for 5 minutes which repeatedly sends requests to the OpenAI simulator via APIM using the  latency routing policy.
 

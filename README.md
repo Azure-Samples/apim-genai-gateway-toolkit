@@ -33,7 +33,10 @@ For this you can either install the [pre-requisites](#prerequisites) on your loc
 
 Follow the [Dev Containers Getting Started Guide](https://code.visualstudio.com/docs/devcontainers/containers) to set up Visual Studio Code for using Dev Containers.
 
-Once that is done, open the repository in Visual Studio Code and select `Dev Containers: Reopen in Container` from the command palette. This will create an environment with all the pre-requisites installed.
+Once that is done, open the repository in Visual Studio Code and select `Dev Containers: Reopen in Container` from the command palette.
+This will create an environment with all the pre-requisites installed.
+
+NOTE: When the container is built Visual Studio Code will automatically install the python dependencies required for the scenario tests. If you pull a later version of the code, you make need to run `pip install -r end_to_end_tests/requirements.txt` to install the dependencies (or rebuild the dev container).
 
 ### Prerequisites for non Dev Container setup
 
@@ -45,7 +48,7 @@ If you are manually installing the pre-requisites, you will need the following:
 - Python 3 (to run scenario tests)
 - `jq` (to parse JSON responses in bash scripts)
 - a bash terminal (see [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install) if you are on Windows)
-
+- Install python dependencies for the scenario tests by running `pip install -r end_to_end_tests/requirements.txt`
 
 ## Deploying the Accelerator
 

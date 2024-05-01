@@ -1,12 +1,43 @@
 #!/bin/bash
 set -e
 
+#
+# This is a helper script for running the secenario tests
+#
+
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-output_generated_keys="$script_dir/../../../infra/apim-genai/generated-keys.json"
-output_simulator_base="$script_dir/../../../infra/apim-genai/output-simulator-base.json"
-output_simulators="$script_dir/../../../infra/apim-genai/output-simulators.json"
-output_main="$script_dir/../../../infra/apim-genai/output.json"
+if [[ -z "${RUN_TIME}" ]]; then
+	echo "RUN_TIME not set!"
+	exit 1
+fi
+if [[ -z "${USER_COUNT}" ]]; then
+	echo "USER_COUNT not set!"
+	exit 1
+fi
+if [[ -z "${SCENARIO_NAME}" ]]; then
+	echo "SCENARIO_NAME not set!"
+	exit 1
+fi
+
+if [[ "${SCENARIO_NAME}" == "latency-routing" ]]; then
+	test_file="scenario_latency_routing.py"
+	host_endpoint_path="latency-routing"
+elif [[ "${SCENARIO_NAME}" == "round-robin-simple" ]]; then
+	test_file="scenario_round_robin.py"
+	host_endpoint_path="round-robin-simple"
+elif [[ "${SCENARIO_NAME}" == "round-robin-weighted" ]]; then
+	test_file="scenario_round_robin.py"
+	host_endpoint_path="round-robin-weighted"
+else
+	echo "Unknown scenario name: ${SCENARIO_NAME}"
+	exit 1
+fi
+
+output_generated_keys="$script_dir/../../infra/apim-genai/generated-keys.json"
+output_simulator_base="$script_dir/../../infra/apim-genai/output-simulator-base.json"
+output_simulators="$script_dir/../../infra/apim-genai/output-simulators.json"
+output_main="$script_dir/../../infra/apim-genai/output.json"
 
 payg1_fqdn=$(jq -r '.payg1Fqdn // ""' < "$output_simulators")
 if [[ -z "${payg1_fqdn}" ]]; then
@@ -71,9 +102,8 @@ tenant_id=$(az account show --output tsv --query tenantId)
 
 # Run the locust test (set user count and duration and gather the results)
 
-# NOTES:
-# --users arg includes 1 for the orchestrator user
-# --run-time matches the duration of the orchestrator test user run
+load_test_root="$script_dir/../../end_to_end_tests"
+
 APIM_KEY=$apim_key \
 APIM_ENDPOINT=$apim_base_url \
 APP_INSIGHTS_NAME=$app_insights_name \
@@ -88,9 +118,9 @@ OTEL_SERVICE_NAME=locust \
 OTEL_METRIC_EXPORT_INTERVAL=10000 \
 LOCUST_WEB_PORT=8091 \
 locust \
-	-f "$script_dir/load_injectors.py" \
-	-H "$apim_base_url/latency-routing/" \
-	--users 2 \
-	--run-time 5m \
+	-f "$load_test_root/$test_file" \
+	-H "$apim_base_url/$host_endpoint_path/" \
+	--users "$USER_COUNT" \
+	--run-time "$RUN_TIME" \
 	--autostart \
 	--autoquit 0
