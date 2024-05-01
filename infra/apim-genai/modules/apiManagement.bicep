@@ -89,6 +89,19 @@ resource azureOpenAILatencyRoutingAPI 'Microsoft.ApiManagement/service/apis@2023
   }
 }
 
+resource azureOpenAIUsageTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-usage-tracking'
+  properties: {
+    path: '/usage-tracking/openai'
+    displayName: 'AOAIAPI-UsageTracking'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
+
 resource helperAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'helper-apis'
@@ -283,6 +296,25 @@ resource azureOpenAILatencyRoutingPolicy 'Microsoft.ApiManagement/service/apis/p
     format: 'rawxml'
   }
   dependsOn: [latencyRoutingInboundPolicyFragment, latencyRoutingBackendPolicyFragment]
+}
+
+resource usageTrackingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'usage-tracking'
+  properties: {
+    value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking.xml')
+    format: 'rawxml'
+  }
+}
+
+resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIUsageTrackingAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking-policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [usageTrackingPolicyFragment]
 }
 
 resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
