@@ -1,5 +1,18 @@
 targetScope = 'resourceGroup'
 
+@description('A short name for the workload being deployed alphanumberic only')
+@maxLength(8)
+param workloadName string
+
+@description('The environment for which the deployment is being executed')
+@allowed([
+  'dev'
+  'uat'
+  'prod'
+  'dr'
+])
+param environment string
+
 @description('The name of the API Management service instance')
 param apiManagementServiceName string
 
@@ -21,6 +34,12 @@ param payAsYouGoDeploymentTwoBaseUrl string
 @description('The api key of the second Azure Open AI Service Pay-As-You-Go deployment')
 param payAsYouGoDeploymentTwoApiKey string
 
+param location string = resourceGroup().location
+
+var resourceSuffix = '${workloadName}-${environment}-${location}-001'
+var eventHubNamespaceName = 'eventhub-ns-${resourceSuffix}'
+var eventHubName = 'apim-utilization-reporting'
+
 module apiManagement 'modules/apiManagement.bicep' = {
   name: 'apiManagementDeploy'
   params: {
@@ -31,6 +50,17 @@ module apiManagement 'modules/apiManagement.bicep' = {
     payAsYouGoDeploymentOneApiKey: payAsYouGoDeploymentOneApiKey
     payAsYouGoDeploymentTwoBaseUrl: payAsYouGoDeploymentTwoBaseUrl
     payAsYouGoDeploymentTwoApiKey: payAsYouGoDeploymentTwoApiKey
+    eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
+    eventHubName: eventHub.outputs.eventHubName
+  }
+}
+
+module eventHub 'modules/eventHub.bicep' = {
+  name: 'eventHubDeploy'
+  params: {
+    eventHubName: eventHubName
+    eventHubNamespaceName: eventHubNamespaceName
+    location: location
   }
 }
 

@@ -39,6 +39,9 @@ resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-previe
     publisherEmail: publisherEmail
     publisherName: publisherName
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
 }
 
 output apiManagementServiceName string = apiManagementService.name
