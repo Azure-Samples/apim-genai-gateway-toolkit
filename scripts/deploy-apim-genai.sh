@@ -66,7 +66,7 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
     SIMULATOR_API_KEY=$(jq -r '.simulatorApiKey // ""' < "$output_generated_keys")
     if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
       echo 'SIMULATOR_API_KEY not set and no stored value found - generating key'
-      SIMULATOR_API_KEY=$(bash "$script_dir/generate-api-key.sh")
+      SIMULATOR_API_KEY=$(bash "$script_dir/utils/generate-api-key.sh")
     else
       echo "Loaded SIMULATOR_API_KEY from generated-keys.json"
     fi
