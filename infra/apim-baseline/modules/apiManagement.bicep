@@ -68,4 +68,30 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     WorkspaceResourceId: logAnalytics.id
   }
 }
+
+resource apiManagementDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${apiManagementServiceName}-diagnostic-settings'
+  scope: apiManagementService
+  properties: {
+    workspaceId: logAnalytics.id
+    logAnalyticsDestinationType: 'Dedicated' 
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+      {
+        categoryGroup: 'audit'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
+}
+
 output apiManagementServiceName string = apiManagementService.name
