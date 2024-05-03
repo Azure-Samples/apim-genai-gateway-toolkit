@@ -7,13 +7,17 @@ set -e
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-if [[ -z "${RUN_TIME}" ]]; then
-	echo "RUN_TIME not set!"
-	exit 1
-fi
 if [[ -z "${USER_COUNT}" ]]; then
 	echo "USER_COUNT not set!"
 	exit 1
+fi
+if [[ -z "${RUN_TIME}" ]]; then
+	# USER_COUNT=-1 indicates a custom load shape class
+	# skip setting user count, run time etc
+	if [[ "${USER_COUNT}" != "-1" ]]; then
+		echo "RUN_TIME not set!"
+		exit 1
+	fi
 fi
 if [[ -z "${SCENARIO_NAME}" ]]; then
 	echo "SCENARIO_NAME not set!"
@@ -29,6 +33,9 @@ elif [[ "${SCENARIO_NAME}" == "round-robin-simple" ]]; then
 elif [[ "${SCENARIO_NAME}" == "round-robin-weighted" ]]; then
 	test_file="scenario_round_robin.py"
 	host_endpoint_path="round-robin-weighted"
+elif [[ "${SCENARIO_NAME}" == "manage-spikes-with-payg" ]]; then
+	test_file="scenario_manage_spikes_with_payg.py"
+	host_endpoint_path="retry-with-payg"
 else
 	echo "Unknown scenario name: ${SCENARIO_NAME}"
 	exit 1
@@ -42,18 +49,24 @@ output_base="$script_dir/../../infra/apim-baseline/output.json"
 
 payg1_fqdn=$(jq -r '.payg1Fqdn // ""' < "$output_simulators")
 if [[ -z "${payg1_fqdn}" ]]; then
-echo "PAYG1 Endpoint not found in simulator deployment output"
-exit 1
+	echo "PAYG1 Endpoint not found in simulator deployment output"
+	exit 1
 fi
 payg1_base_url="https://${payg1_fqdn}"
 
 payg2_fqdn=$(jq -r '.payg2Fqdn // ""' < "$output_simulators")
 if [[ -z "${payg2_fqdn}" ]]; then
-echo "PAYG2 Endpoint not found in simulator deployment output"
-exit 1
+	echo "PAYG2 Endpoint not found in simulator deployment output"
+	exit 1
 fi
 payg2_base_url="https://${payg2_fqdn}"
 
+ptu1_fqdn=$(jq -r '.ptu1Fqdn // ""' < "$output_simulators")
+if [[ -z "${ptu1_fqdn}" ]]; then
+	echo "PTU1 Endpoint not found in simulator deployment output"
+	exit 1
+fi
+ptu1_base_url="https://${ptu1_fqdn}"
 
 resource_group_name=$(jq -r '.resourceGroupName // ""'< "$output_simulators")
 if [[ -z "${resource_group_name}" ]]; then
@@ -118,25 +131,50 @@ tenant_id=$(az account show --output tsv --query tenantId)
 
 load_test_root="$script_dir/../../end_to_end_tests"
 
-APIM_KEY=$apim_key \
-APIM_ENDPOINT=$apim_base_url \
-APP_INSIGHTS_NAME=$app_insights_name \
-TENANT_ID=$tenant_id \
-SUBSCRIPTION_ID=$subscription_id \
-RESOURCE_GROUP_NAME=$resource_group_name \
-APP_INSIGHTS_CONNECTION_STRING=$app_insights_connection_string \
-SIMULATOR_ENDPOINT_PAYG1=$payg1_base_url \
-SIMULATOR_ENDPOINT_PAYG2=$payg2_base_url \
-SIMULATOR_API_KEY=$simulator_api_key \
-LOG_ANALYTICS_WORKSPACE_ID=$log_analytics_workspace_id \
-LOG_ANALYTICS_WORKSPACE_NAME=$log_analytics_workspace_name \
-OTEL_SERVICE_NAME=locust \
-OTEL_METRIC_EXPORT_INTERVAL=10000 \
-LOCUST_WEB_PORT=8091 \
-locust \
-	-f "$load_test_root/$test_file" \
-	-H "$apim_base_url/$host_endpoint_path/" \
-	--users "$USER_COUNT" \
-	--run-time "$RUN_TIME" \
-	--autostart \
-	--autoquit 0
+if [[ $USER_COUNT == "-1" ]]; then
+	APIM_KEY=$apim_key \
+	APIM_ENDPOINT=$apim_base_url \
+	APP_INSIGHTS_NAME=$app_insights_name \
+	TENANT_ID=$tenant_id \
+	SUBSCRIPTION_ID=$subscription_id \
+	RESOURCE_GROUP_NAME=$resource_group_name \
+	APP_INSIGHTS_CONNECTION_STRING=$app_insights_connection_string \
+	SIMULATOR_ENDPOINT_PTU1=$ptu1_base_url \
+	SIMULATOR_ENDPOINT_PAYG1=$payg1_base_url \
+	SIMULATOR_ENDPOINT_PAYG2=$payg2_base_url \
+	SIMULATOR_API_KEY=$simulator_api_key \
+	LOG_ANALYTICS_WORKSPACE_ID=$log_analytics_workspace_id \
+	LOG_ANALYTICS_WORKSPACE_NAME=$log_analytics_workspace_name \
+	OTEL_SERVICE_NAME=locust \
+	OTEL_METRIC_EXPORT_INTERVAL=10000 \
+	LOCUST_WEB_PORT=8091 \
+	locust \
+		-f "$load_test_root/$test_file" \
+		-H "$apim_base_url/$host_endpoint_path/" \
+		--autostart \
+		--autoquit 0
+else
+	APIM_KEY=$apim_key \
+	APIM_ENDPOINT=$apim_base_url \
+	APP_INSIGHTS_NAME=$app_insights_name \
+	TENANT_ID=$tenant_id \
+	SUBSCRIPTION_ID=$subscription_id \
+	RESOURCE_GROUP_NAME=$resource_group_name \
+	APP_INSIGHTS_CONNECTION_STRING=$app_insights_connection_string \
+	SIMULATOR_ENDPOINT_PTU1=$ptu1_base_url \
+	SIMULATOR_ENDPOINT_PAYG1=$payg1_base_url \
+	SIMULATOR_ENDPOINT_PAYG2=$payg2_base_url \
+	SIMULATOR_API_KEY=$simulator_api_key \
+	LOG_ANALYTICS_WORKSPACE_ID=$log_analytics_workspace_id \
+	LOG_ANALYTICS_WORKSPACE_NAME=$log_analytics_workspace_name \
+	OTEL_SERVICE_NAME=locust \
+	OTEL_METRIC_EXPORT_INTERVAL=10000 \
+	LOCUST_WEB_PORT=8091 \
+	locust \
+		-f "$load_test_root/$test_file" \
+		-H "$apim_base_url/$host_endpoint_path/" \
+		--users "$USER_COUNT" \
+		--run-time "$RUN_TIME" \
+		--autostart \
+		--autoquit 0
+fi
