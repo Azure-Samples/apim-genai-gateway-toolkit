@@ -49,8 +49,8 @@ class Table:
         # assume rows are sorted on id_column
 
         group_column_index = self.columns.index(group_column)
-        distinct_group_column_values = list(
-            set(row[group_column_index] for row in self.rows)
+        distinct_group_column_values = sorted(
+            list(set(row[group_column_index] for row in self.rows))
         )
 
         new_columns = [id_column] + [
@@ -345,19 +345,3 @@ class QueryProcessor:
 
         series = [get_column_values(query_result, column) for column in columns]
         print(asciichart.plot(series, config))
-
-    def __create_table_from_json_response(self, json) -> Table:
-        """
-        Constructs a table from the query's json response.
-
-        Parameters:
-            json (dict): Json response for the query.
-
-        Returns:
-            Table with the query result.
-        """
-
-        # Extract column names
-        columns = [column_tuple["name"] for column_tuple in json["columns"]]
-        rows = json["rows"]
-        return Table(columns=columns, rows=rows)

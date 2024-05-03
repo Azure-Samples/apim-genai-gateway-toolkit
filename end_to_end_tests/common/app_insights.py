@@ -42,8 +42,8 @@ class Table:
         # assume rows are sorted on id_column
 
         group_column_index = self.columns.index(group_column)
-        distinct_group_column_values = list(
-            set(row[group_column_index] for row in self.rows)
+        distinct_group_column_values = sorted(
+            list(set(row[group_column_index] for row in self.rows))
         )
 
         new_columns = [id_column] + [
