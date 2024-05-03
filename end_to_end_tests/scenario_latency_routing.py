@@ -6,10 +6,9 @@ import asciichartpy as asciichart
 from azure.identity import DefaultAzureCredential
 from locust import HttpUser, task, constant, events
 
-from common.app_insights import (
+from common.log_analytics import (
     GroupDefinition,
     QueryProcessor,
-    parse_app_id_from_connection_string,
 )
 from common.latency import (
     measure_latency_and_update_apim,
@@ -24,7 +23,8 @@ from common.config import (
     tenant_id,
     subscription_id,
     resource_group_name,
-    app_insights_name,
+    log_analytics_workspace_id,
+    log_analytics_workspace_name,
 )
 
 test_start_time = None
@@ -66,6 +66,7 @@ class TestCoordinationUser(HttpUser):
         time.sleep(60)
 
         # Measure the latencies and update APIM
+        # The load test repeatedly does this to simulate the scheduled task that would run in production
         logging.info("⌚ Measuring latencies and updating APIM")
         measure_latency_and_update_apim()
 
@@ -147,72 +148,51 @@ def on_test_stop(environment, **kwargs):
     test_stop_time = datetime.now(UTC)
     logging.info("✔️ Test finished")
 
-    app_id = parse_app_id_from_connection_string(app_insights_connection_string)
-
     query_processor = QueryProcessor(
-        app_id=app_id,
+        workspace_id=log_analytics_workspace_id,
         token_credential=DefaultAzureCredential(),
         tenant_id=tenant_id,
         subscription_id=subscription_id,
         resource_group_name=resource_group_name,
-        app_insights_name=app_insights_name,
+        workspace_name=log_analytics_workspace_name,
     )
 
     metric_check_time = test_stop_time - timedelta(seconds=10)
     check_results_query = f"""
-    customMetrics
-    | where timestamp >= datetime({metric_check_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and name == "locust.request_latency"
+    AppMetrics
+    | where TimeGenerated >= datetime({metric_check_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and Name == "locust.request_latency"
     | count
     """
     query_processor.wait_for_non_zero_count(check_results_query)
 
-    time_range = f"timestamp > datetime({test_start_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and timestamp < datetime({test_stop_time.strftime('%Y-%m-%dT%H:%M:%SZ')})"
-    query_processor.add_query(
-        title="Front-end latency",
-        query=f"""
-        customMetrics
-        | where name == "locust.request_latency" and {time_range}
-        | project timestamp, valueSum, valueCount
-        | summarize latency_s = sum(valueSum)/sum(valueCount) by bin(timestamp, 10s)
-        | order by timestamp asc
-        | render timechart
-        """,
-        is_chart=True,
-        columns=["latency_s"],
-        chart_config={
-            "height": 10,
-            "colors": [asciichart.blue],
-        },
-        timespan="P1D",
-        show_query=True,
-        include_link=True,
-    )
+    time_range = f"TimeGenerated > datetime({test_start_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and TimeGenerated < datetime({test_stop_time.strftime('%Y-%m-%dT%H:%M:%SZ')})"
 
     query_processor.add_query(
-        title="Back-end latency (PAYG1 -> Blue, PAYG2 -> Yellow)",
+        title="Request latency (PAYG1 -> Blue, PAYG2 -> Yellow)",
         query=f"""
-        customMetrics
-        | where name == "aoai-simulator.latency.full" and {time_range}
-        | project timestamp, cloud_RoleName, valueSum, valueCount
-        | summarize latency_s = sum(valueSum)/sum(valueCount) by cloud_RoleName, bin(timestamp, 10s)
-        | order by timestamp asc
-        | render timechart 
-        """,
+ApiManagementGatewayLogs
+| where OperationName != "" and  {time_range}
+| where BackendId != ""
+| summarize latency_s = avg(TotalTime) by bin(TimeGenerated, 10s), BackendId
+| order by TimeGenerated asc
+| render timechart
+        """.strip(),  # When clikcing on the link, Log Analytics runs the query automatically if there's no preceding whitespace,
         is_chart=True,
         chart_config={
-            "height": 10,
+            "height": 15,
+            "min": 0,
             "colors": [
                 asciichart.yellow,
                 asciichart.blue,
             ],
         },
         group_definition=GroupDefinition(
-            id_column="timestamp",
-            group_column="cloud_RoleName",
+            id_column="TimeGenerated",
+            group_column="BackendId",
             value_column="latency_s",
             missing_value=float("nan"),
         ),
-        timespan="P1D",
+        timespan=(test_start_time, test_stop_time),
         show_query=True,
         include_link=True,
     )

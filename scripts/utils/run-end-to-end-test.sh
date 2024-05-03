@@ -73,6 +73,12 @@ if [[ -z "${app_insights_name}" ]]; then
 	exit 1
 fi
 
+log_analytics_workspace_name=$(jq -r '.logAnalyticsName // ""'< "$output_base")
+if [[ -z "${log_analytics_workspace_name}" ]]; then
+	echo "Log Analytics Workspace Name not found in output.json"
+	exit 1
+fi
+
 key_vault_name=$(jq -r '.keyVaultName // ""'< "$output_simulator_base")
 if [[ -z "${key_vault_name}" ]]; then
 	echo "Key Vault Name not found in output.json"
@@ -83,6 +89,13 @@ if [[ -z "${app_insights_connection_string}" ]]; then
 	echo "App Insights Connection String not found in Key Vault"
 	exit 1
 fi
+
+log_analytics_workspace_id=$(az monitor log-analytics workspace show --resource-group "$resource_group_name" --name "$log_analytics_workspace_name" --query "customerId" --output tsv)
+if [[ -z "${log_analytics_workspace_id}" ]]; then
+	echo "Error getting log analytics workspace id"
+	exit 1
+fi
+
 
 apim_key=$(jq -r '.apiManagementAzureOpenAIProductSubscriptionKey // ""'< "$output_main")
 if [[ -z "${apim_key}" ]]; then
@@ -115,6 +128,8 @@ APP_INSIGHTS_CONNECTION_STRING=$app_insights_connection_string \
 SIMULATOR_ENDPOINT_PAYG1=$payg1_base_url \
 SIMULATOR_ENDPOINT_PAYG2=$payg2_base_url \
 SIMULATOR_API_KEY=$simulator_api_key \
+LOG_ANALYTICS_WORKSPACE_ID=$log_analytics_workspace_id \
+LOG_ANALYTICS_WORKSPACE_NAME=$log_analytics_workspace_name \
 OTEL_SERVICE_NAME=locust \
 OTEL_METRIC_EXPORT_INTERVAL=10000 \
 LOCUST_WEB_PORT=8091 \
