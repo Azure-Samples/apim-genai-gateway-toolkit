@@ -36,18 +36,13 @@ The initial output from a test run will look something like this (this output sh
 
 ![output showing the test steps](docs/output-1.png)
 
-
-In the above output you can see each of the steps outlined in the description of the test steps.
-Notices that after the `Updating simulator latencies` output, the order of the backends is changed and the PAYG2 endpoint is now listed first (and with the lower latency).
-
-Once the metrics have been ingested the script will show the results of a couple of queries that illustrate the behaviour:
+Once the metrics have been ingested the script will show the results a query that illustrates the behaviour:
 
 ![output showing the query results](docs/output-2.png)
 
-For each of these queries the query text is included as well as a `Run in Log Analytics` link which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
+The query text is included as well as a `Run in Log Analytics` link which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
 The query in this example shows the request count over time for each of the back-end APIs.
 In this chart you can see the split of requests between the two back-ends over time:
 
 ![Screenshot of Log Analytics query showing the weighted split of results in the back-end](docs/query-backend.png)
-![alt text](image.png)
