@@ -55,6 +55,24 @@ def set_simulator_completions_latency(endpoint: str, latency: float):
     response.raise_for_status()
 
 
+def set_simulator_chat_completions_latency(endpoint: str, latency: float):
+    """
+    Set the latency for the simulator completions endpoint
+
+    :param endpoint: The simulator endpoint to set the latency for
+    :param latency: The latency to set - specified in milliseconds per chat completion token
+    """
+
+    url = f"{endpoint}/++/config"
+    response = requests.patch(
+        url=url,
+        headers={"api-key": simulator_api_key, "Content-Type": "application/json"},
+        json={"latency": {"open_ai_chat_completions": {"mean": latency}}},
+        timeout=10,
+    )
+    response.raise_for_status()
+
+
 def measure_latency_and_update_apim():
     """
     Make calls to the simulator endpoints to measure the latency.

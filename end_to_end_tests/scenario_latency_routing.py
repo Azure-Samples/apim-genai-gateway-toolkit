@@ -176,7 +176,7 @@ ApiManagementGatewayLogs
 | summarize latency_s = avg(TotalTime) by bin(TimeGenerated, 10s), BackendId
 | order by TimeGenerated asc
 | render timechart
-        """.strip(),  # When clikcing on the link, Log Analytics runs the query automatically if there's no preceding whitespace,
+        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace,
         is_chart=True,
         chart_config={
             "height": 15,
