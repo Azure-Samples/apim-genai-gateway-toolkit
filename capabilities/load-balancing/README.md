@@ -1,6 +1,6 @@
 # Load balancing across PAYG, PTU instances
 
-## Scenario
+## Capability
 
 There are 2 different flavours of load balancing implemented: simple round robin and weighted round robin.
 

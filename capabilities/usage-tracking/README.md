@@ -1,6 +1,6 @@
 # Usage tracking using Azure Event Hub
 
-## Scenario
+## Capability
 
 In this setup, you can track the usage of your APIs by sending token usage data to Azure Event Hub. Message sent to event hub includes, SubscriptionId, TokenUsage, OperationName, RequestId.
 
