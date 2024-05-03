@@ -60,7 +60,7 @@ This script runs a load test for 5 minutes which repeatedly sends requests to th
 4. A minute after the back-end latencies were re-configured, the latencies are measured again and the `set-preferred-backends` endpoint is called to pass the new ordered list of backends. After this point, the latency of calls via APIM is reduced as the policy is routing to the current faster API.
 
 
-After the load test is complete, the script waits for the metrics to be ingested into Application Insights and then queries the results.
+After the load test is complete, the script waits for the metrics to be ingested into Log Analytics and then queries the results.
 
 The initial output from a test run will look something like this:
 
@@ -72,14 +72,11 @@ Notices that after the `Updating simulator latencies` output, the order of the b
 Once the metrics have been ingested the script will show the results of a couple of queries that illustrate the behaviour:
 
 ![output showing the query results](docs/output-2.png)
+![alt text](image.png)
 
-For each of these queries the query text is included as well as a `Run in App Insights` link which will take you directly to the Application Insights blade in the Azure Portal so that you can run the query and explore the data further.
+For each of these queries the query text is included as well as a `Run in Log Analytics` link which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
-The first query shows the mean request latency for requests sent via the APIM gateway.
+This query shows the mean request latency for requests sent via the APIM gateway broken out by the back-end API used.
 In this chart you can see the spike that occurs after the back-end latencies are re-configured and before APIM is updated with the latest latency data:
 
-![Screenshot of Application Insights query showing the spike in APIM latencies](docs/query-gw.png)
-
-The second query shows the mean request latency of each of the back-end APIs (i.e. the simulated OpenAI endpoints):
-
-![Screenshot of Application Insights query showing the latency changes in the back-end APIs](docs/query-backend.png)
+![Screenshot of Log Analytics query showing the spike in APIM latencies](docs/query-gw.png)

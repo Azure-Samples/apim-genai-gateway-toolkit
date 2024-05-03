@@ -38,6 +38,7 @@ output_generated_keys="$script_dir/../../infra/apim-genai/generated-keys.json"
 output_simulator_base="$script_dir/../../infra/apim-genai/output-simulator-base.json"
 output_simulators="$script_dir/../../infra/apim-genai/output-simulators.json"
 output_main="$script_dir/../../infra/apim-genai/output.json"
+output_base="$script_dir/../../infra/apim-baseline/output.json"
 
 payg1_fqdn=$(jq -r '.payg1Fqdn // ""' < "$output_simulators")
 if [[ -z "${payg1_fqdn}" ]]; then
@@ -66,9 +67,15 @@ if [[ -z "${payg2_fqdn}" ]]; then
 	exit 1
 fi
 
-app_insights_name=$(jq -r '.appInsightsName // ""'< "$output_simulator_base")
+app_insights_name=$(jq -r '.appInsightsName // ""'< "$output_base")
 if [[ -z "${app_insights_name}" ]]; then
 	echo "App Insights Name not found in output.json"
+	exit 1
+fi
+
+log_analytics_workspace_name=$(jq -r '.logAnalyticsName // ""'< "$output_base")
+if [[ -z "${log_analytics_workspace_name}" ]]; then
+	echo "Log Analytics Workspace Name not found in output.json"
 	exit 1
 fi
 
@@ -82,6 +89,13 @@ if [[ -z "${app_insights_connection_string}" ]]; then
 	echo "App Insights Connection String not found in Key Vault"
 	exit 1
 fi
+
+log_analytics_workspace_id=$(az monitor log-analytics workspace show --resource-group "$resource_group_name" --name "$log_analytics_workspace_name" --query "customerId" --output tsv)
+if [[ -z "${log_analytics_workspace_id}" ]]; then
+	echo "Error getting log analytics workspace id"
+	exit 1
+fi
+
 
 apim_key=$(jq -r '.apiManagementAzureOpenAIProductSubscriptionKey // ""'< "$output_main")
 if [[ -z "${apim_key}" ]]; then
@@ -114,6 +128,8 @@ APP_INSIGHTS_CONNECTION_STRING=$app_insights_connection_string \
 SIMULATOR_ENDPOINT_PAYG1=$payg1_base_url \
 SIMULATOR_ENDPOINT_PAYG2=$payg2_base_url \
 SIMULATOR_API_KEY=$simulator_api_key \
+LOG_ANALYTICS_WORKSPACE_ID=$log_analytics_workspace_id \
+LOG_ANALYTICS_WORKSPACE_NAME=$log_analytics_workspace_name \
 OTEL_SERVICE_NAME=locust \
 OTEL_METRIC_EXPORT_INTERVAL=10000 \
 LOCUST_WEB_PORT=8091 \

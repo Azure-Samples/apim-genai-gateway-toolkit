@@ -63,6 +63,16 @@ def measure_latency_and_update_apim():
     In a real scenario, this would be scheduled to run periodically
     """
 
+    # There are various considerations to take into account when measuring the latency
+    # to compare across endpoints.
+    # For example, do you want to measure the time for a complete response or the
+    # time to receive the first token (via streaming)?
+    # Also, the response time for a full response will be heavily affected by the number
+    # of generated tokens in the response
+    # The measurement used here takes a balanced view by measuring the time to receive the full
+    # response but setting max_tokens to 10 to limit the degree of variation in the
+    # number of tokens in the response (and hence the response time)
+
     def measure_latency(endpoint: str):
         """Helper to measure the latency of an endpoint"""
         time_start = time.perf_counter()
@@ -90,12 +100,12 @@ def measure_latency_and_update_apim():
     backends = [
         {
             "endpoint": f"{simulator_endpoint_payg1}/openai",
-            "backend-id": "payg-backend-1"
+            "backend-id": "payg-backend-1",
         },
         {
             "endpoint": f"{simulator_endpoint_payg2}/openai",
-            "backend-id": "payg-backend-2"
-        }
+            "backend-id": "payg-backend-2",
+        },
     ]
     backends_with_latency = [
         {

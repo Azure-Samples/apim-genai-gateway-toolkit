@@ -1,4 +1,5 @@
 import base64
+from datetime import UTC, datetime, timedelta
 import io
 import logging
 import time
@@ -8,6 +9,8 @@ import urllib.parse
 import asciichartpy as asciichart
 
 from azure.core.credentials import TokenCredential
+from azure.core.exceptions import HttpResponseError
+from azure.monitor.query import LogsQueryClient, MetricsQueryClient, MetricsClient
 from dataclasses import dataclass
 from gzip import GzipFile
 from tabulate import tabulate
@@ -15,9 +18,13 @@ from typing import Any
 
 from .terminal import get_link
 
+
 APPINSIGHTS_ENDPOINT = "https://api.applicationinsights.io/v1/apps"
 
+# https://learn.microsoft.com/en-us/python/api/overview/azure/monitor-query-readme?view=azure-python
 
+
+## TODO extract this to separate file and share with AppInsights code
 @dataclass
 class GroupDefinition:
     id_column: str
@@ -71,23 +78,15 @@ class Table:
         return Table(rows=rows, columns=new_columns)
 
 
-def parse_app_id_from_connection_string(connection_string):
-    for part in connection_string.split(";"):
-        if part.startswith("ApplicationId="):
-            return part.split("=")[1]
-    return None
-
-
-def get_app_insights_portal_url(
+def get_log_analytics_portal_url(
     tenant_id: str,
     subscription_id: str,
     resource_group_name: str,
-    app_insights_name: str,
+    workspace_name: str,
     query: str,
-    timespan: str = "P1D",
 ):
     """
-    Build a URL to deep link into the Azure Portal to run a query in Application Insights.
+    Build a URL to deep link into the Azure Portal to run a query in Log Analytics.
     """
     # Get the UTF8 bytes for the query
     query_bytes = query.encode("utf-8")
@@ -102,52 +101,46 @@ def get_app_insights_portal_url(
     base64_query = base64.b64encode(zipped_bytes)
 
     # URL encode the base64 encoded query
-    encodedQuery = urllib.parse.quote(base64_query, safe="")
+    encoded_query = urllib.parse.quote(base64_query, safe="")
 
-    return (
-        f"https://portal.azure.com#@{tenant_id}/blade/Microsoft_Azure_Monitoring_Logs/"
-        + f"LogsBlade/resourceId/%2Fsubscriptions%2F{subscription_id}%2FresourceGroups%2F"
-        + f"{resource_group_name}%2Fproviders%2Fmicrosoft.insights%2Fcomponents%2F"
-        + f"{app_insights_name}/source/LogsBlade.AnalyticsShareLinkToQuery/q/{encodedQuery}"
-        + f"/timespan/{timespan}"
-    )
+    return f"https://portal.azure.com#@{tenant_id}/blade/Microsoft_OperationsManagementSuite_Workspace/Logs.ReactView/resourceId/%2Fsubscriptions%2F{subscription_id}%2Fresourcegroups%2F{resource_group_name}%2Fproviders%2Fmicrosoft.operationalinsights%2Fworkspaces%2F{workspace_name}/source/LogsBlade.AnalyticsShareLinkToQuery/q/{encoded_query}"
 
 
 class QueryProcessor:
     """
-    This is a class to run queries against Application Insights.
+    This is a class to run queries against Log Analytics.
     """
 
     def __init__(
         self,
-        app_id: str,
+        workspace_id: str,
         token_credential: TokenCredential,
         tenant_id: str | None = None,
         subscription_id: str | None = None,
         resource_group_name: str | None = None,
-        app_insights_name: str | None = None,
+        workspace_name: str | None = None,
     ) -> None:
         """
         Constructor
 
         Parameters:
-            app_id (str): Application ID (can be found in platform.json)
+            workspace_id (str): Workspace ID
             api_key (str): API Key
             token_credential (TokenCredential): TokenCredential object
             tenant_id (str): Tenant ID (required if outputting links to the Azure Portal)
             subscription_id (str): Subscription ID (required if outputting links to the Azure Portal)
             resource_group_name (str): Resource Group Name (required if outputting links to the Azure Portal)
-            app_insights_name (str): App Insights Name (required if outputting links to the Azure Portal)
+            workspace_name (str): Workspace Name (required if outputting links to the Azure Portal)
         """
-        if app_id is None:
-            raise ValueError("app_id is required")
-        self.__app_id = app_id
-        self.__token_credential = token_credential
+        if workspace_id is None:
+            raise ValueError("workspace_id is required")
+        self.__workspace_id = workspace_id
         self.__queries = []
         self.__tenant_id = tenant_id
         self.__subscription_id = subscription_id
         self.__resource_group_name = resource_group_name
-        self.__app_insights_name = app_insights_name
+        self.__logs_query_client = LogsQueryClient(token_credential)
+        self.__workspace_name = workspace_name
 
     def add_query(
         self,
@@ -218,15 +211,14 @@ class QueryProcessor:
                 print(query)
                 print("")
             if include_link:
-                url = get_app_insights_portal_url(
+                url = get_log_analytics_portal_url(
                     self.__tenant_id,
                     self.__subscription_id,
                     self.__resource_group_name,
-                    self.__app_insights_name,
+                    self.__workspace_name,
                     query,
-                    timespan,
                 )
-                link = get_link("Run in App Insights", url)
+                link = get_link("Run in Log Analytics", url)
                 print(link)
                 print("")
             result, error_message = self.run_query(query, timespan)
@@ -284,33 +276,33 @@ class QueryProcessor:
                             in format PT<TIME DURATION> e.g. PT12H.
 
         Returns:
-            Table with the query result.
+            Table with results
             Error code if any.
         """
 
-        headers = {
-            "Authorization": f"Bearer {self.__token_credential.get_token('https://api.applicationinsights.io/.default').token}"
-        }
-        url = f"{APPINSIGHTS_ENDPOINT}/{self.__app_id}/query?timespan={timespan}"
-        response = requests.post(
-            url,
-            headers=headers,
-            json={"query": query},
-        )
+        try:
+            response = self.__logs_query_client.query_workspace(
+                workspace_id=self.__workspace_id,
+                query=query,
+                timespan=timespan,
+            )
+        except HttpResponseError as e:
+            return None, e.message
 
-        if response.status_code != 200:
-            return None, response.content
-        else:
-            primaryTable = response.json()["tables"][0]
-            primaryTable = self.__create_table_from_json_response(primaryTable)
-            return primaryTable, None
+        table = response.tables[0]
+        rows = table.rows
+        columns = table.columns
+        return Table(columns=columns, rows=rows), None
 
     def wait_for_non_zero_count(self, query, max_retries=10, wait_time_seconds=30):
         """
         Run a query until it returns a non-zero count.
         """
         for _ in range(max_retries):
-            r, _ = self.run_query(query=query, timespan="P1D")
+            r, _ = self.run_query(
+                query=query,
+                timespan=(datetime.now(UTC) - timedelta(days=1), datetime.now(UTC)),
+            )
             count = r.rows[0][0]
             if count > 0:
                 logging.info("✔️ Found metrics data")

@@ -1,30 +1,28 @@
 from datetime import datetime, timedelta, UTC
 import logging
-import time
 
 import asciichartpy as asciichart
 from azure.identity import DefaultAzureCredential
 from locust import HttpUser, task, constant, events
 
-from common.app_insights import (
+from common.log_analytics import (
     GroupDefinition,
     QueryProcessor,
-    parse_app_id_from_connection_string,
 )
 from common.latency import (
-    measure_latency_and_update_apim,
     set_simulator_completions_latency,
     report_request_metric,
 )
 from common.config import (
     apim_key,
-    app_insights_connection_string,
     simulator_endpoint_payg1,
     simulator_endpoint_payg2,
     tenant_id,
     subscription_id,
     resource_group_name,
-    app_insights_name,
+    app_insights_connection_string,
+    log_analytics_workspace_id,
+    log_analytics_workspace_name,
 )
 
 test_start_time = None
@@ -95,37 +93,35 @@ def on_test_stop(environment, **kwargs):
     test_stop_time = datetime.now(UTC)
     logging.info("✔️ Test finished")
 
-    app_id = parse_app_id_from_connection_string(app_insights_connection_string)
-
     query_processor = QueryProcessor(
-        app_id=app_id,
+        workspace_id=log_analytics_workspace_id,
         token_credential=DefaultAzureCredential(),
         tenant_id=tenant_id,
         subscription_id=subscription_id,
         resource_group_name=resource_group_name,
-        app_insights_name=app_insights_name,
+        workspace_name=log_analytics_workspace_name,
     )
 
     metric_check_time = test_stop_time - timedelta(seconds=10)
     check_results_query = f"""
-    customMetrics
-    | where timestamp >= datetime({metric_check_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and name == "locust.request_latency"
+    AppMetrics
+    | where TimeGenerated >= datetime({metric_check_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and Name == "locust.request_latency"
     | count
     """
     query_processor.wait_for_non_zero_count(check_results_query)
 
-    time_range = f"timestamp > datetime({test_start_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and timestamp < datetime({test_stop_time.strftime('%Y-%m-%dT%H:%M:%SZ')})"
+    time_range = f"TimeGenerated > datetime({test_start_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and TimeGenerated < datetime({test_stop_time.strftime('%Y-%m-%dT%H:%M:%SZ')})"
 
     query_processor.add_query(
         title="Back-end API request count (PAYG1 -> Blue, PAYG2 -> Yellow)",
         query=f"""
-        customMetrics
-        | where name == "aoai-simulator.latency.full" and {time_range}
-        | project timestamp, cloud_RoleName, valueCount
-        | summarize request_count = sum(valueCount) by cloud_RoleName, bin(timestamp, 10s)
-        | order by timestamp asc
-        | render timechart 
-        """,
+AppMetrics
+| where Name == "aoai-simulator.latency.full" and {time_range}
+| project TimeGenerated, AppRoleName, ItemCount, Sum
+| summarize request_count = sum(Sum) by AppRoleName, bin(TimeGenerated, 20s)
+| order by TimeGenerated
+| render timechart
+        """.strip(),  # When clikcing on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
         chart_config={
             "height": 15,
@@ -136,12 +132,12 @@ def on_test_stop(environment, **kwargs):
             ],
         },
         group_definition=GroupDefinition(
-            id_column="timestamp",
-            group_column="cloud_RoleName",
+            id_column="TimeGenerated",
+            group_column="AppRoleName",
             value_column="request_count",
             missing_value=float("nan"),
         ),
-        timespan="P1D",
+        timespan=(test_start_time, test_stop_time),
         show_query=True,
         include_link=True,
     )
