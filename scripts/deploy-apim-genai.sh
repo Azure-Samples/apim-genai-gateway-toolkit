@@ -78,7 +78,7 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   # Clone simulator
   #
   simulator_path="$script_dir/simulator"
-  simulator_tag=${SIMULATOR_GIT_TAG:=v0.2}
+  simulator_tag=${SIMULATOR_GIT_TAG:=v0.3}
   if [[ -d "$simulator_path" ]]; then
     echo "Simulator folder already exists - skipping clone."
   else
