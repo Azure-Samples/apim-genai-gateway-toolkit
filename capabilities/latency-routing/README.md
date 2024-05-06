@@ -1,8 +1,8 @@
 # Latency based routing
 
-## Scenario
+## Capability
 
-In this scenario we have multiple backends and want to route to whichever back-end has the lowest latency.
+In this capability we have multiple backends and want to route to whichever back-end has the lowest latency.
 
 ## How the capability works
 

@@ -1,6 +1,6 @@
 # Rate limiting using Tokens consumed per request
 
-## Scenario
+## Capability
 
 In this setup, multiple services have their own rate limits. They start with default limits but can increase them dynamically within a set maximum if there's spare capacity due to low usage by other services.
 
