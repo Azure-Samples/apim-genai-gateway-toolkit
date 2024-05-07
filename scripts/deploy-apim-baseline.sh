@@ -8,7 +8,7 @@ if [[ -f "$script_dir/../.env" ]]; then
 	source "$script_dir/../.env"
 fi
 
-cd  "$script_dir/../infra/apim-baseline"
+cd "$script_dir/../infra/apim-baseline"
 
 if [[ ${#AZURE_LOCATION} -eq 0 ]]; then
   echo 'ERROR: Missing environment variable AZURE_LOCATION' 1>&2
