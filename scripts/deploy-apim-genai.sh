@@ -151,7 +151,7 @@ EOF
     echo "== Bicep deployment ${deployment_name} failed"
     exit 6
   fi
-  
+
   echo "== Completed bicep deployment ${deployment_name}"
 
   # if app insights key not stored, create and store
@@ -277,7 +277,7 @@ EOF
 
   echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
   
-  if [[ "$(cat $output_simulator_base)" == "" ]]; then
+  if [[ "$(cat $output_simulators)" == "" ]]; then
     echo "== Bicep deployment ${deployment_name} failed"
     exit 6
   fi
