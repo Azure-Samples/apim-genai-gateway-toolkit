@@ -41,9 +41,6 @@ fi
 # - output.json: stores the output from the main deployment (e.g. APIM endpoints)
 #
 
-RESOURCE_GROUP_NAME=$(jq -r '.apimResourceGroupName // ""' < "$script_dir/../infra/apim-baseline/output.json")
-API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$script_dir/../infra/apim-baseline/output.json")
-
 output_generated_keys="$script_dir/../infra/apim-genai/generated-keys.json"
 output_simulator_base="$script_dir/../infra/apim-genai/output-simulator-base.json"
 output_simulators="$script_dir/../infra/apim-genai/output-simulators.json"
@@ -54,12 +51,16 @@ if [[ ! -f "$output_generated_keys" ]]; then
   echo "{}" > "$output_generated_keys"
 fi
 
+RESOURCE_GROUP_NAME=$(jq -r '.apimResourceGroupName // ""' < "$output_base")
+API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$output_base")
 app_insights_name=$(jq -r '.appInsightsName // ""' < "$output_base")
+log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_base")
+
 if [[ -z "$app_insights_name" ]]; then
   echo "App Insights name (appInsightsName) not found in output-base.json"
   exit 1
 fi
-log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_base")
+
 if [[ -z "$log_analytics_name" ]]; then
   echo "Log Analytics name (logAnalyticsName) not found in output-base.json"
   exit 1
@@ -137,17 +138,20 @@ EOF
   echo "=="
   echo "== Starting bicep deployment ${deployment_name}"
   echo "=="
-  az deployment sub create \
+  output=$(az deployment sub create \
     --location "$AZURE_LOCATION" \
     --template-file base.bicep \
     --name "$deployment_name" \
     --parameters azuredeploy.parameters.json \
-    --output json \
-    | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
+    --output json)
+
+  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
+  
   if [[ "$(cat $output_simulator_base)" == "" ]]; then
     echo "== Bicep deployment ${deployment_name} failed"
     exit 6
   fi
+  
   echo "== Completed bicep deployment ${deployment_name}"
 
   # if app insights key not stored, create and store
@@ -264,17 +268,20 @@ EOF
   echo "=="
   echo "== Starting bicep deployment ${deployment_name}"
   echo "=="
-  az deployment sub create \
+  output=$(az deployment sub create \
     --location "$AZURE_LOCATION" \
     --template-file simulators.bicep \
     --name "$deployment_name" \
     --parameters azuredeploy.parameters.json \
-    --output json \
-    | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
-    if [[ "$(cat $output_simulator_base)" == "" ]]; then
-      echo "== Bicep deployment ${deployment_name} failed"
-      exit 6
-    fi
+    --output json)
+
+  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
+  
+  if [[ "$(cat $output_simulator_base)" == "" ]]; then
+    echo "== Bicep deployment ${deployment_name} failed"
+    exit 6
+  fi
+
   echo "== Completed bicep deployment ${deployment_name}"
 
   #
