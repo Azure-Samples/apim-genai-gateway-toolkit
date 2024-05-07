@@ -305,6 +305,7 @@ resource usageTrackingPolicyFragment 'Microsoft.ApiManagement/service/policyFrag
     value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking.xml')
     format: 'rawxml'
   }
+  dependsOn: [eventHubLogger]
 }
 
 resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -326,7 +327,6 @@ resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/pol
   }
 }
 
-
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2021-11-01' existing = {
   name: eventHubNamespaceName
 }
@@ -347,7 +347,7 @@ resource assignEventHubsDataSenderToApiManagement 'Microsoft.Authorization/roleA
   }
 }
 
-resource eventHubLoggerWithSystemAssignedIdentity 'Microsoft.ApiManagement/service/loggers@2022-04-01-preview' = {
+resource eventHubLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-preview' = {
   name: 'eventhub-logger'
   parent: apiManagementService
   properties: {
