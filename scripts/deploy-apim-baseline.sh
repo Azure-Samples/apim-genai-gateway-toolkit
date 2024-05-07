@@ -49,7 +49,7 @@ cat << EOF > "$script_dir/../infra/apim-baseline/azuredeploy.parameters.json"
 }
 EOF
 
-deployment_name="deployment-${RESOURCE_NAME_PREFIX}"
+deployment_name="apim-baseline-${RESOURCE_NAME_PREFIX}"
 
 echo "$deployment_name"
 echo "=="
@@ -61,7 +61,9 @@ output=$(az deployment sub create \
   --parameters azuredeploy.parameters.json \
   --location "$AZURE_LOCATION" \
   --output json)
-echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../infra/apim-baseline/output.json"
-echo -e "\n"
 
-echo "Bicep deployment completed"
+echo "== Completed bicep deployment ${deployment_name}"
+
+echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../infra/apim-baseline/output.json"
+
+echo -e "\n"
