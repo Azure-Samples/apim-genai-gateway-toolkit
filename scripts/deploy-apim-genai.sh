@@ -260,7 +260,6 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
   }
 }
 EOF
-  echo "Simulators bicep parameters file created"
 
   deployment_name="sims-${RESOURCE_NAME_PREFIX}"
 
