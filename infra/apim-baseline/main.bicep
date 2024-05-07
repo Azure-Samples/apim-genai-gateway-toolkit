@@ -18,8 +18,8 @@ param location string = deployment().location
 var resourceSuffix = '${workloadName}-${environment}-${location}-001'
 var apimResourceGroupName = 'rg-apim-${resourceSuffix}'
 var apimName = 'apim-${resourceSuffix}'
-var logAnalyticsName = 'apim-${resourceSuffix}'
-var appInsightsName = 'apim-${resourceSuffix}'
+var logAnalyticsName = 'la-${resourceSuffix}'
+var appInsightsName = 'ai-${resourceSuffix}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: apimResourceGroupName

@@ -37,7 +37,7 @@ param payAsYouGoDeploymentTwoApiKey string
 param location string = resourceGroup().location
 
 var resourceSuffix = '${workloadName}-${environment}-${location}-001'
-var eventHubNamespaceName = 'eventhub-ns-${resourceSuffix}'
+var eventHubNamespaceName = 'eh-ns-${resourceSuffix}'
 var eventHubName = 'apim-utilization-reporting'
 
 module apiManagement 'modules/apiManagement.bicep' = {
