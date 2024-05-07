@@ -378,6 +378,6 @@ output=$(az deployment group create \
   
 echo "== Completed bicep deployment ${deployment_name}"
 
-echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../infra/apim-baseline/output.json"
+echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../infra/apim-genai/output.json"
 
 echo -e "\n"
