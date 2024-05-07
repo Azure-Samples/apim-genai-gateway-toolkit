@@ -51,7 +51,7 @@ if [[ ! -f "$output_generated_keys" ]]; then
   echo "{}" > "$output_generated_keys"
 fi
 
-RESOURCE_GROUP_NAME=$(jq -r '.apimResourceGroupName // ""' < "$output_base")
+RESOURCE_GROUP_NAME=$(jq -r '.resourceGroupName // ""' < "$output_base")
 API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$output_base")
 app_insights_name=$(jq -r '.appInsightsName // ""' < "$output_base")
 log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_base")
