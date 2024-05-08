@@ -8,14 +8,10 @@
 	- [Deploying the Accelerator](#deploying-the-accelerator)
 	- [Gateway Capabilities](#gateway-capabilities)
 	- [Testing Gateway Capabilities](#testing-gateway-capabilities)
-	- [Additional notes](#additional-notes)
-		- [Policy Fragments](#policy-fragments)
-		- [Managed Identity between APIM and Azure OpenAI](#managed-identity-between-apim-and-azure-openai)
-
 
 ## Introduction
 
-The aim of this accelerator is to provide a quick start for deploying a GenAI Gateway using Azure API Management (APIM). 
+The aim of this accelerator is to provide a quick start for deploying a GenAI Gateway using Azure API Management (APIM).
 
 A "GenAI Gateway" serves as an intelligent interface/middleware that dynamically balances incoming traffic across backend resources to achieve optimizing resource utilization. In addition to load balancing, GenAI Gateway can be equipped with extra capabilities to address the challenges around billing, monitoring etc.
 
@@ -92,15 +88,3 @@ This repo currently contains the policies showing how to implement these GenAI G
 The easiest way to see the gateway capabilities in action is to deploy the gateway along with the OpenAI API Simualtor (set the `USE_SIMULATOR` option in your `.env` file to `true`).
 
 Once you have the gateway and simulator deployed, see the `README.md` in the relevant capability folder for instructions on how to test the capability. (NOTE: currently not all capabilities have tests implemented)
-
-## Additional notes
-
-### Policy Fragments
-
-- The repository contains policies in the format of [Policy fragments](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments)
-- You can manually [create these fragments](https://learn.microsoft.com/en-us/azure/api-management/policy-fragments#create-a-policy-fragment) in your APIM instance and can refer them in the corresponding API operations.
-
-### Managed Identity between APIM and Azure OpenAI
-
-These examples use Managed Identity to authenticate between APIM and Azure OpenAI. [Follow these 3 steps](https://learn.microsoft.com/en-us/azure/api-management/api-management-authenticate-authorize-azure-openai#authenticate-with-managed-identity) to setup the Managed identity between APIM and Azure OpenAI
-
