@@ -146,11 +146,6 @@ EOF
     --output json)
 
   echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
-  
-  if [[ "$(cat $output_simulator_base)" == "" ]]; then
-    echo "== Bicep deployment ${deployment_name} failed"
-    exit 6
-  fi
 
   echo "== Completed bicep deployment ${deployment_name}"
 
@@ -275,11 +270,6 @@ EOF
     --output json)
 
   echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
-  
-  if [[ "$(cat $output_simulators)" == "" ]]; then
-    echo "== Bicep deployment ${deployment_name} failed"
-    exit 6
-  fi
 
   echo "== Completed bicep deployment ${deployment_name}"
 
