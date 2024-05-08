@@ -145,9 +145,9 @@ EOF
     --parameters azuredeploy.parameters.json \
     --output json)
 
-  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
-
   echo "== Completed bicep deployment ${deployment_name}"
+
+  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
 
   # if app insights key not stored, create and store
   app_insights_key=$(jq -r '.appInsightsKey // ""' < "$output_generated_keys")
@@ -269,9 +269,9 @@ EOF
     --parameters azuredeploy.parameters.json \
     --output json)
 
-  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
-
   echo "== Completed bicep deployment ${deployment_name}"
+
+  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
 
   #
   # Get simulator endpoints to use in APIM deployment
