@@ -16,13 +16,13 @@ param environment string
 param location string = deployment().location
 
 var resourceSuffix = '${workloadName}-${environment}-${location}-001'
-var apimResourceGroupName = 'rg-apim-${resourceSuffix}'
+var resourceGroupName = 'rg-${resourceSuffix}'
 var apimName = 'apim-${resourceSuffix}'
-var logAnalyticsName = 'apim-${resourceSuffix}'
-var appInsightsName = 'apim-${resourceSuffix}'
+var logAnalyticsName = 'la-${resourceSuffix}'
+var appInsightsName = 'ai-${resourceSuffix}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: apimResourceGroupName
+  name: resourceGroupName
   location: location
 }
 
@@ -37,7 +37,7 @@ module apiManagement 'modules/apiManagement.bicep' = {
   }
 }
 
-output apimResourceGroupName string = apimResourceGroupName
+output resourceGroupName string = resourceGroupName
 output apimName string = apimName
 output logAnalyticsName string = logAnalyticsName
 output appInsightsName string = appInsightsName

@@ -33,7 +33,6 @@ if [[ "${USE_SIMULATOR}" != "true" ]]; then
   fi
 fi
 
-
 #
 # This script uses a number of files to store generated keys and outputs from the deployment:
 # - generated-keys.json: stores generated keys (e.g. API Key for the API simulator)
@@ -41,9 +40,6 @@ fi
 # - output-simulators.json: stores the output from the simulator instances deployment (e.g. simulator endpoints)
 # - output.json: stores the output from the main deployment (e.g. APIM endpoints)
 #
-
-RESOURCE_GROUP_NAME=$(jq -r '.apimResourceGroupName // ""' < "$script_dir/../infra/apim-baseline/output.json")
-API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$script_dir/../infra/apim-baseline/output.json")
 
 output_generated_keys="$script_dir/../infra/apim-genai/generated-keys.json"
 output_simulator_base="$script_dir/../infra/apim-genai/output-simulator-base.json"
@@ -55,22 +51,24 @@ if [[ ! -f "$output_generated_keys" ]]; then
   echo "{}" > "$output_generated_keys"
 fi
 
+RESOURCE_GROUP_NAME=$(jq -r '.resourceGroupName // ""' < "$output_base")
+API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$output_base")
 app_insights_name=$(jq -r '.appInsightsName // ""' < "$output_base")
+log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_base")
+
 if [[ -z "$app_insights_name" ]]; then
   echo "App Insights name (appInsightsName) not found in output-base.json"
   exit 1
 fi
-log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_base")
+
 if [[ -z "$log_analytics_name" ]]; then
   echo "Log Analytics name (logAnalyticsName) not found in output-base.json"
   exit 1
 fi
 
-
 if [[ "${USE_SIMULATOR}" == "true" ]]; then
   echo "Using OpenAI API Simulator"
 
-  
   # if key passed, use and write out
   # if key not passed, load from file and generate if not present
   if [[ ${#SIMULATOR_API_KEY} -eq 0 ]]; then
@@ -102,11 +100,9 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
       "$simulator_path"
   fi
 
-
   #
   # Deploy simulator base resources
   #
-
   user_id=$(az ad signed-in-user show --output tsv --query id)
 
 cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
@@ -135,21 +131,23 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
   }
 }
 EOF
-  echo "Simulator base bicep parameters file created"
 
-  deployment_name="deployment-${RESOURCE_NAME_PREFIX}-sim-base"
-  echo "Simulator base bicep deployment ($deployment_name) starting..."
-  az deployment sub create \
+  deployment_name="sim-base-${RESOURCE_NAME_PREFIX}"
+
+  echo "$deployment_name"
+  echo "=="
+  echo "== Starting bicep deployment ${deployment_name}"
+  echo "=="
+  output=$(az deployment sub create \
     --location "$AZURE_LOCATION" \
     --template-file base.bicep \
     --name "$deployment_name" \
     --parameters azuredeploy.parameters.json \
-    --output json \
-    | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
-  if [[ "$(cat $output_simulator_base)" == "" ]]; then
-    echo "Simulator base bicep deployment ($deployment_name) failed"
-    exit 6
-  fi
+    --output json)
+
+  echo "== Completed bicep deployment ${deployment_name}"
+
+  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
 
   # if app insights key not stored, create and store
   app_insights_key=$(jq -r '.appInsightsKey // ""' < "$output_generated_keys")
@@ -177,14 +175,13 @@ EOF
 
   src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
 
-# create a tik_token_cache folder to avoid failure in the build
+  # create a tik_token_cache folder to avoid failure in the build
   mkdir -p "$src_path/tiktoken_cache"
 
   az acr login --name $acr_name
   az acr build --image ${acr_login_server}/aoai-simulated-api:latest --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
   
   echo -e "\n"
-
   
   #
   # Upload simulator deployment config files to file share
@@ -209,7 +206,6 @@ EOF
   #
   # Deploy simulator instances
   #
-
   key_vault_name=$(cat $output_simulator_base  | jq -r '.keyVaultName // ""')
   if [[ -z "$key_vault_name" ]]; then
     echo "Key vault name (keyVaultName) not found in output-simulator-base.json"
@@ -259,24 +255,23 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
   }
 }
 EOF
-  echo "Simulators bicep parameters file created"
 
-  cd "$script_dir/../infra/apim-genai"
+  deployment_name="sims-${RESOURCE_NAME_PREFIX}"
 
-  deployment_name="deployment-${RESOURCE_NAME_PREFIX}-sims"
-  echo "Simulator base bicep deployment ($deployment_name) starting..."
-  az deployment sub create \
+  echo "$deployment_name"
+  echo "=="
+  echo "== Starting bicep deployment ${deployment_name}"
+  echo "=="
+  output=$(az deployment sub create \
     --location "$AZURE_LOCATION" \
     --template-file simulators.bicep \
     --name "$deployment_name" \
     --parameters azuredeploy.parameters.json \
-    --output json \
-    | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
-    if [[ "$(cat $output_simulator_base)" == "" ]]; then
-      echo "Simulators bicep deployment ($deployment_name) failed"
-      exit 6
-    fi
-  echo "Simulators bicep deployment ($deployment_name) completed"
+    --output json)
+
+  echo "== Completed bicep deployment ${deployment_name}"
+
+  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulators"
 
   #
   # Get simulator endpoints to use in APIM deployment
@@ -321,7 +316,6 @@ fi
 #
 # Deploy APIM policies etc
 #
-
 cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
 {
   "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
@@ -358,10 +352,9 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
 }
 EOF
 
-deployment_name="deployment-${RESOURCE_NAME_PREFIX}-genai"
+deployment_name="genai-${RESOURCE_NAME_PREFIX}"
 
 echo "$deployment_name"
-cd  "$script_dir/../infra/apim-genai"
 echo "=="
 echo "== Starting bicep deployment ${deployment_name}"
 echo "=="
@@ -371,7 +364,9 @@ output=$(az deployment group create \
   --parameters azuredeploy.parameters.json \
   --resource-group "$RESOURCE_GROUP_NAME" \
   --output json)
-echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../infra/apim-genai/output.json"
-echo -e "\n"
+  
+echo "== Completed bicep deployment ${deployment_name}"
 
-echo "Bicep deployment completed"
+echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../infra/apim-genai/output.json"
+
+echo -e "\n"
