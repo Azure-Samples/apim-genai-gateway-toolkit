@@ -1,13 +1,15 @@
-## [project-title] Changelog
+## API Management (APIM) GenAI Gateway Toolkit Changelog
 
-<a name="x.y.z"></a>
-# x.y.z (yyyy-mm-dd)
+## 1.0 (2024-05-09)
 
-*Features*
-* ...
+### Features
 
-*Bug Fixes*
-* ...
+- Initial public release
 
-*Breaking Changes*
-* ...
+### Bug Fixes
+
+- Not applicable
+
+### Breaking Changes
+
+- Not applicable
