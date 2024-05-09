@@ -1,7 +1,9 @@
-# GenAI Gateway Accelerator using API Management (APIM)
+# GenAI Gateway Toolkit using API Management (APIM)
 
-- [GenAI Gateway Accelerator using API Management (APIM)](#genai-gateway-accelerator-using-api-management-apim)
+- [GenAI Gateway Toolkit using API Management (APIM)](#genai-gateway-toolkit-using-api-management-apim)
 	- [Introduction](#introduction)
+		- [GenAI Gateway](#genai-gateway)
+	- [Architecture](#architecture)
 	- [Getting Started](#getting-started)
 		- [Using Visual Studio Code Dev Containers](#using-visual-studio-code-dev-containers)
 		- [Prerequisites for non Dev Container setup](#prerequisites-for-non-dev-container-setup)
@@ -11,19 +13,31 @@
 
 ## Introduction
 
-The aim of this accelerator is to provide a quick start for deploying a GenAI Gateway using Azure API Management (APIM).
+The aim of this toolkit is to provide a quick start for deploying a GenAI Gateway using Azure API Management (APIM), and to demonstrate some of the GenAI capabilities in a controlled environment.
+
+The APIM gateway that's provisioned by this toolkit contains policies that demonstrate different [GenAI Gateway capabilities](#gateway-capabilities) and the `end-to-end` tests allows to simulate different scenarios and demonstrate the capabilities by adjusting the configuration of the [OpenAI API simulator](https://github.com/stuartleeks/aoai-simulated-api) that's used as a backend.
+
+### GenAI Gateway
 
 A "GenAI Gateway" serves as an intelligent interface/middleware that dynamically balances incoming traffic across backend resources to achieve optimizing resource utilization. In addition to load balancing, GenAI Gateway can be equipped with extra capabilities to address the challenges around billing, monitoring etc.
 
 To read more about considerations when implementing a GenAI Gateway, see [this article](https://learn.microsoft.com/ai/playbook/technology-guidance/generative-ai/dev-starters/genai-gateway/).
 
-This accelerator contains APIM policies showing how to implement different [GenAI Gateway capabilities](#gateway-capabilities) in APIM, along with code to enable you to deploy the policies and see them in action.
+## Architecture
+
+At a high level the toolkit contains 3 main components,
+
+1. **APIM Gateway** - The API Management Gateway that will host the GenAI Gateway policies.
+2. [**OpenAI API Simulator**](https://github.com/stuartleeks/aoai-simulated-api) - A simple API that simulates the OpenAI API. The simulator will allow to control the latency, and response to simulate different scenarios.
+3. **End-to-End Tests** - A set of tests that will demonstrate the GenAI Gateway capabilities in action. These are python scripts written on top of locust.io to simulate the traffic and demonstrate the capabilities.
+
+![Architecture](./docs/assets/genai-accelerator.jpg)
 
 ## Getting Started
 
 To see the policies in action you need to set up your environment (you will need an Azure Subscription to deploy into).
 
-For this you can either install the [pre-requisites](#prerequisites) on your local machine or use the [Visual Studio Code Dev Containers](#using-visual-studio-code-dev-containers) to set up the environment.
+For this you can either install the [pre-requisites](#prerequisites-for-non-dev-container-setup) on your local machine or use the [Visual Studio Code Dev Containers](#using-visual-studio-code-dev-containers) to set up the environment.
 
 ### Using Visual Studio Code Dev Containers
 
@@ -69,7 +83,6 @@ az login
 ```bash
 ./scripts/deploy-apim-genai.sh
 ```
-
 
 ## Gateway Capabilities
 
