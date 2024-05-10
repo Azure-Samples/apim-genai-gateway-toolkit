@@ -396,3 +396,12 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/infra/*/output*.json
+/infra/*/azuredeploy.parameters.json
+/infra/apim-genai/generated-keys.json
+
+/scripts/simulator
+
+.env
+.venv/
+__pycache__

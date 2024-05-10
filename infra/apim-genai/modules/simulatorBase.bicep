@@ -1,0 +1,131 @@
+// Deploys the base resources that are needed for running the simulator
+// This contains common resources across multiple instances of the simulator
+// The container registry is used to store the simulator container image
+// The key vault is used to store secrets and keys (e.g. for forwarding AOAI calls)
+// The storage account is used to store the simulator data (recording files or extensions)
+
+@description('Specifies the supported Azure location (region) where the resources will be deployed')
+param location string = resourceGroup().location
+
+@description('Suffix to apply to created resources')
+param resourceSuffix string
+
+@description('Principal ID of the additional user to assign the Key Vault Secrets Reader role to')
+@secure()
+param additionalKeyVaulSecretReaderPrincipalId string = ''
+
+@description('The name of the Log Analytics workspace')
+param logAnalyticsName string
+
+
+var containerRegistryName = replace('aoaisim-${resourceSuffix}', '-', '')
+var keyVaultName = replace('aoaisim-${resourceSuffix}', '-', '')
+var storageAccountName = replace('aoaisim${resourceSuffix}', '-', '')
+var containerAppEnvName = 'aoaisim-${resourceSuffix}'
+
+
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-12-01-preview' = {
+  name: containerRegistryName
+  location: location
+  sku: {
+    name: 'Basic'
+  }
+  properties: {
+    adminUserEnabled: true
+  }
+}
+
+resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: keyVaultName
+  location: location
+  properties: {
+    accessPolicies: []
+    enableRbacAuthorization: true
+    enableSoftDelete: true
+    softDeleteRetentionInDays: 90
+    enabledForDeployment: false
+    enabledForDiskEncryption: false
+    enabledForTemplateDeployment: false
+    tenantId: subscription().tenantId
+    sku: {
+      name: 'standard'
+      family: 'A'
+    }
+    networkAcls: {
+      defaultAction: 'Allow'
+      bypass: 'AzureServices'
+    }
+  }
+}
+
+resource keyVaultSecretsUserRoleDefinition 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
+  scope: subscription()
+  name: '4633458b-17de-408a-b874-0445c86b69e6' // https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide?tabs=azure-cli
+}
+
+resource additionalSecretReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' =
+  if (additionalKeyVaulSecretReaderPrincipalId != '') {
+    name: guid(resourceGroup().id, vault.name, additionalKeyVaulSecretReaderPrincipalId, 'assignSecretsReaderRole')
+    scope: vault
+    properties: {
+      description: 'Assign Key Vault Secrets Reader role to ACA identity'
+      principalId: additionalKeyVaulSecretReaderPrincipalId
+      principalType: 'User'
+      roleDefinitionId: keyVaultSecretsUserRoleDefinition.id
+    }
+  }
+
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: storageAccountName
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+}
+resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' = {
+  parent: storageAccount
+  name: 'default'
+}
+resource simulatorFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
+  parent: fileService
+  name: 'simulator'
+}
+
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' existing = {
+  name: logAnalyticsName
+}
+
+
+resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' = {
+  name: containerAppEnvName
+  location: location
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalytics.properties.customerId
+        sharedKey: logAnalytics.listKeys().primarySharedKey
+      }
+    }
+  }
+}
+resource containerAppStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
+  parent: containerAppEnv
+  name: 'simulator-storage'
+  properties: {
+    azureFile: {
+      shareName: simulatorFileShare.name
+      accountName: storageAccount.name
+      accountKey: storageAccount.listKeys().keys[0].value
+      accessMode: 'ReadWrite'
+    }
+  }
+}
+
+output containerRegistryLoginServer string = containerRegistry.properties.loginServer
+output containerRegistryName string = containerRegistry.name
+output storageAccountName string = storageAccount.name
+output fileShareName string = simulatorFileShare.name
+output keyVaultName string = vault.name
+output containerAppEnvName string = containerAppEnv.name
