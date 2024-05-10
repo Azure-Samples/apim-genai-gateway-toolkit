@@ -13,9 +13,6 @@ param workloadName string
 ])
 param environment string
 
-@description('The name of the API Management service instance')
-param apiManagementServiceName string
-
 @description('The base url of the first Azure Open AI Service PTU deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param ptuDeploymentOneBaseUrl string
 
@@ -34,9 +31,13 @@ param payAsYouGoDeploymentTwoBaseUrl string
 @description('The api key of the second Azure Open AI Service Pay-As-You-Go deployment')
 param payAsYouGoDeploymentTwoApiKey string
 
+@description('The name of the Log Analytics workspace')
+param logAnalyticsName string
+
 param location string = resourceGroup().location
 
-var resourceSuffix = '${workloadName}-${environment}-${location}-001'
+var resourceSuffix = '${workloadName}-${environment}-${location}'
+var apiManagementServiceName = 'apim-${resourceSuffix}'
 var eventHubNamespaceName = 'eh-ns-${resourceSuffix}'
 var eventHubName = 'apim-utilization-reporting'
 
@@ -52,6 +53,8 @@ module apiManagement 'modules/apiManagement.bicep' = {
     payAsYouGoDeploymentTwoApiKey: payAsYouGoDeploymentTwoApiKey
     eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
     eventHubName: eventHub.outputs.eventHubName
+    logAnalyticsName: logAnalyticsName
+    location: location
   }
 }
 
