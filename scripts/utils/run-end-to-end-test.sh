@@ -96,7 +96,7 @@ if [[ -z "${key_vault_name}" ]]; then
 	echo "Key Vault Name not found in output.json"
 	exit 1
 fi
-app_insights_connection_string=$(az keyvault secret show --vault-name "$key_vault_name" --name app-insights-connection-string-ptu1 --query value --output tsv)
+app_insights_connection_string=$(az keyvault secret show --vault-name "$key_vault_name" --name appinsightsconnectionstringptu1 --query value --output tsv)
 if [[ -z "${app_insights_connection_string}" ]]; then
 	echo "App Insights Connection String not found in Key Vault"
 	exit 1
