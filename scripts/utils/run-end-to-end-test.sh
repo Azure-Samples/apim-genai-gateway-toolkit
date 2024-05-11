@@ -41,11 +41,10 @@ else
 	exit 1
 fi
 
-output_generated_keys="$script_dir/../../infra/apim-genai/generated-keys.json"
-output_simulator_base="$script_dir/../../infra/apim-genai/output-simulator-base.json"
-output_simulators="$script_dir/../../infra/apim-genai/output-simulators.json"
+output_generated_keys="$script_dir/../../infra/simulators/generated-keys.json"
+output_simulator_base="$script_dir/../../infra/simulators/output-simulator-base.json"
+output_simulators="$script_dir/../../infra/simulators/output-simulators.json"
 output_main="$script_dir/../../infra/apim-genai/output.json"
-output_base="$script_dir/../../infra/apim-baseline/output.json"
 
 payg1_fqdn=$(jq -r '.payg1Fqdn // ""' < "$output_simulators")
 if [[ -z "${payg1_fqdn}" ]]; then
@@ -80,13 +79,13 @@ if [[ -z "${payg2_fqdn}" ]]; then
 	exit 1
 fi
 
-app_insights_name=$(jq -r '.appInsightsName // ""'< "$output_base")
+app_insights_name=$(jq -r '.appInsightsName // ""'< "$output_simulator_base")
 if [[ -z "${app_insights_name}" ]]; then
 	echo "App Insights Name not found in output.json"
 	exit 1
 fi
 
-log_analytics_workspace_name=$(jq -r '.logAnalyticsName // ""'< "$output_base")
+log_analytics_workspace_name=$(jq -r '.logAnalyticsName // ""'< "$output_simulator_base")
 if [[ -z "${log_analytics_workspace_name}" ]]; then
 	echo "Log Analytics Workspace Name not found in output.json"
 	exit 1

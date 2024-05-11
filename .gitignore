@@ -398,7 +398,7 @@ FodyWeavers.xsd
 *.sln.iml
 /infra/*/output*.json
 /infra/*/azuredeploy.parameters.json
-/infra/apim-genai/generated-keys.json
+/infra/simulators/generated-keys.json
 
 /scripts/simulator
 

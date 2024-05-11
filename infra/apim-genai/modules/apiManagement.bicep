@@ -1,6 +1,30 @@
 @description('The name of the API Management service instance')
 param apiManagementServiceName string
 
+@description('The email address of the owner of the service')
+param publisherEmail string = 'apim@contoso.com'
+
+@description('The name of the owner of the service')
+param publisherName string = 'Contoso'
+
+@description('The pricing tier of this API Management service')
+@allowed([
+  'Consumption'
+  'Developer'
+  'Basic'
+  'Standard'
+  'Premium'
+])
+param sku string = 'Developer'
+
+@description('The instance size of this API Management service.')
+@allowed([
+  0
+  1
+  2
+])
+param skuCount int = 1
+
 @description('The base url of the first Azure Open AI Service PTU deployment (e.g. https://{your-resource-name}.openai.azure.com/openai/deployments/{deployment-id}/)')
 param ptuDeploymentOneBaseUrl string
 
@@ -25,8 +49,26 @@ param eventHubNamespaceName string
 @description('The name of the Event Hub to log utilization data to')
 param eventHubName string
 
-resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-preview' existing = {
+@description('The name of the Log Analytics workspace')
+param logAnalyticsName string
+
+@description('Location for all resources.')
+param location string = resourceGroup().location
+
+resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
   name: apiManagementServiceName
+  location: location
+  sku: {
+    name: sku
+    capacity: skuCount
+  }
+  properties: {
+    publisherEmail: publisherEmail
+    publisherName: publisherName
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
 }
 
 resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
@@ -358,6 +400,35 @@ resource eventHubLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-prev
       identityClientId: 'systemAssigned'
       name: eventHubName
     }
+  }
+}
+
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' existing = {
+  name: logAnalyticsName
+}
+
+resource apiManagementDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${apiManagementServiceName}-diagnostic-settings'
+  scope: apiManagementService
+  properties: {
+    workspaceId: logAnalytics.id
+    logAnalyticsDestinationType: 'Dedicated' 
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+      {
+        categoryGroup: 'audit'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
   }
 }
 

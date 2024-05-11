@@ -8,7 +8,28 @@ if [[ -f "$script_dir/../.env" ]]; then
 	source "$script_dir/../.env"
 fi
 
-cd "$script_dir/../infra/apim-genai"
+cd "$script_dir/../infra/simulators"
+
+if [[ ${#AZURE_LOCATION} -eq 0 ]]; then
+  echo 'ERROR: Missing environment variable AZURE_LOCATION' 1>&2
+  exit 6
+else
+  AZURE_LOCATION="${AZURE_LOCATION%$'\r'}"
+fi
+
+if [[ ${#RESOURCE_NAME_PREFIX} -eq 0 ]]; then
+  echo 'ERROR: Missing environment variable RESOURCE_NAME_PREFIX' 1>&2
+  exit 6
+else
+  RESOURCE_NAME_PREFIX="${RESOURCE_NAME_PREFIX%$'\r'}"  
+fi
+
+if [[ ${#ENVIRONMENT_TAG} -eq 0 ]]; then
+  echo 'ERROR: Missing environment variable ENVIRONMENT_TAG' 1>&2
+  exit 6
+else
+  ENVIRONMENT_TAG="${ENVIRONMENT_TAG%$'\r'}"  
+fi
 
 if [[ "${USE_SIMULATOR}" != "true" ]]; then
   if [[ ${#PTU_DEPLOYMENT_1_BASE_URL} -eq 0 ]]; then
@@ -41,29 +62,13 @@ fi
 # - output.json: stores the output from the main deployment (e.g. APIM endpoints)
 #
 
-output_generated_keys="$script_dir/../infra/apim-genai/generated-keys.json"
-output_simulator_base="$script_dir/../infra/apim-genai/output-simulator-base.json"
-output_simulators="$script_dir/../infra/apim-genai/output-simulators.json"
-output_base="$script_dir/../infra/apim-baseline/output.json"
+output_generated_keys="$script_dir/../infra/simulators/generated-keys.json"
+output_simulator_base="$script_dir/../infra/simulators/output-simulator-base.json"
+output_simulators="$script_dir/../infra/simulators/output-simulators.json"
 
 # Ensure output-keys.json exists and add empty JSON object if not
 if [[ ! -f "$output_generated_keys" ]]; then
   echo "{}" > "$output_generated_keys"
-fi
-
-RESOURCE_GROUP_NAME=$(jq -r '.resourceGroupName // ""' < "$output_base")
-API_MANAGEMENT_SERVICE_NAME=$(jq -r '.apimName // ""' < "$output_base")
-app_insights_name=$(jq -r '.appInsightsName // ""' < "$output_base")
-log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_base")
-
-if [[ -z "$app_insights_name" ]]; then
-  echo "App Insights name (appInsightsName) not found in output-base.json"
-  exit 1
-fi
-
-if [[ -z "$log_analytics_name" ]]; then
-  echo "Log Analytics name (logAnalyticsName) not found in output-base.json"
-  exit 1
 fi
 
 if [[ "${USE_SIMULATOR}" == "true" ]]; then
@@ -105,14 +110,11 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   #
   user_id=$(az ad signed-in-user show --output tsv --query id)
 
-cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
+cat << EOF > "$script_dir/../infra/simulators/azuredeploy.parameters.json"
 {
   "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "resourceGroupName" : {
-      "value": "${RESOURCE_GROUP_NAME}"
-    },
     "workloadName" :{ 
         "value": "${RESOURCE_NAME_PREFIX}"
     },
@@ -124,9 +126,6 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
     },
     "additionalKeyVaulSecretReaderPrincipalId": {
       "value": "${user_id}"
-    },
-    "logAnalyticsName": {
-      "value": "${log_analytics_name}"
     }
   }
 }
@@ -149,11 +148,31 @@ EOF
 
   echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
 
+
+  resource_group_name=$(jq -r '.resourceGroupName // ""' < "$output_simulator_base")
+  app_insights_name=$(jq -r '.appInsightsName // ""' < "$output_simulator_base")
+  log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_simulator_base")
+
+  if [[ -z "$resource_group_name" ]]; then
+    echo "Resource group name (resourceGroupName) not found in output-simulator-base.json"
+    exit 1
+  fi
+
+  if [[ -z "$app_insights_name" ]]; then
+    echo "App Insights name (appInsightsName) not found in output-simulator-base.json"
+    exit 1
+  fi
+
+  if [[ -z "$log_analytics_name" ]]; then
+    echo "Log Analytics name (logAnalyticsName) not found in output-simulator-base.json"
+    exit 1
+  fi
+
   # if app insights key not stored, create and store
   app_insights_key=$(jq -r '.appInsightsKey // ""' < "$output_generated_keys")
   if [[ ${#app_insights_key} -eq 0 ]]; then
     echo 'Creating app insights key'
-    app_insights_key=$(az monitor app-insights api-key create  --resource-group $RESOURCE_GROUP_NAME --app $app_insights_name --api-key automation --query 'apiKey' --output tsv)
+    app_insights_key=$(az monitor app-insights api-key create  --resource-group $resource_group_name --app $app_insights_name --api-key automation --query 'apiKey' --output tsv)
     jq ".appInsightsKey = \"${app_insights_key}\"" < "$output_generated_keys" > "/tmp/generated-keys.json"
     cp "/tmp/generated-keys.json" "$output_generated_keys"
   fi
@@ -201,7 +220,7 @@ EOF
 
   storage_key=$(az storage account keys list --account-name "$storage_account_name" -o tsv --query '[0].value')
 
-  az storage file upload-batch --destination "$file_share_name" --source "$script_dir/../infra/apim-genai/simulator_file_content" --account-name "$storage_account_name" --account-key "$storage_key"
+  az storage file upload-batch --destination "$file_share_name" --source "$script_dir/../infra/simulators/simulator_file_content" --account-name "$storage_account_name" --account-key "$storage_key"
 
   #
   # Deploy simulator instances
@@ -217,13 +236,13 @@ EOF
     exit 1
   fi
 
-cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
+cat << EOF > "$script_dir/../infra/simulators/azuredeploy.parameters.json"
 {
   "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "resourceGroupName" : {
-      "value": "${RESOURCE_GROUP_NAME}"
+      "value": "${resource_group_name}"
     },
     "workloadName" :{ 
         "value": "${RESOURCE_NAME_PREFIX}"
@@ -312,6 +331,7 @@ if [[ "${PAYG_DEPLOYMENT_2_BASE_URL: -7}" != "/openai" ]]; then
     PAYG_DEPLOYMENT_2_BASE_URL="${PAYG_DEPLOYMENT_2_BASE_URL}/openai"
 fi
 
+cd "$script_dir/../infra/apim-genai"
 
 #
 # Deploy APIM policies etc
@@ -326,9 +346,6 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
     },
     "environment" :{ 
         "value": "${ENVIRONMENT_TAG}"
-    },
-    "apiManagementServiceName" :{ 
-        "value": "${API_MANAGEMENT_SERVICE_NAME}"
     },
     "ptuDeploymentOneBaseUrl": {
         "value": "${PTU_DEPLOYMENT_1_BASE_URL}"
@@ -347,6 +364,9 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
     },
     "payAsYouGoDeploymentTwoApiKey": {
         "value": "${SIMULATOR_API_KEY}"
+    },
+    "logAnalyticsName": {
+        "value": "${log_analytics_name}"
     }
   }
 }
@@ -362,7 +382,7 @@ output=$(az deployment group create \
   --template-file main.bicep \
   --name "$deployment_name" \
   --parameters azuredeploy.parameters.json \
-  --resource-group "$RESOURCE_GROUP_NAME" \
+  --resource-group "$resource_group_name" \
   --output json)
   
 echo "== Completed bicep deployment ${deployment_name}"

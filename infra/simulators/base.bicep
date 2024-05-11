@@ -1,8 +1,5 @@
 targetScope = 'subscription'
 
-@description('The name of the resource group to deploy into')
-param resourceGroupName string
-
 @description('A short name for the workload being deployed alphanumberic only')
 @maxLength(8)
 param workloadName string
@@ -23,14 +20,14 @@ param location string
 @secure()
 param additionalKeyVaulSecretReaderPrincipalId string = '' // used to enable the current user to retrieve the app insights connection string
 
-
-@description('The name of the Log Analytics workspace')
-param logAnalyticsName string
-
 var resourceSuffix = '${workloadName}-${environment}-${location}'
+var resourceGroupName = 'rg-${resourceSuffix}'
+var logAnalyticsName = 'la-${resourceSuffix}'
+var appInsightsName = 'ai-${resourceSuffix}'
 
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: resourceGroupName
+  location: location
 }
 
 module simulatorBase 'modules/simulatorBase.bicep' = {
@@ -41,8 +38,14 @@ module simulatorBase 'modules/simulatorBase.bicep' = {
     resourceSuffix: resourceSuffix
     additionalKeyVaulSecretReaderPrincipalId: additionalKeyVaulSecretReaderPrincipalId
     logAnalyticsName: logAnalyticsName
+    appInsightsName: appInsightsName
   }
 }
+
+output resourceGroupName string = resourceGroupName
+
+output logAnalyticsName string = logAnalyticsName
+output appInsightsName string = appInsightsName
 
 output containerRegistryLoginServer string = simulatorBase.outputs.containerRegistryLoginServer
 output containerRegistryName string = simulatorBase.outputs.containerRegistryName
