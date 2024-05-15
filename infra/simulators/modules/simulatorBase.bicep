@@ -21,10 +21,10 @@ param logAnalyticsName string
 param appInsightsName string
 
 
-var containerRegistryName = replace('aoaisim-${resourceSuffix}', '-', '')
-var keyVaultName = replace('aoaisim-${resourceSuffix}', '-', '')
-var storageAccountName = replace('aoaisim${resourceSuffix}', '-', '')
-var containerAppEnvName = 'aoaisim-${resourceSuffix}'
+var containerRegistryName = replace('${resourceSuffix}', '-', '')
+var keyVaultName = replace('${resourceSuffix}', '-', '')
+var storageAccountName = replace('${resourceSuffix}', '-', '')
+var containerAppEnvName = resourceSuffix
 
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-12-01-preview' = {
