@@ -44,7 +44,7 @@ param appInsightsName string
 // extract these to a common module to have a single, shared place for these across base/main?
 
 
-var apiSimulatorName = 'aoaisim-${resourceSuffix}-${apiSimulatorNameSuffix}'
+var apiSimulatorName = '${resourceSuffix}-${apiSimulatorNameSuffix}'
 
 
 ///////////////////////////////////////////////////////////////////////
