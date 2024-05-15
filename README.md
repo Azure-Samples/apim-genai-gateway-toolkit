@@ -17,6 +17,8 @@ The aim of this toolkit is to provide a quick start for deploying a GenAI Gatewa
 
 The APIM gateway that's provisioned by this toolkit contains policies that demonstrate different [GenAI Gateway capabilities](#gateway-capabilities) and the `end-to-end` tests allows to simulate different scenarios and demonstrate the capabilities by adjusting the configuration of the [OpenAI API simulator](https://github.com/stuartleeks/aoai-simulated-api) that's used as a backend.
 
+<video src="https://github.com/Azure-Samples/apim-genai-gateway-toolkit/assets/16926044/b1844049-01b3-4956-822b-eb6cb3f99c1c" title="demo" width="360" height="240" controls></video>
+
 ### GenAI Gateway
 
 A "GenAI Gateway" serves as an intelligent interface/middleware that dynamically balances incoming traffic across backend resources to achieve optimizing resource utilization. In addition to load balancing, GenAI Gateway can be equipped with extra capabilities to address the challenges around billing, monitoring etc.
