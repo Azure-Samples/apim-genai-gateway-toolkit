@@ -80,8 +80,6 @@ az login
 ./scripts/deploy.sh
 ```
 
-> **_NOTE:_**  A known KV/ACA bug requires the `deploy.sh` script to be run twice, if using the OpenAI API simulator.
-
 ## Gateway Capabilities
 
 This repo currently contains the policies showing how to implement these GenAI Gateway capabilities:
