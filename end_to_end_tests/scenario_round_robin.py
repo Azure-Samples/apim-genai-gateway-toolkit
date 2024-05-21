@@ -14,7 +14,7 @@ from common.latency import (
     report_request_metric,
 )
 from common.config import (
-    apim_key,
+    apim_keys,
     simulator_endpoint_payg1,
     simulator_endpoint_payg2,
     tenant_id,
@@ -44,6 +44,7 @@ class CompletionUser(HttpUser):
             "prompt": "Once upon a time",
             "max_tokens": 10,
         }
+        apim_key = apim_keys.split(";")[0]
         self.client.post(
             url,
             json=payload,

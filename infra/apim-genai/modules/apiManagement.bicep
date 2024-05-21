@@ -173,6 +173,7 @@ var azureOpenAIAPINames = [
   azureOpenAIRetryWithPayAsYouGoAPI.name
   azureOpenAIAdaptiveRateLimitingAPI.name
   azureOpenAILatencyRoutingAPI.name
+  azureOpenAIUsageTrackingAPI.name
   helperAPI.name
 ]
 
@@ -224,11 +225,31 @@ resource payAsYouGoBackendTwo 'Microsoft.ApiManagement/service/backends@2023-05-
   }
 }
 
-resource azureOpenAIProductSubscription 'Microsoft.ApiManagement/service/subscriptions@2023-05-01-preview' = {
+resource azureOpenAIProductSubscriptionOne 'Microsoft.ApiManagement/service/subscriptions@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-product-subscription'
+  name: 'aoai-product-subscription-one'
   properties: {
-    displayName: 'aoai-product-subscription'
+    displayName: 'aoai-product-subscription-one'
+    state: 'active'
+    scope: azureOpenAIProduct.id
+  }
+}
+
+resource azureOpenAIProductSubscriptionTwo 'Microsoft.ApiManagement/service/subscriptions@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-product-subscription-two'
+  properties: {
+    displayName: 'aoai-product-subscription-two'
+    state: 'active'
+    scope: azureOpenAIProduct.id
+  }
+}
+
+resource azureOpenAIProductSubscriptionThree 'Microsoft.ApiManagement/service/subscriptions@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-product-subscription-three'
+  properties: {
+    displayName: 'aoai-product-subscription-three'
     state: 'active'
     scope: azureOpenAIProduct.id
   }
@@ -433,4 +454,4 @@ resource apiManagementDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@
 }
 
 output apiManagementServiceName string = apiManagementService.name
-output apiManagementAzureOpenAIProductSubscriptionKey string = azureOpenAIProductSubscription.listSecrets().primaryKey
+output apiManagementAzureOpenAIProductSubscriptionKeys string = '${azureOpenAIProductSubscriptionOne.listSecrets().primaryKey};${azureOpenAIProductSubscriptionTwo.listSecrets().primaryKey};${azureOpenAIProductSubscriptionThree.listSecrets().primaryKey}'

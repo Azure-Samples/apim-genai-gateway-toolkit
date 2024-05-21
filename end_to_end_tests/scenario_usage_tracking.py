@@ -1,28 +1,28 @@
 from datetime import datetime, timedelta, UTC
 import logging
-import time
 
 import asciichartpy as asciichart
 from azure.identity import DefaultAzureCredential
 from locust import HttpUser, task, constant, events
+
+import random
 
 from common.log_analytics import (
     GroupDefinition,
     QueryProcessor,
 )
 from common.latency import (
-    measure_latency_and_update_apim,
     set_simulator_completions_latency,
     report_request_metric,
 )
 from common.config import (
     apim_keys,
-    app_insights_connection_string,
     simulator_endpoint_payg1,
     simulator_endpoint_payg2,
     tenant_id,
     subscription_id,
     resource_group_name,
+    app_insights_connection_string,
     log_analytics_workspace_id,
     log_analytics_workspace_name,
 )
@@ -46,61 +46,12 @@ class CompletionUser(HttpUser):
             "prompt": "Once upon a time",
             "max_tokens": 10,
         }
-        apim_key = apim_keys.split(";")[0]
+        apim_key = get_random_key(apim_keys)
         self.client.post(
             url,
             json=payload,
             headers={"ocp-apim-subscription-key": apim_key},
         )
-
-
-class TestCoordinationUser(HttpUser):
-    """
-    TestCoordinationUser controls the request latencies etc to automate the demo
-    """
-
-    fixed_count = 1  # ensure we only have a single instance of this user
-
-    @task
-    def orchestrate_test(self):
-        # Run for 1 minute
-        time.sleep(60)
-
-        # Measure the latencies and update APIM
-        # The load test repeatedly does this to simulate the scheduled task that would run in production
-        logging.info("⌚ Measuring latencies and updating APIM")
-        measure_latency_and_update_apim()
-
-        # Run for 1 minute
-        time.sleep(60)
-
-        # Measure the latencies and update APIM
-        logging.info("⌚ Measuring latencies and updating APIM")
-        measure_latency_and_update_apim()
-
-        # Reverse the latencies
-        # Note that this happening _after_ the latency measurement
-        # means that we will see the latency increase in the front-end requests
-        # until the next measure/update cycle
-        logging.info("⚙️ Updating simulator latencies (PAYG1 slow, PAYG2 fast)")
-        set_simulator_completions_latency(simulator_endpoint_payg1, 100)
-        set_simulator_completions_latency(simulator_endpoint_payg2, 10)
-
-        # Run for 1 minute
-        time.sleep(60)
-
-        # Measure the latencies and update APIM
-        logging.info("⌚ Measuring latencies and updating APIM")
-        measure_latency_and_update_apim()
-
-        # Run for 1 minute
-        time.sleep(60)
-
-        # Measure the latencies and update APIM
-        logging.info("⌚ Measuring latencies and updating APIM")
-        measure_latency_and_update_apim()
-
-        time.sleep(60)  # sleep for 2 minutes
 
 
 @events.init.add_listener
@@ -129,13 +80,8 @@ def on_test_start(environment, **kwargs):
     test_start_time = datetime.now(UTC)
     logging.info("👟 Setting up test...")
 
-    logging.info("⚙️ Setting initial simulator latencies (PAYG1 fast, PAYG2 slow)")
+    logging.info("⚙️ Resetting simulator latencies")
     set_simulator_completions_latency(simulator_endpoint_payg1, 10)
-    set_simulator_completions_latency(simulator_endpoint_payg2, 100)
-
-    time.sleep(1)
-    logging.info("⌚ Measuring API latencies and updating APIM")
-    measure_latency_and_update_apim()
 
     logging.info("👟 Test setup done")
     logging.info("🚀 Running test...")
@@ -169,16 +115,17 @@ def on_test_stop(environment, **kwargs):
     time_range = f"TimeGenerated > datetime({test_start_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and TimeGenerated < datetime({test_stop_time.strftime('%Y-%m-%dT%H:%M:%SZ')})"
 
     query_processor.add_query(
-        title="Request count by backend (PTU1 -> Blue, PAYG1 -> Yellow)",
+        title="Overall request count",
         query=f"""
 ApiManagementGatewayLogs
 | where OperationName != "" and  {time_range}
 | where BackendId != ""
-| summarize request_count = count() by bin(TimeGenerated, 10s), BackendId
+| summarize request_count = count() by bin(TimeGenerated, 10s)
 | order by TimeGenerated asc
 | render timechart
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
+        columns=["request_count"],
         chart_config={
             "height": 15,
             "min": 0,
@@ -187,45 +134,13 @@ ApiManagementGatewayLogs
                 asciichart.blue,
             ],
         },
-        group_definition=GroupDefinition(
-            id_column="TimeGenerated",
-            group_column="BackendId",
-            value_column="request_count",
-            missing_value=float("nan"),
-        ),
-        timespan=(test_start_time, test_stop_time),
-        show_query=True,
-        include_link=True,
-    )
-
-    query_processor.add_query(
-        title="Request latency (PAYG1 -> Blue, PAYG2 -> Yellow)",
-        query=f"""
-ApiManagementGatewayLogs
-| where OperationName != "" and  {time_range}
-| where BackendId != ""
-| summarize latency_s = avg(TotalTime) by bin(TimeGenerated, 10s), BackendId
-| order by TimeGenerated asc
-| render timechart
-        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace,
-        is_chart=True,
-        chart_config={
-            "height": 15,
-            "min": 0,
-            "colors": [
-                asciichart.yellow,
-                asciichart.blue,
-            ],
-        },
-        group_definition=GroupDefinition(
-            id_column="TimeGenerated",
-            group_column="BackendId",
-            value_column="latency_s",
-            missing_value=float("nan"),
-        ),
         timespan=(test_start_time, test_stop_time),
         show_query=True,
         include_link=True,
     )
 
     query_processor.run_queries()
+
+def get_random_key(apim_keys):
+    keys = apim_keys.split(";")
+    return random.choice(keys)

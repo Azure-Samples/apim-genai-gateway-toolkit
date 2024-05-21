@@ -1,6 +1,6 @@
 import os
 
-apim_key = os.getenv("APIM_KEY")
+apim_keys = os.getenv("APIM_KEYS")
 apim_endpoint = os.getenv("APIM_ENDPOINT")
 app_insights_name = os.getenv("APP_INSIGHTS_NAME")
 app_insights_connection_string = os.getenv("APP_INSIGHTS_CONNECTION_STRING")

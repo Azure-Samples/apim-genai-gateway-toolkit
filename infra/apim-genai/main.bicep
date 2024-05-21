@@ -68,4 +68,4 @@ module eventHub 'modules/eventHub.bicep' = {
 }
 
 output apiManagementName string = apiManagement.outputs.apiManagementServiceName
-output apiManagementAzureOpenAIProductSubscriptionKey string = apiManagement.outputs.apiManagementAzureOpenAIProductSubscriptionKey
+output apiManagementAzureOpenAIProductSubscriptionKeys string = apiManagement.outputs.apiManagementAzureOpenAIProductSubscriptionKeys
