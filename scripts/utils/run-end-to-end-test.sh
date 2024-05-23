@@ -114,7 +114,7 @@ fi
 
 apim_keys=$(jq -r '.apiManagementAzureOpenAIProductSubscriptionKeys // ""'< "$output_main")
 if [[ -z "${apim_keys}" ]]; then
-	echo "APIM Key not found in deployment output file"
+	echo "APIM Keys not found in deployment output file"
 	exit 1
 fi
 
