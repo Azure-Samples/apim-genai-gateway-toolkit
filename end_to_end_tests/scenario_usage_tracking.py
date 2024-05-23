@@ -16,7 +16,9 @@ from common.latency import (
     report_request_metric,
 )
 from common.config import (
-    apim_keys,
+    apim_subscription_one_key,
+    apim_subscription_two_key,
+    apim_subscription_three_key,
     simulator_endpoint_payg1,
     simulator_endpoint_payg2,
     tenant_id,
@@ -46,7 +48,7 @@ class CompletionUser(HttpUser):
             "prompt": "Once upon a time",
             "max_tokens": 10,
         }
-        apim_key = get_random_key(apim_keys)
+        apim_key = get_random_key()
         self.client.post(
             url,
             json=payload,
@@ -141,6 +143,6 @@ ApiManagementGatewayLogs
 
     query_processor.run_queries()
 
-def get_random_key(apim_keys):
-    keys = apim_keys.split(";")
+def get_random_key():
+    keys = [apim_subscription_one_key, apim_subscription_two_key, apim_subscription_three_key]
     return random.choice(keys)

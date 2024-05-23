@@ -14,7 +14,7 @@ from common.latency import (
     report_request_metric,
 )
 from common.config import (
-    apim_keys,
+    apim_subscription_one_key,
     simulator_endpoint_ptu1,
     simulator_endpoint_payg1,
     tenant_id,
@@ -108,11 +108,10 @@ class ChatCompletionUser(HttpUser):
             "max_tokens": 1000,
         }
         try:
-            apim_key = apim_keys.split(";")[0]
             self.client.post(
                 url,
                 json=payload,
-                headers={"ocp-apim-subscription-key": apim_key},
+                headers={"ocp-apim-subscription-key": apim_subscription_one_key},
             )
         except Exception as e:
             print()

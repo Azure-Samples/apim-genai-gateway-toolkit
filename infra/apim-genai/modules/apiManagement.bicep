@@ -454,4 +454,6 @@ resource apiManagementDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@
 }
 
 output apiManagementServiceName string = apiManagementService.name
-output apiManagementAzureOpenAIProductSubscriptionKeys string = '${azureOpenAIProductSubscriptionOne.listSecrets().primaryKey};${azureOpenAIProductSubscriptionTwo.listSecrets().primaryKey};${azureOpenAIProductSubscriptionThree.listSecrets().primaryKey}'
+output apiManagementAzureOpenAIProductSubscriptionOneKey string = azureOpenAIProductSubscriptionOne.listSecrets().primaryKey
+output apiManagementAzureOpenAIProductSubscriptionTwoKey string = azureOpenAIProductSubscriptionTwo.listSecrets().primaryKey
+output apiManagementAzureOpenAIProductSubscriptionThreeKey string = azureOpenAIProductSubscriptionThree.listSecrets().primaryKey

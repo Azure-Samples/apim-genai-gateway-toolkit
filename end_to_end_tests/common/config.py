@@ -1,6 +1,8 @@
 import os
 
-apim_keys = os.getenv("APIM_KEYS")
+apim_subscription_one_key = os.getenv("APIM_SUBSCRIPTION_ONE_KEY")
+apim_subscription_two_key = os.getenv("APIM_SUBSCRIPTION_TWO_KEY")
+apim_subscription_three_key = os.getenv("APIM_SUBSCRIPTION_THREE_KEY")
 apim_endpoint = os.getenv("APIM_ENDPOINT")
 app_insights_name = os.getenv("APP_INSIGHTS_NAME")
 app_insights_connection_string = os.getenv("APP_INSIGHTS_CONNECTION_STRING")
