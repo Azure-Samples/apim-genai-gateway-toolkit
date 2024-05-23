@@ -46,7 +46,7 @@ class CompletionUser(HttpUser):
         payload = {
             "model": "gpt-5-turbo-1",
             "prompt": "Once upon a time",
-            "max_tokens": 10,
+            "max_tokens": get_random_max_tokens(),
         }
         apim_key = get_random_key()
         self.client.post(
@@ -146,3 +146,6 @@ ApiManagementGatewayLogs
 def get_random_key():
     keys = [apim_subscription_one_key, apim_subscription_two_key, apim_subscription_three_key]
     return random.choice(keys)
+
+def get_random_max_tokens():
+    return random.randint(5, 20)
