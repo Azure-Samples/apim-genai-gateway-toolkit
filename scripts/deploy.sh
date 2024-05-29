@@ -57,16 +57,78 @@ fi
 #
 # This script uses a number of files to store generated keys and outputs from the deployment:
 # - generated-keys.json: stores generated keys (e.g. API Key for the API simulator)
+# - base-output-entries.json: stores the output from the base deployment (e.g. resource group name, app insights name)
 # - output-simulator-base.json: stores the output from the base simulator deployment (e.g. container registry details)
 # - output-simulators.json: stores the output from the simulator instances deployment (e.g. simulator endpoints)
 # - output.json: stores the output from the main deployment (e.g. APIM endpoints)
 #
 
+base_output_entries="$script_dir/../infra/apim-genai/base-output-entries.json"
 output_generated_keys="$script_dir/../infra/simulators/generated-keys.json"
 output_simulator_base="$script_dir/../infra/simulators/output-simulator-base.json"
 output_simulators="$script_dir/../infra/simulators/output-simulators.json"
 
-# Ensure output-keys.json exists and add empty JSON object if not
+# Deploy AppInsights and Eventhub
+
+ cd "$script_dir/../infra/apim-genai"
+
+ cat << EOF > "$script_dir/../infra/apim-genai/shared.parameters.json"
+{
+  "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workloadName" :{ 
+        "value": "${RESOURCE_NAME_PREFIX}"
+    },
+    "environment" :{ 
+        "value": "${ENVIRONMENT_TAG}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    }
+  }
+}
+EOF
+
+ deployment_name="base-${RESOURCE_NAME_PREFIX}"
+
+echo "$deployment_name"
+echo "=="
+echo "== Starting bicep deployment ${deployment_name}"
+echo "=="
+base_output=$(az deployment sub create \
+  --location "$AZURE_LOCATION" \
+  --template-file base.bicep \
+  --name "$deployment_name" \
+  --parameters shared.parameters.json \
+  --output json)
+
+echo "== Completed bicep deployment ${deployment_name}"
+
+echo "$base_output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $base_output_entries
+
+resource_group_name=$(jq -r '.resourceGroupName // ""' < "$base_output_entries")
+app_insights_name=$(jq -r '.appInsightsName // ""' < "$base_output_entries")
+log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$base_output_entries")
+event_hub_namespace=$(jq -r '.eventHubNamespaceName // ""' < "$base_output_entries")
+event_hub_name=$(jq -r '.eventHubName // ""' < "$base_output_entries")
+
+if [[ -z "$resource_group_name" ]]; then
+  echo "Resource group name (resourceGroupName) not found in output-simulator-base.json"
+  exit 1
+fi
+
+if [[ -z "$app_insights_name" ]]; then
+  echo "App Insights name (appInsightsName) not found in output-simulator-base.json"
+  exit 1
+fi
+
+if [[ -z "$log_analytics_name" ]]; then
+  echo "Log Analytics name (logAnalyticsName) not found in output-simulator-base.json"
+  exit 1
+fi
+
+Ensure output-keys.json exists and add empty JSON object if not
 if [[ ! -f "$output_generated_keys" ]]; then
   echo "{}" > "$output_generated_keys"
 fi
@@ -148,25 +210,6 @@ EOF
 
   echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
 
-
-  resource_group_name=$(jq -r '.resourceGroupName // ""' < "$output_simulator_base")
-  app_insights_name=$(jq -r '.appInsightsName // ""' < "$output_simulator_base")
-  log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_simulator_base")
-
-  if [[ -z "$resource_group_name" ]]; then
-    echo "Resource group name (resourceGroupName) not found in output-simulator-base.json"
-    exit 1
-  fi
-
-  if [[ -z "$app_insights_name" ]]; then
-    echo "App Insights name (appInsightsName) not found in output-simulator-base.json"
-    exit 1
-  fi
-
-  if [[ -z "$log_analytics_name" ]]; then
-    echo "Log Analytics name (logAnalyticsName) not found in output-simulator-base.json"
-    exit 1
-  fi
 
   # if app insights key not stored, create and store
   app_insights_key=$(jq -r '.appInsightsKey // ""' < "$output_generated_keys")
@@ -367,7 +410,13 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
     },
     "logAnalyticsName": {
         "value": "${log_analytics_name}"
-    }
+    },
+    "eventHubNamespaceName": {
+      "value": "${event_hub_namespace}"
+    },
+    "eventHubName": {
+      "value": "${event_hub_name}"
+    },
   }
 }
 EOF
@@ -379,13 +428,14 @@ echo "=="
 echo "== Starting bicep deployment ${deployment_name}"
 echo "=="
 output=$(az deployment group create \
-  --template-file main.bicep \
+  --template-file apim.bicep \
   --name "$deployment_name" \
   --parameters azuredeploy.parameters.json \
   --resource-group "$resource_group_name" \
   --output json)
   
 echo "== Completed bicep deployment ${deployment_name}"
+echo $output
 
 echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$script_dir/../infra/apim-genai/output.json"
 

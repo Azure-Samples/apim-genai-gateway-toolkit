@@ -34,12 +34,16 @@ param payAsYouGoDeploymentTwoApiKey string
 @description('The name of the Log Analytics workspace')
 param logAnalyticsName string
 
+@description('The nameSpace of the EventHub')
+param eventHubNamespaceName string
+
+@description('The name of the EventHub')
+param eventHubName string
+
 param location string = resourceGroup().location
 
 var resourceSuffix = '${workloadName}-${environment}-${location}'
 var apiManagementServiceName = 'apim-${resourceSuffix}'
-var eventHubNamespaceName = 'eh-ns-${resourceSuffix}'
-var eventHubName = 'apim-utilization-reporting'
 
 module apiManagement 'modules/apiManagement.bicep' = {
   name: 'apiManagementDeploy'
@@ -51,18 +55,9 @@ module apiManagement 'modules/apiManagement.bicep' = {
     payAsYouGoDeploymentOneApiKey: payAsYouGoDeploymentOneApiKey
     payAsYouGoDeploymentTwoBaseUrl: payAsYouGoDeploymentTwoBaseUrl
     payAsYouGoDeploymentTwoApiKey: payAsYouGoDeploymentTwoApiKey
-    eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
-    eventHubName: eventHub.outputs.eventHubName
-    logAnalyticsName: logAnalyticsName
-    location: location
-  }
-}
-
-module eventHub 'modules/eventHub.bicep' = {
-  name: 'eventHubDeploy'
-  params: {
-    eventHubName: eventHubName
     eventHubNamespaceName: eventHubNamespaceName
+    eventHubName: eventHubName
+    logAnalyticsName: logAnalyticsName
     location: location
   }
 }

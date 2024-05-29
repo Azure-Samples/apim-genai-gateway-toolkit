@@ -17,10 +17,6 @@ param additionalKeyVaulSecretReaderPrincipalId string = ''
 @description('The name of the Log Analytics workspace')
 param logAnalyticsName string
 
-@description('The name of the Application Insights instance')
-param appInsightsName string
-
-
 var containerRegistryName = replace('${resourceSuffix}', '-', '')
 var keyVaultName = replace('${resourceSuffix}', '-', '')
 var storageAccountName = replace('${resourceSuffix}', '-', '')
@@ -95,23 +91,8 @@ resource simulatorFileShare 'Microsoft.Storage/storageAccounts/fileServices/shar
   name: 'simulator'
 }
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' = {
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' existing = {
   name: logAnalyticsName
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-  }
-}
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: appInsightsName
-  location: location
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalytics.id
-  }
 }
 
 
@@ -147,5 +128,4 @@ output storageAccountName string = storageAccount.name
 output fileShareName string = simulatorFileShare.name
 output keyVaultName string = vault.name
 output containerAppEnvName string = containerAppEnv.name
-output appInsightsName string = appInsights.name
 output logAnalyticsName string = logAnalytics.name

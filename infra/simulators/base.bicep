@@ -22,8 +22,6 @@ param additionalKeyVaulSecretReaderPrincipalId string = '' // used to enable the
 
 var resourceSuffix = '${workloadName}-${environment}-${location}'
 var resourceGroupName = 'rg-${resourceSuffix}'
-var logAnalyticsName = 'la-${resourceSuffix}'
-var appInsightsName = 'ai-${resourceSuffix}'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: resourceGroupName
@@ -38,7 +36,6 @@ module simulatorBase 'modules/simulatorBase.bicep' = {
     resourceSuffix: resourceSuffix
     additionalKeyVaulSecretReaderPrincipalId: additionalKeyVaulSecretReaderPrincipalId
     logAnalyticsName: logAnalyticsName
-    appInsightsName: appInsightsName
   }
 }
 

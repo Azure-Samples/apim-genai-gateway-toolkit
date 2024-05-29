@@ -1,0 +1,7 @@
+{
+  "appInsightsName": "ai-wu21-dev-westus2",
+  "eventHubName": "apim-utilization-reporting",
+  "eventHubNamespaceName": "eh-ns-wu21-dev-westus2",
+  "logAnalyticsName": "la-wu21-dev-westus2",
+  "resourceGroupName": "rg-wu21-dev-westus2"
+}
