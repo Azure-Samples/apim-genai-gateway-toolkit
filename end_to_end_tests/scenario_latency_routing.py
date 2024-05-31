@@ -16,7 +16,7 @@ from common.latency import (
     report_request_metric,
 )
 from common.config import (
-    apim_key,
+    apim_subscription_one_key,
     app_insights_connection_string,
     simulator_endpoint_payg1,
     simulator_endpoint_payg2,
@@ -49,7 +49,7 @@ class CompletionUser(HttpUser):
         self.client.post(
             url,
             json=payload,
-            headers={"ocp-apim-subscription-key": apim_key},
+            headers={"ocp-apim-subscription-key": apim_subscription_one_key},
         )
 
 

@@ -36,6 +36,9 @@ elif [[ "${SCENARIO_NAME}" == "round-robin-weighted" ]]; then
 elif [[ "${SCENARIO_NAME}" == "manage-spikes-with-payg" ]]; then
 	test_file="scenario_manage_spikes_with_payg.py"
 	host_endpoint_path="retry-with-payg"
+elif [[ "${SCENARIO_NAME}" == "usage-tracking" ]]; then
+	test_file="scenario_usage_tracking.py"
+	host_endpoint_path="usage-tracking"
 else
 	echo "Unknown scenario name: ${SCENARIO_NAME}"
 	exit 1
@@ -109,9 +112,19 @@ if [[ -z "${log_analytics_workspace_id}" ]]; then
 fi
 
 
-apim_key=$(jq -r '.apiManagementAzureOpenAIProductSubscriptionKey // ""'< "$output_main")
-if [[ -z "${apim_key}" ]]; then
-	echo "APIM Key not found in deployment output file"
+apim_subscription_one_key=$(jq -r '.apiManagementAzureOpenAIProductSubscriptionOneKey // ""'< "$output_main")
+if [[ -z "${apim_subscription_one_key}" ]]; then
+	echo "APIM Subscription One Key not found in deployment output file"
+	exit 1
+fi
+apim_subscription_two_key=$(jq -r '.apiManagementAzureOpenAIProductSubscriptionTwoKey // ""'< "$output_main")
+if [[ -z "${apim_subscription_two_key}" ]]; then
+	echo "APIM Subscription Two Key not found in deployment output file"
+	exit 1
+fi
+apim_subscription_three_key=$(jq -r '.apiManagementAzureOpenAIProductSubscriptionThreeKey // ""'< "$output_main")
+if [[ -z "${apim_subscription_three_key}" ]]; then
+	echo "APIM Subscription Three Key not found in deployment output file"
 	exit 1
 fi
 
@@ -131,7 +144,9 @@ tenant_id=$(az account show --output tsv --query tenantId)
 load_test_root="$script_dir/../../end_to_end_tests"
 
 if [[ $USER_COUNT == "-1" ]]; then
-	APIM_KEY=$apim_key \
+	APIM_SUBSCRIPTION_ONE_KEY=$apim_subscription_one_key \
+	APIM_SUBSCRIPTION_TWO_KEY=$apim_subscription_two_key \
+	APIM_SUBSCRIPTION_THREE_KEY=$apim_subscription_three_key \
 	APIM_ENDPOINT=$apim_base_url \
 	APP_INSIGHTS_NAME=$app_insights_name \
 	TENANT_ID=$tenant_id \
@@ -153,7 +168,9 @@ if [[ $USER_COUNT == "-1" ]]; then
 		--autostart \
 		--autoquit 0
 else
-	APIM_KEY=$apim_key \
+	APIM_SUBSCRIPTION_ONE_KEY=$apim_subscription_one_key \
+	APIM_SUBSCRIPTION_TWO_KEY=$apim_subscription_two_key \
+	APIM_SUBSCRIPTION_THREE_KEY=$apim_subscription_three_key \
 	APIM_ENDPOINT=$apim_base_url \
 	APP_INSIGHTS_NAME=$app_insights_name \
 	TENANT_ID=$tenant_id \

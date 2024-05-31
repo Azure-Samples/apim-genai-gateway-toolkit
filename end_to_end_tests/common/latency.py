@@ -8,7 +8,7 @@ from azure.monitor.opentelemetry import configure_azure_monitor
 
 from .config import (
     apim_endpoint,
-    apim_key,
+    apim_subscription_one_key,
     app_insights_connection_string,
     simulator_api_key,
     simulator_endpoint_payg1,
@@ -148,7 +148,7 @@ def measure_latency_and_update_apim():
     response = requests.post(
         url=f"{apim_endpoint}/helpers/set-preferred-backends",
         json=payload,
-        headers={"ocp-apim-subscription-key": apim_key},
+        headers={"ocp-apim-subscription-key": apim_subscription_one_key},
     )
     response.raise_for_status()
     logging.info("    Updated APIM with preferred backends: %s", response.text)

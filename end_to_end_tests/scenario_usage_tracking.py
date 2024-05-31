@@ -5,6 +5,8 @@ import asciichartpy as asciichart
 from azure.identity import DefaultAzureCredential
 from locust import HttpUser, task, constant, events
 
+import random
+
 from common.log_analytics import (
     GroupDefinition,
     QueryProcessor,
@@ -15,6 +17,8 @@ from common.latency import (
 )
 from common.config import (
     apim_subscription_one_key,
+    apim_subscription_two_key,
+    apim_subscription_three_key,
     simulator_endpoint_payg1,
     simulator_endpoint_payg2,
     tenant_id,
@@ -42,12 +46,13 @@ class CompletionUser(HttpUser):
         payload = {
             "model": "gpt-5-turbo-1",
             "prompt": "Once upon a time",
-            "max_tokens": 10,
+            "max_tokens": get_random_max_tokens(),
         }
+        apim_key = get_random_key()
         self.client.post(
             url,
             json=payload,
-            headers={"ocp-apim-subscription-key": apim_subscription_one_key},
+            headers={"ocp-apim-subscription-key": apim_key},
         )
 
 
@@ -79,7 +84,6 @@ def on_test_start(environment, **kwargs):
 
     logging.info("⚙️ Resetting simulator latencies")
     set_simulator_completions_latency(simulator_endpoint_payg1, 10)
-    set_simulator_completions_latency(simulator_endpoint_payg2, 10)
 
     logging.info("👟 Test setup done")
     logging.info("🚀 Running test...")
@@ -113,16 +117,17 @@ def on_test_stop(environment, **kwargs):
     time_range = f"TimeGenerated > datetime({test_start_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and TimeGenerated < datetime({test_stop_time.strftime('%Y-%m-%dT%H:%M:%SZ')})"
 
     query_processor.add_query(
-        title="Request latency (PAYG1 -> Blue, PAYG2 -> Yellow)",
+        title="Overall request count",
         query=f"""
 ApiManagementGatewayLogs
 | where OperationName != "" and  {time_range}
 | where BackendId != ""
-| summarize request_count = count() by bin(TimeGenerated, 10s), BackendId
+| summarize request_count = count() by bin(TimeGenerated, 10s)
 | order by TimeGenerated asc
 | render timechart
-        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace,
+        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
+        columns=["request_count"],
         chart_config={
             "height": 15,
             "min": 0,
@@ -131,15 +136,16 @@ ApiManagementGatewayLogs
                 asciichart.blue,
             ],
         },
-        group_definition=GroupDefinition(
-            id_column="TimeGenerated",
-            group_column="BackendId",
-            value_column="request_count",
-            missing_value=float("nan"),
-        ),
         timespan=(test_start_time, test_stop_time),
         show_query=True,
         include_link=True,
     )
 
     query_processor.run_queries()
+
+def get_random_key():
+    keys = [apim_subscription_one_key, apim_subscription_two_key, apim_subscription_three_key]
+    return random.choice(keys)
+
+def get_random_max_tokens():
+    return random.randint(5, 20)
