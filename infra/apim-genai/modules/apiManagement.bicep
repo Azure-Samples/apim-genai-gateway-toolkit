@@ -95,6 +95,30 @@ resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@
   }
 }
 
+resource azureOpenAISimpleRoundRobinAPIv2 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-simple-round-robin-v2'
+  properties: {
+    path: '/round-robin-simple-v2/openai'
+    displayName: 'AOAIAPI-SimpleRoundRobin-V2'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
+resource azureOpenAIWeightedRoundRobinAPIv2 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-weighted-round-robin-v2'
+  properties: {
+    path: '/round-robin-weighted-v2/openai'
+    displayName: 'AOAIAPI-WeightedRoundRobin-V2'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
 resource azureOpenAIRetryWithPayAsYouGoAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'aoai-api-retry-with-payg'
@@ -225,6 +249,50 @@ resource payAsYouGoBackendTwo 'Microsoft.ApiManagement/service/backends@2023-05-
   }
 }
 
+resource simpleRoundRobinBackendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview' = {
+  parent: apiManagementService
+  name: 'simple-round-robin-backend-pool'
+  properties:{
+    type: 'Pool'
+    pool: {
+      services:[
+        {
+          id: payAsYouGoBackendOne.id
+          weight: 1
+          priority: 1
+        }
+        {
+          id: payAsYouGoBackendTwo.id
+          weight: 1
+          priority: 1
+        }
+      ]
+    }
+  }
+}
+
+resource weightedRoundRobinBackendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview' = {
+  parent: apiManagementService
+  name: 'weighted-round-robin-backend-pool'
+  properties:{
+    type: 'Pool'
+    pool: {
+      services:[
+        {
+          id: payAsYouGoBackendOne.id
+          weight: 2
+          priority: 1
+        }
+        {
+          id: payAsYouGoBackendTwo.id
+          weight: 1
+          priority: 1
+        }
+      ]
+    }
+  }
+}
+
 resource azureOpenAIProductSubscriptionOne 'Microsoft.ApiManagement/service/subscriptions@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'aoai-product-subscription-one'
@@ -275,6 +343,26 @@ resource azureOpenAISimpleRoundRobinAPIPolicy 'Microsoft.ApiManagement/service/a
   dependsOn: [simpleRoundRobinPolicyFragment]
 }
 
+resource simpleRoundRobinPolicyFragmentv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'simple-round-robin-v2'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/load-balancing/simple-round-robin.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [simpleRoundRobinBackendPool]
+}
+
+resource azureOpenAISimpleRoundRobinAPIPolicyv2 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAISimpleRoundRobinAPIv2
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/load-balancing/simple-round-robin-policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [simpleRoundRobinPolicyFragmentv2]
+}
+
 resource weightedRoundRobinPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'weighted-round-robin'
@@ -293,6 +381,26 @@ resource azureOpenAIWeightedRoundRobinAPIPolicy 'Microsoft.ApiManagement/service
     format: 'rawxml'
   }
   dependsOn: [weightedRoundRobinPolicyFragment]
+}
+
+resource weightedRoundRobinPolicyFragmentv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'weighted-round-robin-v2'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/load-balancing/weighted-round-robin.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [weightedRoundRobinBackendPool]
+}
+
+resource azureOpenAIWeightedRoundRobinAPIPolicyv2 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIWeightedRoundRobinAPIv2
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/load-balancing/weighted-round-robin-policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [weightedRoundRobinPolicyFragmentv2]
 }
 
 resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {

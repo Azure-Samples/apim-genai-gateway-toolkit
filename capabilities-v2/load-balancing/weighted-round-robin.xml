@@ -1,0 +1,3 @@
+<fragment>
+	<set-backend-service backend-id="weighted-round-robin-backend-pool" />
+</fragment>
