@@ -155,6 +155,18 @@ resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/api
   }
 }
 
+resource azureOpenAIAdaptiveRateLimitingAPIv2 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-rate-limting-v2'
+  properties: {
+    path: '/rate-limiting-v2/openai'
+    displayName: 'AOAIAPI-RateLimiting-V2'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
 resource azureOpenAILatencyRoutingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'aoai-api-latency-routing'
@@ -480,7 +492,7 @@ resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/pol
     value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting.xml')
     format: 'rawxml'
   }
-  dependsOn: [ptuBackendOne, payAsYouGoBackendOne]
+  dependsOn: [payAsYouGoBackendOne]
 }
 
 resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -491,6 +503,26 @@ resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/
     format: 'rawxml'
   }
   dependsOn: [adaptiveRateLimitingPolicyFragment]
+}
+
+resource adaptiveRateLimitingPolicyFragmentv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'adaptive-rate-limiting-v2'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/rate-limiting/adaptive-rate-limiting.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [payAsYouGoBackendOne]
+}
+
+resource azureOpenAIAdaptiveRateLimitingPolicyv2 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIAdaptiveRateLimitingAPIv2
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/rate-limiting/adaptive-rate-limiting-policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [adaptiveRateLimitingPolicyFragmentv2]
 }
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
