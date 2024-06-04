@@ -131,6 +131,18 @@ resource azureOpenAIRetryWithPayAsYouGoAPI 'Microsoft.ApiManagement/service/apis
   }
 }
 
+resource azureOpenAIRetryWithPayAsYouGoAPIv2 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-retry-with-payg-v2'
+  properties: {
+    path: '/retry-with-payg-v2/openai'
+    displayName: 'AOAIAPI-RetryWithPayAsYouGo-V2'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
 resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'aoai-api-rate-limting'
@@ -293,6 +305,64 @@ resource weightedRoundRobinBackendPool 'Microsoft.ApiManagement/service/backends
   }
 }
 
+resource ptuBackendOnev2 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'ptu-backend-1-v2'
+  properties:{
+    protocol: 'http'
+    url: ptuDeploymentOneBaseUrl
+    credentials: {
+      header: {
+        'api-key': [ptuDeploymentOneApiKey]
+      }
+    }
+    circuitBreaker: {
+      rules: [
+        {
+          failureCondition: {
+            count: 3
+            errorReasons: [
+              '429s'
+            ]
+            interval: 'PT10S' 
+            statusCodeRanges: [
+              {
+                min: 429
+                max: 429
+              }
+            ]
+          }
+          name: 'retry-with-payg-breaker-rule'
+          tripDuration: 'PT1M'  
+          acceptRetryAfter: true
+        }
+      ]
+    }
+  }
+}
+
+resource retryWithPayAsYouGoBackendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview' = {
+  parent: apiManagementService
+  name: 'retry-with-payg-backend-pool'
+  properties:{
+    type: 'Pool'
+    pool: {
+      services:[
+        {
+          id: ptuBackendOnev2.id
+          weight: 1
+          priority: 1
+        }
+        {
+          id: payAsYouGoBackendOne.id
+          weight: 1
+          priority: 2
+        }
+      ]
+    }
+  }
+}
+
 resource azureOpenAIProductSubscriptionOne 'Microsoft.ApiManagement/service/subscriptions@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'aoai-product-subscription-one'
@@ -410,7 +480,7 @@ resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/pol
     value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting.xml')
     format: 'rawxml'
   }
-  dependsOn: [payAsYouGoBackendOne, ptuBackendOne]
+  dependsOn: [ptuBackendOne, payAsYouGoBackendOne]
 }
 
 resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -430,6 +500,7 @@ resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/poli
     value: loadTextContent('../../../capabilities/manage-spikes-with-payg/retry-with-payg.xml')
     format: 'rawxml'
   }
+  dependsOn: [ptuBackendOne, payAsYouGoBackendOne]
 }
 
 resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -440,6 +511,26 @@ resource azureOpenAIRetryWithPayAsYouGoAPIPolicy 'Microsoft.ApiManagement/servic
     format: 'rawxml'
   }
   dependsOn: [retryWithPayAsYouGoPolicyFragment]
+}
+
+resource retryWithPayAsYouGoPolicyFragmentv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'retry-with-payg-v2'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/manage-spikes-with-payg/retry-with-payg.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [retryWithPayAsYouGoBackendPool]
+}
+
+resource azureOpenAIRetryWithPayAsYouGoAPIPolicyv2 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIRetryWithPayAsYouGoAPIv2
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/manage-spikes-with-payg/retry-with-payg-policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [retryWithPayAsYouGoPolicyFragmentv2]
 }
 
 resource latencyRoutingInboundPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
