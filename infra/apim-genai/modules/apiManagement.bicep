@@ -492,7 +492,6 @@ resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/pol
     value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting.xml')
     format: 'rawxml'
   }
-  dependsOn: [payAsYouGoBackendOne]
 }
 
 resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -502,7 +501,7 @@ resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/
     value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting-policy.xml')
     format: 'rawxml'
   }
-  dependsOn: [adaptiveRateLimitingPolicyFragment]
+  dependsOn: [payAsYouGoBackendOne, adaptiveRateLimitingPolicyFragment]
 }
 
 resource adaptiveRateLimitingPolicyFragmentv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -512,7 +511,6 @@ resource adaptiveRateLimitingPolicyFragmentv2 'Microsoft.ApiManagement/service/p
     value: loadTextContent('../../../capabilities-v2/rate-limiting/adaptive-rate-limiting.xml')
     format: 'rawxml'
   }
-  dependsOn: [payAsYouGoBackendOne]
 }
 
 resource azureOpenAIAdaptiveRateLimitingPolicyv2 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -522,7 +520,7 @@ resource azureOpenAIAdaptiveRateLimitingPolicyv2 'Microsoft.ApiManagement/servic
     value: loadTextContent('../../../capabilities-v2/rate-limiting/adaptive-rate-limiting-policy.xml')
     format: 'rawxml'
   }
-  dependsOn: [adaptiveRateLimitingPolicyFragmentv2]
+  dependsOn: [payAsYouGoBackendOne, adaptiveRateLimitingPolicyFragmentv2]
 }
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -572,7 +570,9 @@ resource latencyRoutingInboundPolicyFragment 'Microsoft.ApiManagement/service/po
     value: loadTextContent('../../../capabilities/latency-routing/latency-routing-inbound.xml')
     format: 'rawxml'
   }
+  dependsOn: [payAsYouGoBackendOne]
 }
+
 resource latencyRoutingBackendPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'latency-routing-backend'
@@ -609,7 +609,7 @@ resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023
     value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking-policy.xml')
     format: 'rawxml'
   }
-  dependsOn: [usageTrackingPolicyFragment]
+  dependsOn: [payAsYouGoBackendOne, usageTrackingPolicyFragment]
 }
 
 resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
