@@ -128,7 +128,7 @@ if [[ -z "${apim_subscription_three_key}" ]]; then
 	exit 1
 fi
 
-apim_name=$(cat "$output_main"  | jq -r '.apiManagementName // ""')
+apim_name=$(jq -r '.apiManagementName // ""' < "$output_main")
 if [[ -z "${apim_name}" ]]; then
 	echo "APIM Name not found in output.json"
 	exit 1
