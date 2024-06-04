@@ -52,6 +52,9 @@ param eventHubName string
 @description('The name of the Log Analytics workspace')
 param logAnalyticsName string
 
+@description('The name of the App Insights instance')
+param appInsightsName string
+
 @description('Location for all resources.')
 param location string = resourceGroup().location
 
@@ -191,6 +194,18 @@ resource azureOpenAIUsageTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-
   }
 }
 
+resource azureOpenAIUsageTrackingAPIv2 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-usage-tracking-v2'
+  properties: {
+    path: '/usage-tracking-v2/openai'
+    displayName: 'AOAIAPI-UsageTracking-V2'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
 
 resource helperAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
@@ -217,11 +232,16 @@ resource azureOpenAIProduct 'Microsoft.ApiManagement/service/products@2023-05-01
 
 var azureOpenAIAPINames = [
   azureOpenAISimpleRoundRobinAPI.name
+  azureOpenAISimpleRoundRobinAPIv2.name
   azureOpenAIWeightedRoundRobinAPI.name
+  azureOpenAIWeightedRoundRobinAPIv2.name
   azureOpenAIRetryWithPayAsYouGoAPI.name
+  azureOpenAIRetryWithPayAsYouGoAPIv2.name
   azureOpenAIAdaptiveRateLimitingAPI.name
+  azureOpenAIAdaptiveRateLimitingAPIv2.name
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
+  azureOpenAIUsageTrackingAPIv2.name
   helperAPI.name
 ]
 
@@ -612,6 +632,36 @@ resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023
   dependsOn: [payAsYouGoBackendOne, usageTrackingPolicyFragment]
 }
 
+resource usageTrackingPolicyFragmentInboundv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'usage-tracking-v2-inbound'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/usage-tracking/usage-tracking-inbound.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [payAsYouGoBackendOne]
+}
+
+resource usageTrackingPolicyFragmentBackendv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'usage-tracking-v2-backend'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/usage-tracking/usage-tracking-backend.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [eventHubLogger]
+}
+
+resource usageTrackingPolicyv2 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIUsageTrackingAPIv2
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities-v2/usage-tracking/usage-tracking-policy.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [usageTrackingPolicyFragmentInboundv2, usageTrackingPolicyFragmentBackendv2]
+}
+
 resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
   parent: helperAPI
   name: 'policy'
@@ -652,6 +702,32 @@ resource eventHubLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-prev
       identityClientId: 'systemAssigned'
       name: eventHubName
     }
+  }
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing= {
+  name: appInsightsName
+}
+
+resource appInsightsLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-preview' = {
+  name: 'appinsights-logger'
+  parent: apiManagementService
+  properties: {
+    loggerType: 'applicationInsights'
+    description: 'Application Insights logger'
+    resourceId: appInsights.id
+    credentials: {
+      instrumentationKey: appInsights.properties.InstrumentationKey
+    }
+  }
+}
+
+resource azureOpenAIUsageTrackingAPIv2Diagnostic 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIUsageTrackingAPIv2
+  name: 'applicationinsights'
+  properties: {
+    loggerId: appInsightsLogger.id  
+    metrics: true
   }
 }
 

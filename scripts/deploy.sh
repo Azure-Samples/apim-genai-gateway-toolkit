@@ -367,6 +367,9 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
     },
     "logAnalyticsName": {
         "value": "${log_analytics_name}"
+    },
+    "appInsightsName": {
+        "value": "${app_insights_name}"
     }
   }
 }
