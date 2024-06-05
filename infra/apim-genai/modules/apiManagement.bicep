@@ -86,24 +86,24 @@ resource azureOpenAISimpleRoundRobinAPI 'Microsoft.ApiManagement/service/apis@20
   }
 }
 
-resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'aoai-api-weighted-round-robin'
-  properties: {
-    path: '/round-robin-weighted/openai'
-    displayName: 'AOAIAPI-WeightedRoundRobin'
-    protocols: ['https']
-    value: loadTextContent('../api-specs/openapi-spec.json')
-    format: 'openapi+json'
-  }
-}
-
 resource azureOpenAISimpleRoundRobinAPIv2 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'aoai-api-simple-round-robin-v2'
   properties: {
     path: '/round-robin-simple-v2/openai'
     displayName: 'AOAIAPI-SimpleRoundRobin-V2'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
+resource azureOpenAIWeightedRoundRobinAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-weighted-round-robin'
+  properties: {
+    path: '/round-robin-weighted/openai'
+    displayName: 'AOAIAPI-WeightedRoundRobin'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
@@ -148,22 +148,10 @@ resource azureOpenAIRetryWithPayAsYouGoAPIv2 'Microsoft.ApiManagement/service/ap
 
 resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-api-rate-limting'
+  name: 'aoai-api-rate-limiting'
   properties: {
     path: '/rate-limiting/openai'
     displayName: 'AOAIAPI-RateLimiting'
-    protocols: ['https']
-    value: loadTextContent('../api-specs/openapi-spec.json')
-    format: 'openapi+json'
-  }
-}
-
-resource azureOpenAIAdaptiveRateLimitingAPIv2 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'aoai-api-rate-limting-v2'
-  properties: {
-    path: '/rate-limiting-v2/openai'
-    displayName: 'AOAIAPI-RateLimiting-V2'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
@@ -193,19 +181,6 @@ resource azureOpenAIUsageTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-
     format: 'openapi+json'
   }
 }
-
-resource azureOpenAIUsageTrackingAPIv2 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'aoai-api-usage-tracking-v2'
-  properties: {
-    path: '/usage-tracking-v2/openai'
-    displayName: 'AOAIAPI-UsageTracking-V2'
-    protocols: ['https']
-    value: loadTextContent('../api-specs/openapi-spec.json')
-    format: 'openapi+json'
-  }
-}
-
 
 resource helperAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
@@ -238,10 +213,8 @@ var azureOpenAIAPINames = [
   azureOpenAIRetryWithPayAsYouGoAPI.name
   azureOpenAIRetryWithPayAsYouGoAPIv2.name
   azureOpenAIAdaptiveRateLimitingAPI.name
-  azureOpenAIAdaptiveRateLimitingAPIv2.name
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
-  azureOpenAIUsageTrackingAPIv2.name
   helperAPI.name
 ]
 
@@ -261,6 +234,42 @@ resource ptuBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-prev
       header: {
         'api-key': [ptuDeploymentOneApiKey]
       }
+    }
+  }
+}
+
+resource ptuBackendOneWithCircuitBreaker 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'ptu-backend-1-with-circuit-breaker'
+  properties:{
+    protocol: 'http'
+    url: ptuDeploymentOneBaseUrl
+    credentials: {
+      header: {
+        'api-key': [ptuDeploymentOneApiKey]
+      }
+    }
+    circuitBreaker: {
+      rules: [
+        {
+          failureCondition: {
+            count: 3
+            errorReasons: [
+              '429s'
+            ]
+            interval: 'PT10S' 
+            statusCodeRanges: [
+              {
+                min: 429
+                max: 429
+              }
+            ]
+          }
+          name: 'retry-with-payg-breaker-rule'
+          tripDuration: 'PT1M'  
+          acceptRetryAfter: true
+        }
+      ]
     }
   }
 }
@@ -337,42 +346,6 @@ resource weightedRoundRobinBackendPool 'Microsoft.ApiManagement/service/backends
   }
 }
 
-resource ptuBackendOnev2 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'ptu-backend-1-v2'
-  properties:{
-    protocol: 'http'
-    url: ptuDeploymentOneBaseUrl
-    credentials: {
-      header: {
-        'api-key': [ptuDeploymentOneApiKey]
-      }
-    }
-    circuitBreaker: {
-      rules: [
-        {
-          failureCondition: {
-            count: 3
-            errorReasons: [
-              '429s'
-            ]
-            interval: 'PT10S' 
-            statusCodeRanges: [
-              {
-                min: 429
-                max: 429
-              }
-            ]
-          }
-          name: 'retry-with-payg-breaker-rule'
-          tripDuration: 'PT1M'  
-          acceptRetryAfter: true
-        }
-      ]
-    }
-  }
-}
-
 resource retryWithPayAsYouGoBackendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview' = {
   parent: apiManagementService
   name: 'retry-with-payg-backend-pool'
@@ -381,7 +354,7 @@ resource retryWithPayAsYouGoBackendPool 'Microsoft.ApiManagement/service/backend
     pool: {
       services:[
         {
-          id: ptuBackendOnev2.id
+          id: ptuBackendOneWithCircuitBreaker.id
           weight: 1
           priority: 1
         }
@@ -449,7 +422,7 @@ resource simpleRoundRobinPolicyFragmentv2 'Microsoft.ApiManagement/service/polic
   parent: apiManagementService
   name: 'simple-round-robin-v2'
   properties: {
-    value: loadTextContent('../../../capabilities-v2/load-balancing/simple-round-robin.xml')
+    value: loadTextContent('../../../capabilities/load-balancing-v2/simple-round-robin.xml')
     format: 'rawxml'
   }
   dependsOn: [simpleRoundRobinBackendPool]
@@ -459,7 +432,7 @@ resource azureOpenAISimpleRoundRobinAPIPolicyv2 'Microsoft.ApiManagement/service
   parent: azureOpenAISimpleRoundRobinAPIv2
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities-v2/load-balancing/simple-round-robin-policy.xml')
+    value: loadTextContent('../../../capabilities/load-balancing-v2/simple-round-robin-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [simpleRoundRobinPolicyFragmentv2]
@@ -489,7 +462,7 @@ resource weightedRoundRobinPolicyFragmentv2 'Microsoft.ApiManagement/service/pol
   parent: apiManagementService
   name: 'weighted-round-robin-v2'
   properties: {
-    value: loadTextContent('../../../capabilities-v2/load-balancing/weighted-round-robin.xml')
+    value: loadTextContent('../../../capabilities/load-balancing-v2/weighted-round-robin.xml')
     format: 'rawxml'
   }
   dependsOn: [weightedRoundRobinBackendPool]
@@ -499,7 +472,7 @@ resource azureOpenAIWeightedRoundRobinAPIPolicyv2 'Microsoft.ApiManagement/servi
   parent: azureOpenAIWeightedRoundRobinAPIv2
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities-v2/load-balancing/weighted-round-robin-policy.xml')
+    value: loadTextContent('../../../capabilities/load-balancing-v2/weighted-round-robin-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [weightedRoundRobinPolicyFragmentv2]
@@ -522,25 +495,6 @@ resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/
     format: 'rawxml'
   }
   dependsOn: [payAsYouGoBackendOne, adaptiveRateLimitingPolicyFragment]
-}
-
-resource adaptiveRateLimitingPolicyFragmentv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'adaptive-rate-limiting-v2'
-  properties: {
-    value: loadTextContent('../../../capabilities-v2/rate-limiting/adaptive-rate-limiting.xml')
-    format: 'rawxml'
-  }
-}
-
-resource azureOpenAIAdaptiveRateLimitingPolicyv2 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIAdaptiveRateLimitingAPIv2
-  name: 'policy'
-  properties: {
-    value: loadTextContent('../../../capabilities-v2/rate-limiting/adaptive-rate-limiting-policy.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [payAsYouGoBackendOne, adaptiveRateLimitingPolicyFragmentv2]
 }
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
@@ -567,7 +521,7 @@ resource retryWithPayAsYouGoPolicyFragmentv2 'Microsoft.ApiManagement/service/po
   parent: apiManagementService
   name: 'retry-with-payg-v2'
   properties: {
-    value: loadTextContent('../../../capabilities-v2/manage-spikes-with-payg/retry-with-payg.xml')
+    value: loadTextContent('../../../capabilities/manage-spikes-with-payg-v2/retry-with-payg.xml')
     format: 'rawxml'
   }
   dependsOn: [retryWithPayAsYouGoBackendPool]
@@ -577,7 +531,7 @@ resource azureOpenAIRetryWithPayAsYouGoAPIPolicyv2 'Microsoft.ApiManagement/serv
   parent: azureOpenAIRetryWithPayAsYouGoAPIv2
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities-v2/manage-spikes-with-payg/retry-with-payg-policy.xml')
+    value: loadTextContent('../../../capabilities/manage-spikes-with-payg-v2/retry-with-payg-policy.xml')
     format: 'rawxml'
   }
   dependsOn: [retryWithPayAsYouGoPolicyFragmentv2]
@@ -612,11 +566,21 @@ resource azureOpenAILatencyRoutingPolicy 'Microsoft.ApiManagement/service/apis/p
   dependsOn: [latencyRoutingInboundPolicyFragment, latencyRoutingBackendPolicyFragment]
 }
 
-resource usageTrackingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+resource usageTrackingPolicyFragmentInbound 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'usage-tracking'
+  name: 'usage-tracking-inbound'
   properties: {
-    value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking.xml')
+    value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking-inbound.xml')
+    format: 'rawxml'
+  }
+  dependsOn: [payAsYouGoBackendOne]
+}
+
+resource usageTrackingPolicyFragmentBackend 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'usage-tracking-backend'
+  properties: {
+    value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking-backend.xml')
     format: 'rawxml'
   }
   dependsOn: [eventHubLogger]
@@ -629,37 +593,7 @@ resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023
     value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking-policy.xml')
     format: 'rawxml'
   }
-  dependsOn: [payAsYouGoBackendOne, usageTrackingPolicyFragment]
-}
-
-resource usageTrackingPolicyFragmentInboundv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'usage-tracking-v2-inbound'
-  properties: {
-    value: loadTextContent('../../../capabilities-v2/usage-tracking/usage-tracking-inbound.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [payAsYouGoBackendOne]
-}
-
-resource usageTrackingPolicyFragmentBackendv2 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'usage-tracking-v2-backend'
-  properties: {
-    value: loadTextContent('../../../capabilities-v2/usage-tracking/usage-tracking-backend.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [eventHubLogger]
-}
-
-resource usageTrackingPolicyv2 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIUsageTrackingAPIv2
-  name: 'policy'
-  properties: {
-    value: loadTextContent('../../../capabilities-v2/usage-tracking/usage-tracking-policy.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [usageTrackingPolicyFragmentInboundv2, usageTrackingPolicyFragmentBackendv2]
+  dependsOn: [usageTrackingPolicyFragmentInbound, usageTrackingPolicyFragmentBackend]
 }
 
 resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -723,7 +657,7 @@ resource appInsightsLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-p
 }
 
 resource azureOpenAIUsageTrackingAPIv2Diagnostic 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
-  parent: azureOpenAIUsageTrackingAPIv2
+  parent: azureOpenAIUsageTrackingAPI
   name: 'applicationinsights'
   properties: {
     loggerId: appInsightsLogger.id  
