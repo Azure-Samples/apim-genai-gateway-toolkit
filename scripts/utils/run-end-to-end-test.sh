@@ -39,6 +39,18 @@ elif [[ "${SCENARIO_NAME}" == "manage-spikes-with-payg" ]]; then
 elif [[ "${SCENARIO_NAME}" == "usage-tracking" ]]; then
 	test_file="scenario_usage_tracking.py"
 	host_endpoint_path="usage-tracking"
+elif [[ "${SCENARIO_NAME}" == "round-robin-simple-v2" ]]; then
+	test_file="scenario_round_robin.py"
+	host_endpoint_path="round-robin-simple-v2"
+elif [[ "${SCENARIO_NAME}" == "round-robin-weighted-v2" ]]; then
+	test_file="scenario_round_robin.py"
+	host_endpoint_path="round-robin-weighted-v2"
+elif [[ "${SCENARIO_NAME}" == "manage-spikes-with-payg-v2" ]]; then
+	test_file="scenario_manage_spikes_with_payg.py"
+	host_endpoint_path="retry-with-payg-v2"
+elif [[ "${SCENARIO_NAME}" == "usage-tracking-v2" ]]; then
+	test_file="scenario_usage_tracking.py"
+	host_endpoint_path="usage-tracking-v2"
 else
 	echo "Unknown scenario name: ${SCENARIO_NAME}"
 	exit 1
