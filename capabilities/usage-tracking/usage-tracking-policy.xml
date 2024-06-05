@@ -8,7 +8,7 @@
     </backend>
     <outbound>
         <base />
-        <include-fragment fragment-id="usage-tracking-backend" />
+        <include-fragment fragment-id="usage-tracking-outbound" />
     </outbound>
     <on-error>
         <base />

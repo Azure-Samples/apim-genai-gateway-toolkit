@@ -576,11 +576,11 @@ resource usageTrackingPolicyFragmentInbound 'Microsoft.ApiManagement/service/pol
   dependsOn: [payAsYouGoBackendOne]
 }
 
-resource usageTrackingPolicyFragmentBackend 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
+resource usageTrackingPolicyFragmentOutbound 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'usage-tracking-backend'
+  name: 'usage-tracking-outbound'
   properties: {
-    value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking-backend.xml')
+    value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking-outbound.xml')
     format: 'rawxml'
   }
   dependsOn: [eventHubLogger]
@@ -593,7 +593,7 @@ resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023
     value: loadTextContent('../../../capabilities/usage-tracking/usage-tracking-policy.xml')
     format: 'rawxml'
   }
-  dependsOn: [usageTrackingPolicyFragmentInbound, usageTrackingPolicyFragmentBackend]
+  dependsOn: [usageTrackingPolicyFragmentInbound, usageTrackingPolicyFragmentOutbound]
 }
 
 resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
