@@ -194,7 +194,7 @@ EOF
 
   image_name="aoai-simulated-api:latest"
   set +e
-  existing_image=$(az acr repository show --name "$acr_name" --image "$image_name" 2>&1)
+  existing_image=$(az acr repository show --name $acr_name --image $image_name 2>&1)
   set -e
 
   if echo "$existing_image" | jq . > /dev/null 2>&1; then
