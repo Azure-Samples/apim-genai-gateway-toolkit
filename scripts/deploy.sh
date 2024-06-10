@@ -197,7 +197,21 @@ EOF
   set -e
 
   if echo "$existing_image" | jq . > /dev/null 2>&1; then
-    echo "Simulator docker image previously pushed. Skipping build."
+    if [[ "${FORCE_SIMULATOR_BUILD}" != "true" ]]; then
+      echo "Simulator docker image previously pushed. Skipping build."
+    else
+      echo "Simulator docker image previously pushed. Forcing build."
+
+      src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
+
+      # create a tik_token_cache folder to avoid failure in the build
+      mkdir -p "$src_path/tiktoken_cache"
+
+      az acr login --name $acr_name
+      az acr build --image ${acr_login_server}/aoai-simulated-api:latest --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
+      
+      echo -e "\n"
+    fi
   else
     src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
 
