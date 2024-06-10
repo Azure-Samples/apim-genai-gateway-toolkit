@@ -54,6 +54,22 @@ if [[ "${USE_SIMULATOR}" != "true" ]]; then
   fi
 fi
 
+build_image() {
+    local simulator_path=$1
+    local acr_name=$2
+    local acr_login_server=$3
+
+    src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
+
+    # create a tik_token_cache folder to avoid failure in the build
+    mkdir -p "$src_path/tiktoken_cache"
+
+    az acr login --name $acr_name
+    az acr build --image ${acr_login_server}/aoai-simulated-api:latest --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
+    
+    echo -e "\n"
+}
+
 #
 # This script uses a number of files to store generated keys and outputs from the deployment:
 # - generated-keys.json: stores generated keys (e.g. API Key for the API simulator)
@@ -201,27 +217,10 @@ EOF
       echo "Simulator docker image previously pushed. Skipping build."
     else
       echo "Simulator docker image previously pushed. Forcing build."
-
-      src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
-
-      # create a tik_token_cache folder to avoid failure in the build
-      mkdir -p "$src_path/tiktoken_cache"
-
-      az acr login --name $acr_name
-      az acr build --image ${acr_login_server}/aoai-simulated-api:latest --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
-      
-      echo -e "\n"
+      build_image "$simulator_path" "$acr_name" "$acr_login_server"
     fi
   else
-    src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
-
-    # create a tik_token_cache folder to avoid failure in the build
-    mkdir -p "$src_path/tiktoken_cache"
-
-    az acr login --name $acr_name
-    az acr build --image ${acr_login_server}/aoai-simulated-api:latest --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
-    
-    echo -e "\n"
+    build_image "$simulator_path" "$acr_name" "$acr_login_server"
   fi
   
   #
