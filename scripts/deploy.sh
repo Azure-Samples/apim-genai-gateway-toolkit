@@ -64,8 +64,8 @@ build_image() {
     # create a tik_token_cache folder to avoid failure in the build
     mkdir -p "$src_path/tiktoken_cache"
 
-    az acr login --name $acr_name
-    az acr build --image ${acr_login_server}/aoai-simulated-api:latest --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
+    az acr login --name "$acr_name"
+    az acr build --image "${acr_login_server}/aoai-simulated-api:latest" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
     
     echo -e "\n"
 }
