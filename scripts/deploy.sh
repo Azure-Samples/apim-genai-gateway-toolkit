@@ -192,9 +192,8 @@ EOF
     exit 1
   fi
 
-  image_name="aoai-simulated-api:latest"
   set +e
-  existing_image=$(az acr repository show --name $acr_name --image $image_name 2>&1)
+  existing_image=$(az acr repository show --name $acr_name --image "aoai-simulated-api" --output json 2>&1)
   set -e
 
   if echo "$existing_image" | jq . > /dev/null 2>&1; then
@@ -206,7 +205,7 @@ EOF
     mkdir -p "$src_path/tiktoken_cache"
 
     az acr login --name $acr_name
-    az acr build --image ${acr_login_server}/${image_name} --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
+    az acr build --image ${acr_login_server}/aoai-simulated-api:latest --registry $acr_name --file "$src_path/Dockerfile" "$src_path"
     
     echo -e "\n"
   fi
