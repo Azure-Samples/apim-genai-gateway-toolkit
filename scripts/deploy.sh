@@ -162,7 +162,7 @@ EOF
 
   echo "== Completed bicep deployment ${deployment_name}"
 
-  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > $output_simulator_base
+  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_simulator_base"
 
 
   resource_group_name=$(jq -r '.resourceGroupName // ""' < "$output_simulator_base")
@@ -188,7 +188,7 @@ EOF
   app_insights_key=$(jq -r '.appInsightsKey // ""' < "$output_generated_keys")
   if [[ ${#app_insights_key} -eq 0 ]]; then
     echo 'Creating app insights key'
-    app_insights_key=$(az monitor app-insights api-key create  --resource-group $resource_group_name --app $app_insights_name --api-key automation --query 'apiKey' --output tsv)
+    app_insights_key=$(az monitor app-insights api-key create  --resource-group "$resource_group_name" --app "$app_insights_name" --api-key automation --query 'apiKey' --output tsv)
     jq ".appInsightsKey = \"${app_insights_key}\"" < "$output_generated_keys" > "/tmp/generated-keys.json"
     cp "/tmp/generated-keys.json" "$output_generated_keys"
   fi
@@ -197,12 +197,12 @@ EOF
   # Build and push docker image
   #
   echo "Building simulator docker image..."
-  acr_login_server=$(cat $output_simulator_base  | jq -r '.containerRegistryLoginServer // ""')
+  acr_login_server=$(jq -r '.containerRegistryLoginServer // ""' < "$output_simulator_base")
   if [[ -z "$acr_login_server" ]]; then
     echo "Container registry login server not found in output-simulator-base.json"
     exit 1
   fi
-  acr_name=$(cat $output_simulator_base  | jq -r '.containerRegistryName // ""')
+  acr_name=$(jq -r '.containerRegistryName // ""' < "$output_simulator_base")
   if [[ -z "$acr_name" ]]; then
     echo "Container registry name not found in output-simulator-base.json"
     exit 1
@@ -227,13 +227,13 @@ EOF
   # Upload simulator deployment config files to file share
   #
   echo "Uploading simulator config files to file share..."
-  storage_account_name=$(cat $output_simulator_base  | jq -r '.storageAccountName // ""')
+  storage_account_name=$(jq -r '.storageAccountName // ""' < "$output_simulator_base")
   if [[ -z "$storage_account_name" ]]; then
     echo "Storage account name (storageAccountName) not found in output-simulator-base.json"
     exit 1
   fi
 
-  file_share_name=$(cat $output_simulator_base  | jq -r '.fileShareName // ""')
+  file_share_name=$(jq -r '.fileShareName // ""' < "$output_simulator_base")
   if [[ -z "$file_share_name" ]]; then
     echo "File share name (fileShareName) not found in output-simulator-base.json"
     exit 1
@@ -246,12 +246,12 @@ EOF
   #
   # Deploy simulator instances
   #
-  key_vault_name=$(cat $output_simulator_base  | jq -r '.keyVaultName // ""')
+  key_vault_name=$(jq -r '.keyVaultName // ""' < "$output_simulator_base")
   if [[ -z "$key_vault_name" ]]; then
     echo "Key vault name (keyVaultName) not found in output-simulator-base.json"
     exit 1
   fi
-  container_app_env_name=$(cat $output_simulator_base  | jq -r '.containerAppEnvName // ""')
+  container_app_env_name=$(jq -r '.containerAppEnvName // ""' < "$output_simulator_base")
   if [[ -z "$container_app_env_name" ]]; then
     echo "Container app env name (containerAppEnvName) not found in output-simulator-base.json"
     exit 1
@@ -316,21 +316,21 @@ EOF
   #
   # Get simulator endpoints to use in APIM deployment
   #
-  ptu1_fqdn=$(cat "$output_simulators"  | jq -r '.ptu1Fqdn // ""')
+  ptu1_fqdn=$(jq -r '.ptu1Fqdn // ""' < "$output_simulators")
   if [[ -z "${ptu1_fqdn}" ]]; then
     echo "PTU1 Endpoint not found in simulator deployment output"
     exit 1
   fi
   PTU_DEPLOYMENT_1_BASE_URL="https://${ptu1_fqdn}"
   
-  payg1_fqdn=$(cat "$output_simulators"  | jq -r '.payg1Fqdn // ""')
+  payg1_fqdn=$(jq -r '.payg1Fqdn // ""' < "$output_simulators")
   if [[ -z "${payg1_fqdn}" ]]; then
     echo "PAYG1 Endpoint not found in simulator deployment output"
     exit 1
   fi
   PAYG_DEPLOYMENT_1_BASE_URL="https://${payg1_fqdn}"
 
-  payg2_fqdn=$(cat "$output_simulators"  | jq -r '.payg2Fqdn // ""')
+  payg2_fqdn=$(jq -r '.payg2Fqdn // ""' < "$output_simulators")
   if [[ -z "${payg2_fqdn}" ]]; then
     echo "PAYG2 Endpoint not found in simulator deployment output"
     exit 1
