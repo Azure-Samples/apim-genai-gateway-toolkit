@@ -4,7 +4,7 @@
 
 In this capability, token usage data is tracked in Azure Monitor and sent to Event Hubs for chargeback processing. Message sent to event hub includes, SubscriptionId, TokenUsage, OperationName, RequestId.
 
-### Azure EventHub vs Azure Monitor Custom Metrics
+### Azure Event Hubs vs Azure Monitor Custom Metrics
 
 Token consumption is tracked in Azure Monitor for monitoring purposes. But sending the data to Azure EventHub adds the following advantages:
 
