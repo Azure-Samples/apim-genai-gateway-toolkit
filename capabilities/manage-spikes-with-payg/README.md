@@ -2,25 +2,22 @@
 
 ## Capability
 
-In this capability, the traffic is routed to the PTU1 instance as the primary backend. When the PTU1 instance returns a 429 Retry response the request is re-submitted to the PAYG1 instance.
+In this capability, traffic is routed to the PTU1 instance as the primary backend. When the PTU1 instance returns a 429 Retry response, the request is re-submitted to the PAYG1 instances using API Management policies. Infrastructure based spillover is implemented in [manage-spikes-with-payg-v2](../manage-spikes-with-payg-v2/README.md).
 
 ## How the policy works
 
-- This capability leverages the APIM [`retry` policy](https://learn.microsoft.com/en-us/azure/api-management/retry-policy)
-
-- The segment in the retry policy will execute **at least once** and when the response is null (request entering first time into the retry segment) then it will be routed to the PTU instance.
-
-- If the PTU instance responds back with 429, then the request will be routed to the PAYG instance.
+- Retry policy properties are configured.
+- The segment in the retry policy is executed **at least once**. When the response is null (request entering first time into the retry segment) then it will be routed to the PTU instance.
+- If the PTU instance responds back with 429, the request will automatically be retried and routed to the PAYG instance.
 
 ## How to see this in action
-
 
 To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
 This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
 
-Once the accelerator is deployed, open a bash terminal in the route directory of the repo and run `./scripts/run-end-to-end-manage-spikes-with-payg.sh`.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `./scripts/run-end-to-end-manage-spikes-with-payg.sh`.
 
-This script runs a load test for 6 minutes which repeatedly sends requests to the OpenAI simulator via APIM using the retry with pay as you go policy.
+This script runs a load test for 6 minutes, which repeatedly sends requests to the OpenAI simulator via APIM using the retry with pay as you go policy.
 Partway through the test, the user count is increased to generate a spike in traffic.
 
 After the load test is complete, the script waits for the metrics to be ingested into Log Analytics and then queries the results.
@@ -33,14 +30,12 @@ Once the metrics have been ingested the script will show the results of a couple
 
 ![output showing the query results](docs/output-2.png)
 
-For each of these queries the query text is included as well as a `Run in Log Analytics` link which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
+For each of these queries, the query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
-The first query in this shows the overall request count over time and you can see the increase in traffic.
-The second breaks the request count out for each of the back-end APIs, showing that the requests were almost exclusively handled by the PTU1 instance until the spike in traffic when the PAYG1 instance started to handle some of the requests.
-
-These queries can also been viewed in Log Analytics
+The first query shows the total number of requests sent to each backend API and you can see the spike in traffic.
 
 ![Screenshot of Log Analytics query showing the overall request count](docs/query-overall.png)
 
+The second query breaks the request count out for each of the back-end APIs. In this chart, you can see that the requests were almost exclusively handled by the PTU1 instance until the spike in traffic when the PAYG1 instance started to handle some of the requests.
 
-![Screenshot of Log Analytics query showing the request count by back-end](docs/query-backend.png)
+![Screenshot of Log Analytics query showing the request count by backend](docs/query-backend.png)
