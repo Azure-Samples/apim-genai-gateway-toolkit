@@ -40,6 +40,6 @@ Once the metrics have been ingested, the script will show query results that dis
 
 The query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
-The query in this example shows the request count over time for each of the backend APIs:
+The query in this example shows the total number of requests sent to APIM:
 
 ![Screenshot of Log Analytics query showing the overall request count](docs/query-overall.png)
