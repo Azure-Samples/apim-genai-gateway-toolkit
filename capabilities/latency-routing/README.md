@@ -10,7 +10,7 @@ To achieve the latency-based routing, the API Management (APIM) configuration in
 The preferred backends are stored in the cache and the cache value can be updated by calling an API endpoint added specifically for this purpose (`/helpers/set-preferred-backends`).
 
 Since different calls to OpenAI will have different expected latencies (based on token count, etc.), it wouldn't make sense to use the measured latencies of live traffic to make the routing decision.
-Instead, a scheduled task outside of APIM periodically measures the current latency of the back-ends using the same query for each backend.
+Instead, a scheduled task outside of APIM periodically measures the current latency of the backends using the same query for each backend.
 Using this data, the task calls the `/helpers/set-preferred-backends` endpoint to update the preferred backend order.
 
 The different components in this setup are shown below:
@@ -56,7 +56,7 @@ This script runs a load test for 5 minutes, which repeatedly sends requests to t
 
 3. Two minutes into the test, the script re-configures the simulator latencies so that PAYG1 is slow and PAYG2 is fast. This occurs just after the backend latencies are measured, so there is a minute of the test where the APIM latency information is stale. During this time the request latency via APIM will be higher.
 
-4. A minute after the back-end latencies were re-configured, the latencies are measured again and the `set-preferred-backends` endpoint is called to pass the new ordered list of backends. After this point, the latency of calls via APIM is reduced as the policy is routing to the current faster API.
+4. A minute after the backend latencies were re-configured, the latencies are measured again and the `set-preferred-backends` endpoint is called to pass the new ordered list of backends. After this point, the latency of calls via APIM is reduced as the policy is routing to the current faster API.
 
 After the load test is complete, the script waits for the metrics to be ingested into Log Analytics and then queries the results.
 
@@ -81,4 +81,4 @@ In this chart, you can see the spike that occurs after the backend latencies are
 The second query shows the total number of requests sent to each backend API.
 In this chart, you can see the spike in number of requests routed to PAYG2 at the same time that the latency spiked for PAYG1.
 
-![Screenshot of Log Analytics query showing the spike in APIM requests](docs/query-requests.png)
+![Screenshot of Log Analytics query showing the spike in APIM requests](docs/query-backend.png)
