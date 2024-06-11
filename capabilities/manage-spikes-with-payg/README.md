@@ -1,4 +1,4 @@
-# Managing spikes across PTU instances using PAYG deployments.
+# Managing spikes across PTU instances using PAYG deployments
 
 ## Capability
 
