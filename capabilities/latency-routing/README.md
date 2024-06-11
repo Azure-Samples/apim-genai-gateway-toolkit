@@ -79,6 +79,6 @@ In this chart, you can see the spike that occurs after the backend latencies are
 ![Screenshot of Log Analytics query showing the spike in APIM latencies](docs/query-latency.png)
 
 The second query shows the total number of requests sent to each backend API.
-In this chart, you can see the spike in number of requests routed to PAYG2 at the same time that the latency spiked for PAYG1.
+In this chart, you can see the spike in number of requests routed to PAYG2 at the same time that the latency spiked for PAYG1:
 
 ![Screenshot of Log Analytics query showing the spike in APIM requests](docs/query-backend.png)

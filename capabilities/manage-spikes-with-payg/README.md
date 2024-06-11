@@ -32,10 +32,10 @@ Once the metrics have been ingested, the script will show the results of a coupl
 
 For each of these queries, the query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
-The first query shows the total number of requests sent to APIM and you can see the spike in traffic.
+The first query shows the total number of requests sent to APIM and you can see the spike in traffic:
 
 ![Screenshot of Log Analytics query showing the overall request count](docs/query-overall.png)
 
-The second query breaks the request count out for each of the backend APIs. In this chart, you can see that the requests were almost exclusively handled by the PTU1 instance until the spike in traffic when the PAYG1 instance started to handle some of the requests.
+The second query breaks the request count out for each of the backend APIs. In this chart, you can see that the requests were almost exclusively handled by the PTU1 instance until the spike in traffic when the PAYG1 instance started to handle some of the requests:
 
 ![Screenshot of Log Analytics query showing the request count by backend](docs/query-backend.png)
