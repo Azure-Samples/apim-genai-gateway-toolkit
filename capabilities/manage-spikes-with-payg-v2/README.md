@@ -2,20 +2,23 @@
 
 ## Capability
 
-In this capability, traffic is routed to the PTU1 instance as the primary backend. When the PTU1 instance returns a 429 Retry response, the request is re-submitted to the PAYG1 instances using API Management policies. Infrastructure based spillover is implemented in [manage-spikes-with-payg-v2](../manage-spikes-with-payg-v2/README.md).
+In this capability, traffic is routed to the PTU1 instance as the primary backend. When the PTU1 instance returns a 429 Retry response, the request is re-submitted to the PAYG1 instances via infrastructure configuration. Policy based spillover is implemented in [manage-spikes-with-payg](../manage-spikes-with-payg/README.md).
 
-## How the policy works
+## How the infrastructure configuration works
 
-- Retry policy properties are configured.
-- The segment in the retry policy is executed **at least once**. When the response is null (request entering first time into the retry segment) then it will be routed to the PTU instance.
-- If the PTU instance responds back with 429, the request will automatically be retried and routed to the PAYG instance.
+- The API Management PTU backend is configured with circuit breaker properties that define the number of 429s it should retry on.
+- The API Management backends are defined as a pool.
+- Equal weights are applied to each backend in the pool.
+- The API Management PTU backend receives a higher priority than the PAYG1 backend within the pool.
+- Requests are routed to the backend pool.
+- When the number of configured 429s occurs in the configured interval, requests will be routed to the next backend in the pool, PAYG1.
 
 ## How to see this in action
 
 To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
 This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
 
-Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `./scripts/run-end-to-end-manage-spikes-with-payg.sh`.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `./scripts/run-end-to-end-manage-spikes-with-payg-v2.sh`.
 
 This script runs a load test for 6 minutes, which repeatedly sends requests to the OpenAI simulator via APIM using the retry with pay as you go policy.
 Partway through the test, the user count is increased to generate a spike in traffic.
