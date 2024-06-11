@@ -48,7 +48,7 @@ This will deploy OpenAI API simulators to enable testing the APIM policies witho
 
 Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `./scripts/run-end-to-end-latency-routing.sh`.
 
-This script runs a load test for 5 minutes which repeatedly sends requests to the OpenAI simulator via APIM using the latency routing policy.
+This script runs a load test for 5 minutes, which repeatedly sends requests to the OpenAI simulator via APIM using the latency routing policy.
 
 1. When the script starts, it configures the latencies for the simulated APIs so that PAYG1 is fast and PAYG2 is slow.
 
