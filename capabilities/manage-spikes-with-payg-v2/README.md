@@ -29,13 +29,13 @@ The initial output from a test run will look something like this:
 
 ![output showing the test steps](docs/output-1.png)
 
-Once the metrics have been ingested the script will show the results of a couple of queries that illustrate the behaviour:
+Once the metrics have been ingested, the script will show the results of a couple of queries that illustrate the behaviour:
 
 ![output showing the query results](docs/output-2.png)
 
 For each of these queries, the query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
-The first query shows the total number of requests sent to each backend API and you can see the spike in traffic.
+The first query shows the total number of requests sent to APIM and you can see the spike in traffic.
 
 ![Screenshot of Log Analytics query showing the overall request count](docs/query-overall.png)
 
