@@ -1,19 +1,14 @@
-# Rate limiting using Tokens consumed per request
+# Token based rate limiting
 
 ## Capability
 
-In this setup, multiple services have their own rate limits. They start with default limits but can increase them dynamically within a set maximum if there's spare capacity due to low usage by other services.
+In this capability, callers are differentiated into high and low priority buckets and are rate limited based on token usage. Callers start with default limits, but rates are dynamically increased within a set maximum depending on spare capacity and type of caller.
 
 ## How the policy works
 
-The rate-limit-by-key policy in Azure API Management (APIM) is a powerful tool for controlling access to your APIs based on the number of tokens consumed. Here's a step-by-step breakdown of how it operates:
+The `azure-openai-token-limit` policy in Azure API Management (APIM) is a powerful tool for controlling access to your APIs based on the number of tokens consumed. Here's a step-by-step breakdown of how it operates:
 
-1. **Token Consumption**: When a client makes a request to your API, the response includes information about the tokens consumed by that specific request. These tokens represent the resources utilized by the request, such as data transfer or processing.
-2. **Incrementing Rate Limit Counters**: The policy extracts the token consumption data from the response and increments the corresponding rate limit counters. These counters track the usage of resources and enforce the defined rate limits.
-3. **Global Rate Limit Counter**: In this example, there's a global rate limit counter set to the maximum rate limit initially. With each request, this counter decreases based on the tokens consumed. It resets at regular intervals, typically every 60 seconds, ensuring that the rate limits are enforced consistently over time.
-4. **Dynamic Local Counters**: Alongside the global counter, there are dynamic local counters (triggered for specific request if the conditions are met) with different default rate limits. These counters can be adjusted based on the availability of the global rate limit counter. If there's spare capacity due to low usage by other services, these local counters can increase within a set maximum threshold, allowing services to temporarily access more resources.
-
-### Caveats
-
-- This policy only applies to non-streaming requests.
-- It operates reactively, meaning it doesn't preemptively calculate tokens but instead waits for requests to breach the rate limit before blocking subsequent requests.
+- The policy extracts the token consumption data from the response and increments the corresponding rate limit counters. These counters track the usage of resources and enforce the defined rate limits.
+- A global rate limit is set to the maximum overall rate. With each request, its counter increases based on the tokens consumed. It resets at regular intervals, typically every 60 seconds, ensuring that the rate limits are enforced consistently over time.
+- Alongside the global limit, dynamic local limits (high and low priority requests are determined by headers) are used with different default values. These counters are adjusted based on the availability of the global rate limit counter. If there's spare capacity due to low usage by other services, these local counters can increase within a set maximum threshold, allowing services to temporarily access more resources.
+- Prompt tokens are pre-calculated by APIM so requests are automatically rate limited without sending unnecessary requests to the AOAI simulators.
