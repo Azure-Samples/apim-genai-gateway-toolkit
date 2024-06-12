@@ -43,3 +43,7 @@ The query text is included, as well as a `Run in Log Analytics` link, which will
 The query in this example shows the total number of requests sent to APIM:
 
 ![Screenshot of Log Analytics query showing the overall request count](docs/query-overall.png)
+
+The script includes a a `View Token Metrics in Log Analytics` link that displays the total token usage data over time for each of the three APIM subscriptions. In this chart, you can see that the different subscriptions consumed varying levels of tokens over the course of the test:
+
+![Screenshot of Log Analytics query showing the token usage metrics count by backend](docs/query-metric.png)

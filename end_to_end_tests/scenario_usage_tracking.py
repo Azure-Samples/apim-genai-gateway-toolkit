@@ -24,6 +24,7 @@ from common.config import (
     tenant_id,
     subscription_id,
     resource_group_name,
+    app_insights_name,
     app_insights_connection_string,
     log_analytics_workspace_id,
     log_analytics_workspace_name,
@@ -104,6 +105,7 @@ def on_test_stop(environment, **kwargs):
         subscription_id=subscription_id,
         resource_group_name=resource_group_name,
         workspace_name=log_analytics_workspace_name,
+        app_insights_name=app_insights_name,
     )
 
     metric_check_time = test_stop_time - timedelta(seconds=10)
@@ -142,6 +144,7 @@ ApiManagementGatewayLogs
     )
 
     query_processor.run_queries()
+    query_processor.build_token_metric_url(test_start_time, test_stop_time)
 
 def get_random_key():
     keys = [apim_subscription_one_key, apim_subscription_two_key, apim_subscription_three_key]
