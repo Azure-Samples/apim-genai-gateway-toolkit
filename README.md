@@ -10,6 +10,7 @@
 	- [Deploying the Accelerator](#deploying-the-accelerator)
 	- [Gateway Capabilities](#gateway-capabilities)
 	- [Testing Gateway Capabilities](#testing-gateway-capabilities)
+	- [Troubleshooting](#troubleshooting)
 
 ## Introduction
 
@@ -97,3 +98,7 @@ This repo currently contains the policies showing how to implement these GenAI G
 The easiest way to see the gateway capabilities in action is to deploy the gateway along with the OpenAI API Simualtor (set the `USE_SIMULATOR` option in your `.env` file to `true`).
 
 Once you have the gateway and simulator deployed, see the `README.md` in the relevant capability folder for instructions on how to test the capability. (NOTE: currently not all capabilities have tests implemented)
+
+## Troubleshooting
+
+- The rate limiting API's name changed (June 2024), which causes conflicting paths if you deployed prior to the change and want to redeploy. The error message received is `Cannot create API 'aoai-api-rate-limiting' with the same Path 'rate-limiting/openai' as API 'aoai-api-rate-limting'  unless it's a part of the same version set`. To fix the issue, you'll need to delete the existing `aoai-api-rate-limting` API and redeploy the project, or freshly redeploy from scratch.
