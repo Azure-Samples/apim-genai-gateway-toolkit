@@ -346,7 +346,7 @@ class QueryProcessor:
 
     def build_token_metric_url(self, start_time, end_time): 
         """
-        Run a query until it returns a non-zero count.
+        Build the url to view total token metrics over time.
         """
         link = get_log_analytics_token_metric_url(
             self.__tenant_id,
