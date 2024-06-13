@@ -2,29 +2,29 @@
 
 ## Capability
 
-In these capabilities, requests are routed evenly (simple) and with specific percentages (weighted) across multiple backends using API Management policies. Infrastructure based load balancing is implemented in [load-balancing-v2](../load-balancing-v2/README.md).
+In these capabilities, requests are routed evenly (simple) and with specific percentages (weighted) across multiple backends via infrastructure configuration. Policy based load balancing is implemented in [load-balancing](../load-balancing/README.md).
 
-## How the policy works
+## How the infrastructure configuration works
 
 ### Simple Round Robin
 
-- The pool of endpoints are defined as an array.
-- Each time a request is received, the counter is incremented and persisted.
-- The counter value is used to select the endpoint from the array (using `random_value % backend_count`).
-- The selected endpoint is then used to route the request.
+- The API Management backends are defined as a pool.
+- Equal weights and priorities are applied to each backend in the pool.
+- Requests are routed to the backend pool.
 
 ### Weighted Round Robin
 
-- The pool of endpoints are defined as an array, along with the weights for each endpoint.
-- A random number is generated from 0 to the sum of all the weights.
-- The endpoint is selected based on the random number generated, which is then used to route the request.
+- The API Management backends are defined as a pool.
+- Specific, unique weights are applied to each backend in the pool.
+- Equal priorities are applied to each backend.
+- Requests are routed to the backend pool.
 
 ## How to see this in action
 
 To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
 This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
 
-Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run either `./scripts/run-end-to-end-round-robin-simple.sh` or `./scripts/run-end-to-end-round-robin-weighted.sh`, depending on which version of the policies you want to test.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run either `./scripts/run-end-to-end-round-robin-simple-v2.sh` or `./scripts/run-end-to-end-round-robin-weighted-v2.sh`, depending on which version of the policies you want to test.
 
 This script runs a load test for 3 minutes, which repeatedly sends requests to the OpenAI simulator via APIM using the either the simple or weighted round robin policy.
 

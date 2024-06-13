@@ -1,14 +1,13 @@
 <policies>
     <inbound>
         <base />
-        <include-fragment fragment-id="usage-tracking-inbound" />
-    </inbound>
+        <include-fragment fragment-id="retry-with-payg-v2" />
+    </inbound>	
     <backend>
         <base />
     </backend>
     <outbound>
         <base />
-        <include-fragment fragment-id="usage-tracking-outbound" />
     </outbound>
     <on-error>
         <base />

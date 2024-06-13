@@ -34,6 +34,9 @@ param payAsYouGoDeploymentTwoApiKey string
 @description('The name of the Log Analytics workspace')
 param logAnalyticsName string
 
+@description('The name of the App Insights instance')
+param appInsightsName string
+
 param location string = resourceGroup().location
 
 var resourceSuffix = '${workloadName}-${environment}-${location}'
@@ -54,6 +57,7 @@ module apiManagement 'modules/apiManagement.bicep' = {
     eventHubNamespaceName: eventHub.outputs.eventHubNamespaceName
     eventHubName: eventHub.outputs.eventHubName
     logAnalyticsName: logAnalyticsName
+    appInsightsName: appInsightsName
     location: location
   }
 }

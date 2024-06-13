@@ -1,0 +1,12 @@
+<fragment>
+    <set-backend-service backend-id="payg-backend-1" />
+    <azure-openai-emit-token-metric namespace="usage-tracking" >      
+        <dimension name="API ID" />
+        <dimension name="Operation ID" />
+        <dimension name="Product ID" />
+        <dimension name="Subscription ID" />
+        <dimension name="Location" />
+        <dimension name="Gateway ID" />
+        <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+    </azure-openai-emit-token-metric>
+</fragment>
