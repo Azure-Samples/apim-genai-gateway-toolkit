@@ -220,6 +220,7 @@ EOF
       build_image "$simulator_path" "$acr_name" "$acr_login_server"
     fi
   else
+    echo "No simulator docker image previously pushed. Building."
     build_image "$simulator_path" "$acr_name" "$acr_login_server"
   fi
   
