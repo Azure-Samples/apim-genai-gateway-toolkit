@@ -32,6 +32,9 @@ param keyVaultName string
 param storageAccountName string
 param appInsightsName string
 
+@description('The tag of the simulator image to deploy')
+param simulatorImageTag string
+
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
   name: resourceGroupName
 }
@@ -44,6 +47,7 @@ module simulatorPTU1 'modules/simulatorInstance.bicep' = {
     resourceSuffix: resourceSuffix
     containerAppEnvName: containerAppEnvName
     containerRegistryName: containerRegistryName
+    simulatorImageTag: simulatorImageTag
     keyVaultName: keyVaultName
     storageAccountName: storageAccountName
     appInsightsName: appInsightsName
@@ -68,6 +72,7 @@ module simulatorPAYG1 'modules/simulatorInstance.bicep' = {
     resourceSuffix: resourceSuffix
     containerAppEnvName: containerAppEnvName
     containerRegistryName: containerRegistryName
+    simulatorImageTag: simulatorImageTag
     keyVaultName: keyVaultName
     storageAccountName: storageAccountName
     appInsightsName: appInsightsName
@@ -92,6 +97,7 @@ module simulatorPAYG2 'modules/simulatorInstance.bicep' = {
     resourceSuffix: resourceSuffix
     containerAppEnvName: containerAppEnvName
     containerRegistryName: containerRegistryName
+    simulatorImageTag: simulatorImageTag
     keyVaultName: keyVaultName
     storageAccountName: storageAccountName
     appInsightsName: appInsightsName

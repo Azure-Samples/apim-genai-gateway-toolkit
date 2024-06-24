@@ -108,14 +108,18 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   # Clone simulator
   #
   simulator_path="$script_dir/simulator"
-  simulator_tag=${SIMULATOR_GIT_TAG:=v0.3}
+  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.3}
+
+  simulator_image_tag=$simulator_git_tag
+  simulator_image_tag=${simulator_image_tag//\//_} # Replace slashes with underscores
+  
   if [[ -d "$simulator_path" ]]; then
     echo "Simulator folder already exists - skipping clone."
   else
-    echo "Cloning simulator (tag: ${simulator_tag})..."
+    echo "Cloning simulator (tag: ${simulator_git_tag})..."
     git clone \
       --depth 1 \
-      --branch $simulator_tag \
+      --branch $simulator_git_tag \
       --config advice.detachedHead=false \
       https://github.com/stuartleeks/aoai-simulated-api \
       "$simulator_path"
@@ -283,6 +287,9 @@ cat << EOF > "$script_dir/../infra/simulators/azuredeploy.parameters.json"
     },
     "containerRegistryName": {
       "value": "${acr_name}"
+    },
+    "simulatorImageTag": {
+      "value": "${simulator_image_tag}"
     },
     "keyVaultName": {
       "value": "${key_vault_name}"

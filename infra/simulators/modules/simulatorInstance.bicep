@@ -41,6 +41,9 @@ param keyVaultName string
 param storageAccountName string
 param appInsightsName string
 
+@description('The tag of the simulator image to deploy')
+param simulatorImageTag string
+
 // extract these to a common module to have a single, shared place for these across base/main?
 
 
@@ -178,7 +181,7 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
       containers: [
         {
           name: 'aoai-simulated-api'
-          image: '${containerRegistry.properties.loginServer}/aoai-simulated-api:latest'
+          image: '${containerRegistry.properties.loginServer}/aoai-simulated-api:${simulatorImageTag}'
           resources: {
             cpu: json('1')
             memory: '2Gi'
