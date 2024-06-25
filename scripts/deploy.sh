@@ -108,7 +108,7 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   # Clone simulator
   #
   simulator_path="$script_dir/simulator"
-  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.3}
+  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.4}
 
   simulator_image_tag=$simulator_git_tag
   simulator_image_tag=${simulator_image_tag//\//_} # Replace slashes with underscores
