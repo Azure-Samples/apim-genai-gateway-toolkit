@@ -142,4 +142,17 @@ ApiManagementGatewayLogs
         include_link=True,
     )
 
+    query_processor.add_query(
+        title="Total requests (by backend)",
+        query=f"""
+ApiManagementGatewayLogs
+| where OperationName != "" and  {time_range}
+| where BackendId != ""
+| summarize request_count = count() by BackendId
+| evaluate pivot(BackendId, sum(request_count))
+        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace,
+        timespan=(test_start_time, test_stop_time),
+        show_query=True,
+        include_link=True,
+    )
     query_processor.run_queries()
