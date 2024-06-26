@@ -153,8 +153,7 @@ EOF
 
   deployment_name="sim-base-${RESOURCE_NAME_PREFIX}"
 
-  echo "$deployment_name"
-  echo "=="
+  echo -e "\n=="
   echo "== Starting bicep deployment ${deployment_name}"
   echo "=="
   output=$(az deployment sub create \
@@ -306,8 +305,7 @@ EOF
 
   deployment_name="sims-${RESOURCE_NAME_PREFIX}"
 
-  echo "$deployment_name"
-  echo "=="
+  echo -e "\n=="
   echo "== Starting bicep deployment ${deployment_name}"
   echo "=="
   output=$(az deployment sub create \
@@ -406,8 +404,7 @@ EOF
 
 deployment_name="genai-${RESOURCE_NAME_PREFIX}"
 
-echo "$deployment_name"
-echo "=="
+echo -e "\n=="
 echo "== Starting bicep deployment ${deployment_name}"
 echo "=="
 output=$(az deployment group create \
