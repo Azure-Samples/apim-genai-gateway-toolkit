@@ -58,6 +58,7 @@ build_image() {
     local simulator_path=$1
     local acr_name=$2
     local acr_login_server=$3
+    local image_tag=$4
 
     src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
 
@@ -65,7 +66,7 @@ build_image() {
     mkdir -p "$src_path/tiktoken_cache"
 
     az acr login --name "$acr_name"
-    az acr build --image "${acr_login_server}/aoai-simulated-api:latest" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
+    az acr build --image "${acr_login_server}/aoai-simulated-api:$image_tag" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
     
     echo -e "\n"
 }
@@ -220,11 +221,11 @@ EOF
       echo "Simulator docker image previously pushed. Skipping build."
     else
       echo "Simulator docker image previously pushed. Forcing build."
-      build_image "$simulator_path" "$acr_name" "$acr_login_server"
+      build_image "$simulator_path" "$acr_name" "$acr_login_server" "$simulator_image_tag"
     fi
   else
     echo "No simulator docker image previously pushed. Building."
-    build_image "$simulator_path" "$acr_name" "$acr_login_server"
+    build_image "$simulator_path" "$acr_name" "$acr_login_server" "$simulator_image_tag"
   fi
   
   #
