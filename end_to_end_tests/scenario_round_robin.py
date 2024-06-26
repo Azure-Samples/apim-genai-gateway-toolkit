@@ -113,7 +113,7 @@ def on_test_stop(environment, **kwargs):
     time_range = f"TimeGenerated > datetime({test_start_time.strftime('%Y-%m-%dT%H:%M:%SZ')}) and TimeGenerated < datetime({test_stop_time.strftime('%Y-%m-%dT%H:%M:%SZ')})"
 
     query_processor.add_query(
-        title="Request latency (PAYG1 -> Blue, PAYG2 -> Yellow)",
+        title="Request count by backend (PAYG1 -> Blue, PAYG2 -> Yellow)",
         query=f"""
 ApiManagementGatewayLogs
 | where OperationName != "" and  {time_range}
