@@ -58,6 +58,7 @@ build_image() {
     local simulator_path=$1
     local acr_name=$2
     local acr_login_server=$3
+    local image_tag=$4
 
     src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
 
@@ -65,7 +66,7 @@ build_image() {
     mkdir -p "$src_path/tiktoken_cache"
 
     az acr login --name "$acr_name"
-    az acr build --image "${acr_login_server}/aoai-simulated-api:latest" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
+    az acr build --image "${acr_login_server}/aoai-simulated-api:$image_tag" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
     
     echo -e "\n"
 }
@@ -86,6 +87,7 @@ output_simulators="$script_dir/../infra/simulators/output-simulators.json"
 if [[ ! -f "$output_generated_keys" ]]; then
   echo "{}" > "$output_generated_keys"
 fi
+
 
 if [[ "${USE_SIMULATOR}" == "true" ]]; then
   echo "Using OpenAI API Simulator"
@@ -108,21 +110,39 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   # Clone simulator
   #
   simulator_path="$script_dir/simulator"
-  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.3}
+  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.4}
 
   simulator_image_tag=$simulator_git_tag
   simulator_image_tag=${simulator_image_tag//\//_} # Replace slashes with underscores
   
+  clone_simulator=true
   if [[ -d "$simulator_path" ]]; then
-    echo "Simulator folder already exists - skipping clone."
+    if [[ -f "$script_dir/.simulator_tag" ]]; then
+      previous_tag=$(cat "$script_dir/.simulator_tag")
+      if [[ "$previous_tag" == "$simulator_git_tag" ]]; then
+        clone_simulator=false
+        echo "Simulator folder already exists - skipping clone."
+      else
+        rm -rf "$simulator_path"
+        echo "Cloned simulator has tag ${previous_tag} - re-cloning ${simulator_git_tag}."
+      fi
+    else
+        rm -rf "$simulator_path"
+        echo "Cloned simulator exists without tag file - re-cloning ${simulator_git_tag}."
+    fi
   else
+    echo "Simulator folder does not exist - cloning."
+  fi
+
+  if [[ "$clone_simulator" == "true" ]]; then
     echo "Cloning simulator (tag: ${simulator_git_tag})..."
     git clone \
       --depth 1 \
-      --branch $simulator_git_tag \
+      --branch "$simulator_git_tag" \
       --config advice.detachedHead=false \
       https://github.com/stuartleeks/aoai-simulated-api \
       "$simulator_path"
+    echo "$simulator_git_tag" > "$script_dir/.simulator_tag"
   fi
 
   #
@@ -153,8 +173,7 @@ EOF
 
   deployment_name="sim-base-${RESOURCE_NAME_PREFIX}"
 
-  echo "$deployment_name"
-  echo "=="
+  echo -e "\n=="
   echo "== Starting bicep deployment ${deployment_name}"
   echo "=="
   output=$(az deployment sub create \
@@ -213,19 +232,19 @@ EOF
   fi
 
   set +e
-  existing_image=$(az acr repository show --name $acr_name --image "aoai-simulated-api" --output json 2>&1)
+  existing_image=$(az acr repository show-tags --name "$acr_name" --repository "aoai-simulated-api" -o tsv --query "contains(@, '${simulator_image_tag}')" 2>&1)
   set -e
 
-  if echo "$existing_image" | jq . > /dev/null 2>&1; then
+  if [[ "$existing_image" == "true" ]]; then
     if [[ "${FORCE_SIMULATOR_BUILD}" != "true" ]]; then
-      echo "Simulator docker image previously pushed. Skipping build."
+      echo "Simulator docker image previously pushed with tag $simulator_image_tag. Skipping build."
     else
       echo "Simulator docker image previously pushed. Forcing build."
-      build_image "$simulator_path" "$acr_name" "$acr_login_server"
+      build_image "$simulator_path" "$acr_name" "$acr_login_server" "$simulator_image_tag"
     fi
   else
-    echo "No simulator docker image previously pushed. Building."
-    build_image "$simulator_path" "$acr_name" "$acr_login_server"
+    echo "No simulator docker image previously pushed with tag $simulator_image_tag. Building."
+    build_image "$simulator_path" "$acr_name" "$acr_login_server" "$simulator_image_tag"
   fi
   
   #
@@ -306,8 +325,7 @@ EOF
 
   deployment_name="sims-${RESOURCE_NAME_PREFIX}"
 
-  echo "$deployment_name"
-  echo "=="
+  echo -e "\n=="
   echo "== Starting bicep deployment ${deployment_name}"
   echo "=="
   output=$(az deployment sub create \
@@ -406,8 +424,7 @@ EOF
 
 deployment_name="genai-${RESOURCE_NAME_PREFIX}"
 
-echo "$deployment_name"
-echo "=="
+echo -e "\n=="
 echo "== Starting bicep deployment ${deployment_name}"
 echo "=="
 output=$(az deployment group create \

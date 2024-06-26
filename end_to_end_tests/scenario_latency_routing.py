@@ -44,7 +44,7 @@ class CompletionUser(HttpUser):
         payload = {
             "model": "gpt-5-turbo-1",
             "prompt": "Once upon a time",
-            "max_tokens": 10,
+            "max_tokens": 100,
         }
         self.client.post(
             url,
