@@ -232,18 +232,18 @@ EOF
   fi
 
   set +e
-  existing_image=$(az acr repository show --name "$acr_name" --image "aoai-simulated-api" --output json 2>&1)
+  existing_image=$(az acr repository show-tags --name "$acr_name" --repository "aoai-simulated-api" -o tsv --query "contains(@, '${simulator_image_tag}')" 2>&1)
   set -e
 
-  if echo "$existing_image" | jq . > /dev/null 2>&1; then
+  if [[ "$existing_image" == "true" ]]; then
     if [[ "${FORCE_SIMULATOR_BUILD}" != "true" ]]; then
-      echo "Simulator docker image previously pushed. Skipping build."
+      echo "Simulator docker image previously pushed with tag $simulator_image_tag. Skipping build."
     else
       echo "Simulator docker image previously pushed. Forcing build."
       build_image "$simulator_path" "$acr_name" "$acr_login_server" "$simulator_image_tag"
     fi
   else
-    echo "No simulator docker image previously pushed. Building."
+    echo "No simulator docker image previously pushed with tag $simulator_image_tag. Building."
     build_image "$simulator_path" "$acr_name" "$acr_login_server" "$simulator_image_tag"
   fi
   
