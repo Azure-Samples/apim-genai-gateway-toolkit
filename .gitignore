@@ -405,3 +405,5 @@ FodyWeavers.xsd
 .env
 .venv/
 __pycache__
+
+.simulator_tag

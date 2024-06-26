@@ -88,6 +88,7 @@ if [[ ! -f "$output_generated_keys" ]]; then
   echo "{}" > "$output_generated_keys"
 fi
 
+
 if [[ "${USE_SIMULATOR}" == "true" ]]; then
   echo "Using OpenAI API Simulator"
 
@@ -114,16 +115,34 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   simulator_image_tag=$simulator_git_tag
   simulator_image_tag=${simulator_image_tag//\//_} # Replace slashes with underscores
   
+  clone_simulator=true
   if [[ -d "$simulator_path" ]]; then
-    echo "Simulator folder already exists - skipping clone."
+    if [[ -f "$script_dir/.simulator_tag" ]]; then
+      previous_tag=$(cat "$script_dir/.simulator_tag")
+      if [[ "$previous_tag" == "$simulator_git_tag" ]]; then
+        clone_simulator=false
+        echo "Simulator folder already exists - skipping clone."
+      else
+        rm -rf "$simulator_path"
+        echo "Cloned simulator has tag ${previous_tag} - re-cloning ${simulator_git_tag}."
+      fi
+    else
+        rm -rf "$simulator_path"
+        echo "Cloned simulator exists without tag file - re-cloning ${simulator_git_tag}."
+    fi
   else
+    echo "Simulator folder does not exist - cloning."
+  fi
+
+  if [[ "$clone_simulator" == "true" ]]; then
     echo "Cloning simulator (tag: ${simulator_git_tag})..."
     git clone \
       --depth 1 \
-      --branch $simulator_git_tag \
+      --branch "$simulator_git_tag" \
       --config advice.detachedHead=false \
       https://github.com/stuartleeks/aoai-simulated-api \
       "$simulator_path"
+    echo "$simulator_git_tag" > "$script_dir/.simulator_tag"
   fi
 
   #
@@ -213,7 +232,7 @@ EOF
   fi
 
   set +e
-  existing_image=$(az acr repository show --name $acr_name --image "aoai-simulated-api" --output json 2>&1)
+  existing_image=$(az acr repository show --name "$acr_name" --image "aoai-simulated-api" --output json 2>&1)
   set -e
 
   if echo "$existing_image" | jq . > /dev/null 2>&1; then
