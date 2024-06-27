@@ -3,7 +3,7 @@
          Allows 500 tokens per 60 seconds. 
          The count is incremented if the response status code is between 200 and 400 by any request -->
     <azure-openai-token-limit counter-key="GlobalTokensLimit"
-        tokens-per-minute="500"
+        tokens-per-minute="5000"
         estimate-prompt-tokens="true"    
         remaining-tokens-header-name="x-apim-global-remaining-tokens"  
         remaining-tokens-variable-name="globalRemainingTokens" />
@@ -14,7 +14,7 @@
         <when condition="@(context.Request.Headers.ContainsKey("x-higher-limit"))">   
             <azure-openai-token-limit counter-key="highRateLimitSvc"
                 tokens-per-minute="@{
-                var defaultHigherLimit = 300;
+                var defaultHigherLimit = 3000;
                 if (context.Variables["globalRemainingTokens"] is int globalRemainingTokens && globalRemainingTokens > 0)
                 {
                     defaultHigherLimit += (int)(globalRemainingTokens * 0.1); 
@@ -30,7 +30,7 @@
         <otherwise>
             <azure-openai-token-limit counter-key="lowRateLimitSvc"
                 tokens-per-minute="@{
-                var defaultLowerRateLimit = 100;
+                var defaultLowerRateLimit = 1000;
                 if (context.Variables["globalRemainingTokens"] is int globalRemainingTokens && globalRemainingTokens > 0)
                 {
                     defaultLowerRateLimit += (int)(globalRemainingTokens * 0.1); 
