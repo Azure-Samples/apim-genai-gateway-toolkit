@@ -1,6 +1,6 @@
 <fragment>
     <!-- Rate limit configuration for global tokens. 
-         Allows 500 tokens per 60 seconds. 
+         Allows 5000 tokens per 60 seconds. 
          The count is incremented if the response status code is between 200 and 400 by any request -->
     <azure-openai-token-limit counter-key="GlobalTokensLimit"
         tokens-per-minute="5000"
@@ -10,7 +10,7 @@
     <!-- Choose block to decide the rate limit based on the presence of "x-higher-limit" in the request headers. -->
     <choose>
         <!-- If "x-higher-limit" is present in the request headers, 
-             the rate limit is set to 300 tokens per 60 seconds plus 10% of the remaining global tokens. -->
+             the rate limit is set to 3000 tokens per 60 seconds plus 10% of the remaining global tokens. -->
         <when condition="@(context.Request.Headers.ContainsKey("x-higher-limit"))">   
             <azure-openai-token-limit counter-key="highRateLimitSvc"
                 tokens-per-minute="@{
@@ -26,7 +26,7 @@
                 remaining-tokens-variable-name="globalRemainingTokens" />
         </when>
         <!-- If "x-higher-limit" is not present in the request headers, 
-             the rate limit is set to 100 tokens per 60 seconds plus 10% of the remaining global tokens. -->
+             the rate limit is set to 1000 tokens per 60 seconds plus 10% of the remaining global tokens. -->
         <otherwise>
             <azure-openai-token-limit counter-key="lowRateLimitSvc"
                 tokens-per-minute="@{
