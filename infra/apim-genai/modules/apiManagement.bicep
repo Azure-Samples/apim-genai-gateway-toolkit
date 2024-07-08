@@ -182,6 +182,18 @@ resource azureOpenAIUsageTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-
   }
 }
 
+resource azureOpenAIBatchProcessingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-batch-processing'
+  properties: {
+    path: '/batch-processing/openai'
+    displayName: 'AOAIAPI-BatchProcessing'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
 resource helperAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'helper-apis'
@@ -215,6 +227,7 @@ var azureOpenAIAPINames = [
   azureOpenAIAdaptiveRateLimitingAPI.name
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
+  azureOpenAIBatchProcessingAPI.name
   helperAPI.name
 ]
 
@@ -586,7 +599,7 @@ resource usageTrackingPolicyFragmentOutbound 'Microsoft.ApiManagement/service/po
   dependsOn: [eventHubLogger]
 }
 
-resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+resource azureOpenAIUsageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
   parent: azureOpenAIUsageTrackingAPI
   name: 'policy'
   properties: {
@@ -594,6 +607,15 @@ resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023
     format: 'rawxml'
   }
   dependsOn: [usageTrackingPolicyFragmentInbound, usageTrackingPolicyFragmentOutbound]
+}
+
+resource azureOpenAIBatchProcessingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIBatchProcessingAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities/batch-processing/batch-processing-policy.xml')
+    format: 'rawxml'
+  }
 }
 
 resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
