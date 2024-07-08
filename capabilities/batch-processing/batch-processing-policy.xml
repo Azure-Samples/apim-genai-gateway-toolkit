@@ -7,6 +7,7 @@
     and should return the remaining token and request rate limits in the response headers -->
     <inbound>
         <base />
+        <set-backend-service backend-id="payg-backend-1" />
     </inbound>
     <backend>
         <base />
