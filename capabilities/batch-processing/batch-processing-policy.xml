@@ -1,0 +1,21 @@
+<policies>
+    <!-- TODO - Batch processing policy should store TPM and RPM limits for each backend deployment, 
+    should pull deployment name from path, 
+    should apply token and request rate limits based on retrieved values, 
+    should determine whether a request is a high priority interactive request or a low priority batch request based on the presence of headers, 
+    should apply different token and request rate limits for the high and low priority requests, 
+    and should return the remaining token and request rate limits in the response headers -->
+    <inbound>
+        <base />
+        <set-backend-service backend-id="payg-backend-1" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
