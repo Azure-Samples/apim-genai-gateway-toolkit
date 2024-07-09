@@ -8,6 +8,68 @@
     <inbound>
         <base />
         <set-backend-service backend-id="payg-backend-1" />
+        <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
+        <choose>
+            <when condition="@(context.Variables.ContainsKey("list-deployments") == false)">
+                <set-variable name="list-deployments" value="@{
+                    JArray deployments = new JArray();
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "gpt-35-turbo-deployment-1" },
+                        { "tpm-limit", 30000},
+                        { "rpm-limit", 180 }
+                    });
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "text-embedding-3-small-deployment-1" },
+                        { "tpm-limit", 20000},
+                        { "rpm-limit", 120 }
+                    });
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "dall-e-3-deployment-1" },
+                        { "tpm-limit", 10000},
+                        { "rpm-limit", 60 }
+                    });
+                    return deployments;   
+                }" />
+                <cache-store-value key="list-deployments" value="@((JArray)context.Variables["list-deployments"])" duration="60" />
+            </when>
+        </choose>
+        <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
+        <set-variable name="selected-deployment" value="@{
+            JArray deployments = (JArray)context.Variables["list-deployments"];
+            for (int i = 0; i < deployments.Count; i++)
+            {
+                JObject deployment = (JObject)deployments[i];
+                if (deployment.Value<string>("deployment-id") == (string)context.Variables["selected-deployment-id"])
+                {
+                    return deployment;
+                }
+            }
+            return deployments[0];
+        }" />
+        <set-variable name="tpm-limit" value="@{
+            JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+            return selectedDeployment.Value<int>("tpm-limit");
+        }" />
+        <set-variable name="rpm-limit" value="@{
+            JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+            return selectedDeployment.Value<int>("rpm-limit");
+        }" />
+        <azure-openai-token-limit counter-key="tokens-limit"
+            tokens-per-minute="@((int)context.Variables["tpm-limit"])"
+            estimate-prompt-tokens="true"
+            remaining-tokens-header-name="x-apim-remaining-tokens"
+            remaining-tokens-variable-name="remaining-tokens"
+            tokens-consumed-header-name="x-apim-consumed-tokens"
+            tokens-consumed-variable-name="consumed-tokens" />
+        <rate-limit-by-key counter-key="requests-limit"
+            calls="@((int)context.Variables["rpm-limit"])"
+            renewal-period="10"
+            remaining-calls-header-name="x-apim-remaining-calls"
+            remaining-calls-variable-name="remaining-calls"
+            total-calls-header-name="x-apim-total-calls"/>
     </inbound>
     <backend>
         <base />
