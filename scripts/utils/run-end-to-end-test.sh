@@ -19,37 +19,12 @@ if [[ -z "${RUN_TIME}" ]]; then
 		exit 1
 	fi
 fi
-if [[ -z "${SCENARIO_NAME}" ]]; then
-	echo "SCENARIO_NAME not set!"
+if [[ -z "${ENDPOINT_PATH}" ]]; then
+	echo "ENDPOINT_PATH not set!"
 	exit 1
 fi
-
-if [[ "${SCENARIO_NAME}" == "latency-routing" ]]; then
-	test_file="scenario_latency_routing.py"
-	host_endpoint_path="latency-routing"
-elif [[ "${SCENARIO_NAME}" == "round-robin-simple" ]]; then
-	test_file="scenario_round_robin.py"
-	host_endpoint_path="round-robin-simple"
-elif [[ "${SCENARIO_NAME}" == "round-robin-weighted" ]]; then
-	test_file="scenario_round_robin.py"
-	host_endpoint_path="round-robin-weighted"
-elif [[ "${SCENARIO_NAME}" == "manage-spikes-with-payg" ]]; then
-	test_file="scenario_manage_spikes_with_payg.py"
-	host_endpoint_path="retry-with-payg"
-elif [[ "${SCENARIO_NAME}" == "usage-tracking" ]]; then
-	test_file="scenario_usage_tracking.py"
-	host_endpoint_path="usage-tracking"
-elif [[ "${SCENARIO_NAME}" == "round-robin-simple-v2" ]]; then
-	test_file="scenario_round_robin.py"
-	host_endpoint_path="round-robin-simple-v2"
-elif [[ "${SCENARIO_NAME}" == "round-robin-weighted-v2" ]]; then
-	test_file="scenario_round_robin.py"
-	host_endpoint_path="round-robin-weighted-v2"
-elif [[ "${SCENARIO_NAME}" == "manage-spikes-with-payg-v2" ]]; then
-	test_file="scenario_manage_spikes_with_payg.py"
-	host_endpoint_path="retry-with-payg-v2"
-else
-	echo "Unknown scenario name: ${SCENARIO_NAME}"
+if [[ -z "${TEST_FILE}" ]]; then
+	echo "TEST_FILE not set!"
 	exit 1
 fi
 
@@ -172,8 +147,8 @@ if [[ $USER_COUNT == "-1" ]]; then
 	OTEL_METRIC_EXPORT_INTERVAL=10000 \
 	LOCUST_WEB_PORT=8091 \
 	locust \
-		-f "$load_test_root/$test_file" \
-		-H "$apim_base_url/$host_endpoint_path/" \
+		-f "$load_test_root/$TEST_FILE" \
+		-H "$apim_base_url/$ENDPOINT_PATH/" \
 		--autostart \
 		--autoquit 0
 else
@@ -196,8 +171,8 @@ else
 	OTEL_METRIC_EXPORT_INTERVAL=10000 \
 	LOCUST_WEB_PORT=8091 \
 	locust \
-		-f "$load_test_root/$test_file" \
-		-H "$apim_base_url/$host_endpoint_path/" \
+		-f "$load_test_root/$TEST_FILE" \
+		-H "$apim_base_url/$ENDPOINT_PATH/" \
 		--users "$USER_COUNT" \
 		--run-time "$RUN_TIME" \
 		--autostart \
