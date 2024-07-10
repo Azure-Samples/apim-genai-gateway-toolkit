@@ -112,8 +112,14 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   simulator_path="$script_dir/simulator"
   simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.4}
 
-  simulator_image_tag=$simulator_git_tag
+  if [[ -n "$SIMULATOR_IMAGE_TAG" ]]; then
+    simulator_image_tag=$SIMULATOR_IMAGE_TAG
+  else
+    simulator_image_tag=$simulator_git_tag
+  fi
   simulator_image_tag=${simulator_image_tag//\//_} # Replace slashes with underscores
+  echo "Using simulator git tag: $simulator_git_tag"
+  echo "Using simulator image tag: $simulator_image_tag"
   
   clone_simulator=true
   if [[ -d "$simulator_path" ]]; then
