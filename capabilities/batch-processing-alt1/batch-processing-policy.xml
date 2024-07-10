@@ -1,0 +1,96 @@
+<policies>
+    <inbound>
+        <base />
+        <set-backend-service backend-id="payg-backend-1" />
+        <!-- apply threshold checks to batch - always allow non-batch through -->
+        <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
+        <set-variable name="is-batch" value="@(bool.Parse(context.Request.Url.Query.GetValueOrDefault("is-batch", "false")))" />
+        <choose>
+            <when condition="@((bool)context.Variables["is-batch"])">
+                <!-- get the configuration for the model deployment -->
+                <!-- TODO is this a good candidate for a fragment? -->
+                <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
+                <choose>
+                    <when condition="@(context.Variables.ContainsKey("list-deployments") == false)">
+                        <set-variable name="list-deployments" value="@{
+                            JArray deployments = new JArray();
+                            deployments.Add(new JObject()
+                            {
+                                { "deployment-id", "embedding" },
+                                { "tpm-limit", 10000},
+                                { "batch-tpm-threshold", 3000},
+                                { "rp10s-limit", 10 },
+                                { "batch-rp10s-threshold", 3},
+                            });
+                            deployments.Add(new JObject()
+                            {
+                                { "deployment-id", "gpt-35-turbo-10k-token" },
+                                { "tpm-limit", 10000},
+                                { "batch-tpm-threshold", 3000},
+                                { "rp10s-limit", 10 },
+                                { "batch-rp10s-threshold", 3},
+                            });
+                            deployments.Add(new JObject()
+                            {
+                                { "deployment-id", "gpt-35-turbo-20k-token" },
+                                { "tpm-limit", 20000},
+                                { "batch-tpm-threshold", 3000},
+                                { "rp10s-limit", 10 },
+                                { "batch-rp10s-threshold", 3},
+                            });
+                            return deployments;   
+                        }" />
+                        <cache-store-value key="list-deployments" value="@((JArray)context.Variables["list-deployments"])" duration="60" />
+                    </when>
+                </choose>
+                <set-variable name="selected-deployment" value="@{
+                    JArray deployments = (JArray)context.Variables["list-deployments"];
+                    for (int i = 0; i < deployments.Count; i++)
+                    {
+                        JObject deployment = (JObject)deployments[i];
+                        if (deployment.Value<string>("deployment-id") == (string)context.Variables["selected-deployment-id"])
+                        {
+                            return deployment;
+                        }
+                    }
+                    // default to first deployment
+                    // TODO - what should the behaviour here be?
+                    return deployments[0];
+                }" />
+                <set-variable name="tpm-limit" value="@{
+                    JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+                    return selectedDeployment.Value<int>("tpm-limit");
+                }" />
+                <set-variable name="batch-tpm-threshold" value="@{
+                    JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+                    return selectedDeployment.Value<int>("batch-tpm-threshold");
+                }" />
+                <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" default-value="@(-1)" variable-name="tokens-remaining" />
+                <choose>
+                    <when condition="@(((int)context.Variables["tokens-remaining"] != -1) && ((int)context.Variables["tokens-remaining"]) < ((int)context.Variables["batch-tpm-threshold"]) )">
+                        <return-response>
+                            <set-status code="418" reason="Tokens below batch threshold for deployment" />
+                            <set-body>Batch rate-limiting triggered by token usage</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+                <!-- TODO RP10S limiting -->
+            </when>
+        </choose>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <!-- store remaining tokens value for 60 seconds
+             it will expire after than and we default back to full quota
+             TODO: also store the time. Q: how do we use the time to determine the validity of the tokens-remaining value? -->
+        <!-- default to 0 here: if we get a 429 response back from the backend then we're out of requests
+             but the header doesn't exist -->
+        <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-tokens","0")))" duration="60" />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
