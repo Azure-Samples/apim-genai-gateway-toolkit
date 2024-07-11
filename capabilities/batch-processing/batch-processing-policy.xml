@@ -1,13 +1,8 @@
 <policies>
-    <!-- TODO - Batch processing policy should store TPM and RPM limits for each backend deployment, 
-    should pull deployment name from path, 
-    should apply token and request rate limits based on retrieved values, 
-    should determine whether a request is a high priority interactive request or a low priority batch request based on the presence of headers, 
-    should apply different token and request rate limits for the high and low priority requests, 
-    and should return the remaining token and request rate limits in the response headers -->
     <inbound>
         <base />
         <set-backend-service backend-id="payg-backend-1" />
+        <!-- get the configuration for the model deployments -->
         <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
         <choose>
             <when condition="@(context.Variables.ContainsKey("list-deployments") == false)">
@@ -15,27 +10,34 @@
                     JArray deployments = new JArray();
                     deployments.Add(new JObject()
                     {
-                        { "deployment-id", "gpt-35-turbo-deployment-1" },
-                        { "tpm-limit", 30000},
-                        { "rpm-limit", 180 }
-                    });
-                    deployments.Add(new JObject()
-                    {
-                        { "deployment-id", "text-embedding-3-small-deployment-1" },
-                        { "tpm-limit", 20000},
-                        { "rpm-limit", 120 }
-                    });
-                    deployments.Add(new JObject()
-                    {
-                        { "deployment-id", "dall-e-3-deployment-1" },
+                        { "deployment-id", "embedding" },
                         { "tpm-limit", 10000},
-                        { "rpm-limit", 60 }
+                        { "batch-tpm-threshold", 3000},
+                        { "rp10s-limit", 10 },
+                        { "batch-rp10s-threshold", 3},
+                    });
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "gpt-35-turbo-10k-token" },
+                        { "tpm-limit", 10000},
+                        { "batch-tpm-threshold", 3000},
+                        { "rp10s-limit", 10 },
+                        { "batch-rp10s-threshold", 3},
+                    });
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "gpt-35-turbo-20k-token" },
+                        { "tpm-limit", 20000},
+                        { "batch-tpm-threshold", 3000},
+                        { "rp10s-limit", 10 },
+                        { "batch-rp10s-threshold", 3},
                     });
                     return deployments;   
                 }" />
                 <cache-store-value key="list-deployments" value="@((JArray)context.Variables["list-deployments"])" duration="60" />
             </when>
         </choose>
+        <!-- retrieve tpm and rp10s limits for the selected model deployment -->
         <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
         <set-variable name="selected-deployment" value="@{
             JArray deployments = (JArray)context.Variables["list-deployments"];
@@ -53,23 +55,73 @@
             JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
             return selectedDeployment.Value<int>("tpm-limit");
         }" />
-        <set-variable name="rpm-limit" value="@{
+        <set-variable name="rp10s-limit" value="@{
             JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
-            return selectedDeployment.Value<int>("rpm-limit");
+            return selectedDeployment.Value<int>("rp10s-limit");
         }" />
-        <azure-openai-token-limit counter-key="tokens-limit"
-            tokens-per-minute="@((int)context.Variables["tpm-limit"])"
-            estimate-prompt-tokens="true"
-            remaining-tokens-header-name="x-apim-remaining-tokens"
-            remaining-tokens-variable-name="remaining-tokens"
-            tokens-consumed-header-name="x-apim-consumed-tokens"
-            tokens-consumed-variable-name="consumed-tokens" />
-        <rate-limit-by-key counter-key="requests-limit"
-            calls="@((int)context.Variables["rpm-limit"])"
+        <!-- calculate consumed tokens from request body -->
+        <set-variable name="consumed-tokens" value="@{
+            JObject requestBody = context.Request.Body.As<JObject>();
+            if(requestBody.ContainsKey("max_tokens"))
+            {
+                return requestBody.Value<int>("max_tokens");
+            }
+            else
+            {
+                return 16;
+            }
+        }" />
+        <!-- apply tpm and rp10s limits for the model deployment -->
+        <rate-limit-by-key counter-key="@(context.Variables["selected-deployment-id"] + "|tokens-limit")"
+            calls="@((int)context.Variables["tpm-limit"])"
+            renewal-period="60"
+            increment-count="@((int)context.Variables["consumed-tokens"])"
+            retry-after-header-name="x-apim-tokens-retry-after"
+            retry-after-variable-name="tokens-retry-after"
+            remaining-calls-header-name="x-apim-remaining-tokens" 
+            remaining-calls-variable-name="remaining-tokens"
+            total-calls-header-name="x-apim-total-tokens"/>
+        <rate-limit-by-key counter-key="@(context.Variables["selected-deployment-id"] + "|requests-limit")"
+            calls="@((int)context.Variables["rp10s-limit"])"
             renewal-period="10"
-            remaining-calls-header-name="x-apim-remaining-calls"
-            remaining-calls-variable-name="remaining-calls"
-            total-calls-header-name="x-apim-total-calls"/>
+            retry-after-header-name="x-apim-requests-retry-after"
+            retry-after-variable-name="requests-retry-after"
+            remaining-calls-header-name="x-apim-remaining-requests"
+            remaining-calls-variable-name="remaining-requests"
+            total-calls-header-name="x-apim-total-requests"/>
+        <!-- determine if the request is a batch request -->
+        <set-variable name="is-batch" value="@(bool.Parse(context.Request.Url.Query.GetValueOrDefault("is-batch", "false")))" />
+        <choose>
+            <when condition="@((bool)context.Variables["is-batch"])">
+                <!-- retrieve batch tpm and rp10s limits for the model deployment -->
+                <set-variable name="batch-tpm-threshold" value="@{
+                    JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+                    return selectedDeployment.Value<int>("batch-tpm-threshold");
+                }" />
+                <set-variable name="batch-rp10s-threshold" value="@{
+                    JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+                    return selectedDeployment.Value<int>("batch-rp10s-threshold");
+                }" />
+                <!-- apply batch tpm and rp10s limits for the model deployment -->
+                <rate-limit-by-key counter-key="@(context.Variables["selected-deployment-id"] + "|batch-tokens-limit")"
+                    calls="@((int)context.Variables["batch-tpm-threshold"])"
+                    renewal-period="60"
+                    increment-count="@((int)context.Variables["consumed-tokens"])"
+                    retry-after-header-name="x-apim-batch-tokens-retry-after"
+                    retry-after-variable-name="batch-tokens-retry-after"
+                    remaining-calls-header-name="x-apim-remaining-batch-tokens" 
+                    remaining-calls-variable-name="remaining-batch-tokens"
+                    total-calls-header-name="x-apim-total-batch-tokens"/>
+                <rate-limit-by-key counter-key="@(context.Variables["selected-deployment-id"] + "|batch-requests-limit")"
+                    calls="@((int)context.Variables["batch-rp10s-threshold"])"
+                    renewal-period="10"
+                    retry-after-header-name="x-apim-batch-requests-retry-after"
+                    retry-after-variable-name="batch-requests-retry-after"
+                    remaining-calls-header-name="x-apim-remaining-batch-requests"
+                    remaining-calls-variable-name="remaining-batch-requests"
+                    total-calls-header-name="x-apim-total-batch-requests"/>
+            </when>
+        </choose>
     </inbound>
     <backend>
         <base />
