@@ -61,7 +61,7 @@
         }" />
         <!-- calculate consumed tokens from request body -->
         <set-variable name="consumed-tokens" value="@{
-            JObject requestBody = context.Request.Body.As<JObject>();
+            JObject requestBody = context.Request.Body.As<JObject>(preserveContent: true);
             if(requestBody.ContainsKey("max_tokens"))
             {
                 return requestBody.Value<int>("max_tokens");
