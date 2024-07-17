@@ -122,6 +122,10 @@
                     total-calls-header-name="x-apim-total-batch-requests"/>
             </when>
         </choose>
+        <azure-openai-emit-token-metric namespace="token-usage-metrics" >
+            <dimension name="IsBatch" value="@(context.Variables["is-batch"].ToString())" />
+        </azure-openai-emit-token-metric>
+        <emit-metric name="ConsumedTokens" value="@((double)(int)context.Variables["consumed-tokens"])" namespace="token-usage-metrics-2" />
     </inbound>
     <backend>
         <base />

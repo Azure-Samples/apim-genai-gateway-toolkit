@@ -144,7 +144,7 @@ ApiManagementGatewayLogs
     )
 
     query_processor.run_queries()
-    query_processor.build_token_metric_url(test_start_time, test_stop_time)
+    query_processor.build_usage_tracking_token_metric_url_by_subscription_id(test_start_time, test_stop_time)
 
 def get_random_key():
     keys = [apim_subscription_one_key, apim_subscription_two_key, apim_subscription_three_key]

@@ -723,15 +723,17 @@ resource azureOpenAIUsageTrackingAPIv2Diagnostic 'Microsoft.ApiManagement/servic
   parent: azureOpenAIUsageTrackingAPI
   name: 'applicationinsights'
   properties: {
-    loggerId: appInsightsLogger.id
+    loggerId: appInsightsLogger.id  
     metrics: true
-    frontend: {
-      request: {
-        headers: [
-          'x-batch'
-        ]
-      }
-    }
+  }
+}
+
+resource azureOpenAIBatchProcessingAPIv2Diagnostic 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIBatchProcessingAPI
+  name: 'applicationinsights'
+  properties: {
+    loggerId: appInsightsLogger.id  
+    metrics: true
   }
 }
 
