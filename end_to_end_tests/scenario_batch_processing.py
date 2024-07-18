@@ -355,4 +355,4 @@ ApiManagementGatewayLogs
     )
 
     query_processor.run_queries()
-    query_processor.build_batch_processing_token_metric_url_by_is_batch(test_start_time, test_stop_time)
+    query_processor.build_batch_processing_token_metric_urls_by_is_batch(test_start_time, test_stop_time)
