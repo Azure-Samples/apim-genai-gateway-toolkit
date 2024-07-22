@@ -656,7 +656,24 @@ resource appInsightsLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-p
   }
 }
 
-resource azureOpenAIUsageTrackingAPIv2Diagnostic 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+resource azureMonitorLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-preview' = {
+  name: 'azuremonitor'
+  parent: apiManagementService
+  properties: {
+    loggerType: 'azureMonitor'
+    isBuffered: true
+  }
+}
+
+resource allApisAzureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnostics@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'azuremonitor'
+  properties: {
+    loggerId: azureMonitorLogger.id
+  }
+}
+
+resource azureOpenAIUsageTrackingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
   parent: azureOpenAIUsageTrackingAPI
   name: 'applicationinsights'
   properties: {
