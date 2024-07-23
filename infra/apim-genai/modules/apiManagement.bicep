@@ -206,20 +206,6 @@ resource azureOpenAIBatchProcessingAlt1API 'Microsoft.ApiManagement/service/apis
   }
 }
 
-resource azureOpenAIBatchProcessingAlt1APIDiagnositcs 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAlt1API
-  name: 'applicationinsights'
-  properties: {
-    loggerId: appInsightsLogger.id
-    metrics: true
-    frontend: {
-      request: {
-        headers: ['x-batch']
-      }
-    }
-  }
-}
-
 resource helperAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'helper-apis'
@@ -719,7 +705,7 @@ resource appInsightsLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-p
   }
 }
 
-resource azureOpenAIUsageTrackingAPIv2Diagnostic 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+resource azureOpenAIUsageTrackingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
   parent: azureOpenAIUsageTrackingAPI
   name: 'applicationinsights'
   properties: {
@@ -728,11 +714,20 @@ resource azureOpenAIUsageTrackingAPIv2Diagnostic 'Microsoft.ApiManagement/servic
   }
 }
 
-resource azureOpenAIBatchProcessingAPIv2Diagnostic 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+resource azureOpenAIBatchProcessingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
   parent: azureOpenAIBatchProcessingAPI
   name: 'applicationinsights'
   properties: {
     loggerId: appInsightsLogger.id  
+    metrics: true
+  }
+}
+
+resource azureOpenAIBatchProcessingAlt1APIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIBatchProcessingAlt1API
+  name: 'applicationinsights'
+  properties: {
+    loggerId: appInsightsLogger.id
     metrics: true
   }
 }
