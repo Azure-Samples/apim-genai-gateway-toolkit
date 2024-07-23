@@ -31,14 +31,11 @@ param azureOpenAIEndpoint string
 @secure()
 param azureOpenAIKey string
 
-param openAIDeploymentConfigPath string
-
 param logLevel string
 
 param containerAppEnvName string
 param containerRegistryName string
 param keyVaultName string
-param storageAccountName string
 param appInsightsName string
 
 @description('The tag of the simulator image to deploy')
@@ -64,17 +61,6 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
 }
 var keyVaultUri = vault.properties.vaultUri
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-  name: storageAccountName
-}
-resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' existing = {
-  parent: storageAccount
-  name: 'default'
-}
-resource simulatorFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' existing = {
-  parent: fileService
-  name: 'simulator'
-}
 
 resource acrPullRoleDefinition 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
   scope: subscription()
@@ -94,10 +80,6 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' 
   name: containerAppEnvName
 }
 
-resource containerAppStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' existing = {
-  parent: containerAppEnv
-  name: 'simulator-storage'
-}
 
 ///////////////////////////////////////////////////////////////////////
 //
@@ -159,15 +141,14 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
           keyVaultUrl: '${keyVaultUri}secrets/simulatorapikey${apiSimulatorNameSuffix}'
           identity: managedIdentity.id
         }
-        // {
-        //   name: 'azureopenaikey'
-        //   keyVaultUrl: '${keyVaultUri}secrets/azureopenaikey${apiSimulatorNameSuffix}'
-        //   identity: managedIdentity.id
-        // }
         {
           name: 'appinsightsconnectionstring'
           keyVaultUrl: '${keyVaultUri}secrets/appinsightsconnectionstring${apiSimulatorNameSuffix}'
           identity: managedIdentity.id
+        }
+        {
+          name: 'deployment-config'
+          value: loadTextContent('../simulator_file_content/simulator_deployment_config.json')
         }
       ]
       registries: [
@@ -194,7 +175,7 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
             { name: 'EXTENSION_PATH', value: extensionPath }
             { name: 'AZURE_OPENAI_ENDPOINT', value: azureOpenAIEndpoint }
             // { name: 'AZURE_OPENAI_KEY', secretRef: 'azureopenaikey' }
-            { name: 'OPENAI_DEPLOYMENT_CONFIG_PATH', value: openAIDeploymentConfigPath }
+            { name: 'OPENAI_DEPLOYMENT_CONFIG_PATH', value: '/mnt/deployment-config/simulator_deployment_config.json' }
             { name: 'LOG_LEVEL', value: logLevel }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'appinsightsconnectionstring' }
             // Ensure cloudRoleName is set in telemetry
@@ -204,18 +185,22 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
           ]
           volumeMounts: [
             {
-              volumeName: 'simulator-storage'
-              mountPath: '/mnt/simulator'
+              volumeName: 'deployment-config'
+              mountPath: '/mnt/deployment-config'
             }
           ]
         }
       ]
       volumes: [
         {
-          name: 'simulator-storage'
-          storageName: containerAppStorage.name
-          storageType: 'AzureFile'
-          mountOptions: 'uid=1000,gid=1000,nobrl,mfsymlinks,cache=none'
+          name: 'deployment-config'
+          storageType: 'Secret'
+          secrets:[
+            {
+              secretRef:'deployment-config'
+              path:'simulator_deployment_config.json'
+            }
+          ]
         }
       ]
       scale: {
@@ -256,8 +241,6 @@ resource assignSecretsReaderRole 'Microsoft.Authorization/roleAssignments@2020-0
 output rgName string = resourceGroup().name
 output containerRegistryLoginServer string = containerRegistry.properties.loginServer
 output containerRegistryName string = containerRegistry.name
-output storageAccountName string = storageAccount.name
-output fileShareName string = simulatorFileShare.name
 
 output acaName string = apiSim.name
 output apiSimFqdn string = apiSim.properties.configuration.ingress.fqdn

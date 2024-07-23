@@ -50,8 +50,5 @@ output appInsightsName string = appInsightsName
 output containerRegistryLoginServer string = simulatorBase.outputs.containerRegistryLoginServer
 output containerRegistryName string = simulatorBase.outputs.containerRegistryName
 
-output storageAccountName string = simulatorBase.outputs.storageAccountName
-output fileShareName string = simulatorBase.outputs.fileShareName
-
 output keyVaultName string = simulatorBase.outputs.keyVaultName
 output containerAppEnvName string = simulatorBase.outputs.containerAppEnvName

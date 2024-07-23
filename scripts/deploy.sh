@@ -254,26 +254,6 @@ EOF
   fi
   
   #
-  # Upload simulator deployment config files to file share
-  #
-  echo "Uploading simulator config files to file share..."
-  storage_account_name=$(jq -r '.storageAccountName // ""' < "$output_simulator_base")
-  if [[ -z "$storage_account_name" ]]; then
-    echo "Storage account name (storageAccountName) not found in output-simulator-base.json"
-    exit 1
-  fi
-
-  file_share_name=$(jq -r '.fileShareName // ""' < "$output_simulator_base")
-  if [[ -z "$file_share_name" ]]; then
-    echo "File share name (fileShareName) not found in output-simulator-base.json"
-    exit 1
-  fi
-
-  storage_key=$(az storage account keys list --account-name "$storage_account_name" -o tsv --query '[0].value')
-
-  az storage file upload-batch --destination "$file_share_name" --source "$script_dir/../infra/simulators/simulator_file_content" --account-name "$storage_account_name" --account-key "$storage_key"
-
-  #
   # Deploy simulator instances
   #
   key_vault_name=$(jq -r '.keyVaultName // ""' < "$output_simulator_base")
@@ -318,9 +298,6 @@ cat << EOF > "$script_dir/../infra/simulators/azuredeploy.parameters.json"
     },
     "keyVaultName": {
       "value": "${key_vault_name}"
-    },
-    "storageAccountName": {
-      "value": "${storage_account_name}"
     },
     "appInsightsName": {
       "value": "${app_insights_name}"
