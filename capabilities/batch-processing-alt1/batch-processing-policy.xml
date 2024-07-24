@@ -24,6 +24,14 @@
                             });
                             deployments.Add(new JObject()
                             {
+                                { "deployment-id", "embedding10k" },
+                                { "tpm-limit", 100000},
+                                { "batch-tpm-threshold", 30000},
+                                { "rp10s-limit", 10 },
+                                { "batch-rp10s-threshold", 3},
+                            });
+                            deployments.Add(new JObject()
+                            {
                                 { "deployment-id", "gpt-35-turbo-10k-token" },
                                 { "tpm-limit", 10000},
                                 { "batch-tpm-threshold", 3000},
@@ -66,6 +74,7 @@
                     return selectedDeployment.Value<int>("batch-tpm-threshold");
                 }" />
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" default-value="@(-1)" variable-name="tokens-remaining" />
+                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["tokens-remaining"])" namespace="batch-processing-alt1" />
                 <choose>
                     <when condition="@(((int)context.Variables["tokens-remaining"] != -1) && ((int)context.Variables["tokens-remaining"]) < ((int)context.Variables["batch-tpm-threshold"]) )">
                         <return-response>
