@@ -18,6 +18,14 @@
                     });
                     deployments.Add(new JObject()
                     {
+                        { "deployment-id", "embedding100k" },
+                        { "tpm-limit", 100000},
+                        { "batch-tpm-threshold", 30000},
+                        { "rp10s-limit", 100 },
+                        { "batch-rp10s-threshold", 30},
+                    });
+                    deployments.Add(new JObject()
+                    {
                         { "deployment-id", "gpt-35-turbo-10k-token" },
                         { "tpm-limit", 10000},
                         { "batch-tpm-threshold", 3000},
@@ -122,6 +130,7 @@
                     total-calls-header-name="x-apim-total-batch-requests"/>
             </when>
         </choose>
+        <!-- emit token metrics for e2e test validation -->
         <azure-openai-emit-token-metric namespace="token-usage-metrics" >
             <dimension name="IsBatch" value="@(context.Variables["is-batch"].ToString())" />
         </azure-openai-emit-token-metric>

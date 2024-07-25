@@ -26,7 +26,7 @@ from common.config import (
 )
 
 test_start_time = None
-deployment_name = "embedding"
+deployment_name = "embedding100k"
 
 # use short input text to validate request-based limiting, longer text to validate token-based limiting
 # TODO - split tests!
@@ -39,7 +39,7 @@ class EmbeddingUserHighTokens(HttpUser):
     EmbeddingUserHighTokens will be throttled by the token-based rate limit applied by APIM
     """
 
-    wait_time = constant(10)  # wait 10 seconds between requests
+    wait_time = constant(1)  # wait 1 second between requests
 
     @task
     def get_completion(self):
@@ -69,7 +69,7 @@ class EmbeddingUserLowTokens(HttpUser):
     EmbeddingUserLowTokens will be throttled by the request-based rate limit applied by APIM
     """
 
-    wait_time = constant(10)  # wait 10 seconds between requests
+    wait_time = constant(1)  # wait 1 second between requests
 
     @task
     def get_completion(self):
@@ -99,7 +99,7 @@ class BatchEmbeddingUserHighTokens(HttpUser):
     BatchEmbeddingUserHighTokens will be throttled by the token-based rate limit applied by APIM
     """
 
-    wait_time = constant(10)  # wait 10 seconds between requests
+    wait_time = constant(1)  # wait 1 second between requests
 
     @task
     def get_completion(self):
@@ -129,7 +129,7 @@ class BatchEmbeddingUserLowTokens(HttpUser):
     BatchEmbeddingUserLowTokens will be throttled by the request-based rate limit applied by APIM
     """
 
-    wait_time = constant(10)  # wait 10 seconds between requests
+    wait_time = constant(1)  # wait 1 second between requests
 
     @task
     def get_completion(self):
@@ -161,27 +161,27 @@ class StagesShape(LoadTestShape):
     # Non-Batch Limits - 10 RP10S, 10000 TPM
     # Batch Limits - 3 RP10S, 3000 TPM
     stages = [
-        # show 200s (1 RP10S, 3000 TPM)
+        # show 200s (10 RP10S, 30000 TPM)
         {"duration": 30, "users": 1, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
-        # show 429s due to token-based rate limiting, non-batch (5 RP10S, 15000 TPM)
+        # show 429s due to token-based rate limiting, non-batch (50 RP10S, 150000 TPM)
         {"duration": 90, "users": 5, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
         # ramp back down
         {"duration": 120, "users": 0, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
-        # show 200s (1 RP10S, 60 TPM)
+        # show 200s (10 RP10S, 600 TPM)
         {"duration": 150, "users": 1, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
-        # show 429s due to request-based rate limiting, non-batch  (15 RP10S, 900 TPM)
+        # show 429s due to request-based rate limiting, non-batch  (150 RP10S, 9000 TPM)
         {"duration": 210, "users": 15, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
         # ramp back down
         {"duration": 240, "users": 0, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
-        # show 200s (1 RP10S, 1800 TPM)
+        # show 200s (10 RP10S, 18000 TPM)
         {"duration": 270, "users": 1, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
-        # show 429s due to token-based rate limiting, batch  (2 RP10S, 3600 TPM)
+        # show 429s due to token-based rate limiting, batch  (20 RP10S, 36000 TPM)
         {"duration": 330, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
         # ramp back down
         {"duration": 360, "users": 0, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
-        # show 200s (1 RP10S, 60 TPM)
+        # show 200s (10 RP10S, 600 TPM)
         {"duration": 390, "users": 1, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserLowTokens]},
-        # show 429s due to request-based rate limiting (5 RP10S, 300 TPM)
+        # show 429s due to request-based rate limiting (50 RP10S, 3000 TPM)
         {"duration": 450, "users": 5, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserLowTokens]},
     ]
 
