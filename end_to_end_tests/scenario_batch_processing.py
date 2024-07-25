@@ -53,56 +53,42 @@ def make_completion_request(client: HttpSession, max_tokens: int, batch: bool):
         logging.error(e)
         raise
 
-class EmbeddingUserHighTokens(HttpUser):
+
+class NonBatchEmbeddingUser(HttpUser):
     """
-    EmbeddingUserHighTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM
-    EmbeddingUserHighTokens will be throttled by the token-based rate limit applied by APIM
-    """
-
-    wait_time = constant(1)  # wait 1 second between requests
-
-    @task
-    def get_completion(self):
-        make_completion_request(self.client, 500, False)
-
-
-class EmbeddingUserLowTokens(HttpUser):
-    """
-    EmbeddingUserLowTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM
-    EmbeddingUserLowTokens will be throttled by the request-based rate limit applied by APIM
     """
 
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def get_completion(self):
-        make_completion_request(self.client, 10, False)
+    def get_completion_non_batch(self):
+        make_completion_request(self.client, 1000, False)
 
 
-class BatchEmbeddingUserHighTokens(HttpUser):
+class BatchEmbeddingUser(HttpUser):
     """
-    BatchEmbeddingUserHighTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM and sets the is-batch query string value
-    BatchEmbeddingUserHighTokens will be throttled by the token-based rate limit applied by APIM
     """
 
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def get_completion(self):
-        make_completion_request(self.client, 300, True)
+    def get_completion_batch(self):
+        make_completion_request(self.client, 1000, True)
 
 
-class BatchEmbeddingUserLowTokens(HttpUser):
+class MixedEmbeddingUser(HttpUser):
     """
-    BatchEmbeddingUserLowTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM and sets the is-batch query string value
-    BatchEmbeddingUserLowTokens will be throttled by the request-based rate limit applied by APIM
     """
 
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
+    def get_completion_non_batch(self):
+        make_completion_request(self.client, 1000, False)
+
+    @task
     def get_completion(self):
-        make_completion_request(self.client, 10, True)
+        make_completion_request(self.client, 1000, True)
 
 class StagesShape(LoadTestShape):
     """
@@ -110,31 +96,20 @@ class StagesShape(LoadTestShape):
     """
 
     # See https://docs.locust.io/en/stable/custom-load-shape.html
-    # Non-Batch Limits - 10 RP10S, 10000 TPM
-    # Batch Limits - 3 RP10S, 3000 TPM
     stages = [
-        # show 200s (10 RP10S, 30000 TPM)
-        {"duration": 30, "users": 1, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
-        # show 429s due to token-based rate limiting, non-batch (50 RP10S, 150000 TPM)
-        {"duration": 90, "users": 5, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
-        # ramp back down
-        {"duration": 120, "users": 0, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
-        # show 200s (10 RP10S, 600 TPM)
-        {"duration": 150, "users": 1, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
-        # show 429s due to request-based rate limiting, non-batch  (150 RP10S, 9000 TPM)
-        {"duration": 210, "users": 15, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
-        # ramp back down
-        {"duration": 240, "users": 0, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
-        # show 200s (10 RP10S, 18000 TPM)
-        {"duration": 270, "users": 1, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
-        # show 429s due to token-based rate limiting, batch  (20 RP10S, 36000 TPM)
-        {"duration": 330, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
-        # ramp back down
-        {"duration": 360, "users": 0, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
-        # show 200s (10 RP10S, 600 TPM)
-        {"duration": 390, "users": 1, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserLowTokens]},
-        # show 429s due to request-based rate limiting (50 RP10S, 3000 TPM)
-        {"duration": 450, "users": 5, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserLowTokens]},
+        # Limits: 100000 TPM and 100 RP10S
+        # 20 RP10S, 20000 TPM (show 200s for interactive requests)
+        {"duration": 60, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # 120 RP10S, 120000 TPM (show 429s for interactive requests)
+        {"duration": 120, "users": 12, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # 20 RP10S, 20000 TPM (show 200s for interactive requests)
+        {"duration": 180, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # 50 RP10S, 50000 TPM (show 200s for both interactive and batch requests)
+        {"duration": 240, "users": 5, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        # 90 RP10S, 90000 TPM (show 200s for interactive requests and 429s for batch requests)
+        {"duration": 300, "users": 12, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        # 50 RP10S, 50000 TPM (show 200s for batch requests)
+        {"duration": 360, "users": 5, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
     ]
 
     def tick(self):
