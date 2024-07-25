@@ -278,7 +278,7 @@ ApiManagementGatewayLogs
 | summarize request_count = count() by bin(TimeGenerated, 10s), label
 | project TimeGenerated, request_count, label
 | order by TimeGenerated asc
-| render timechart
+| render areachart
 """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
         chart_config={
