@@ -113,25 +113,18 @@
                     return selectedDeployment.Value<int>("batch-rp10s-threshold");
                 }" />
                 <!-- apply batch tpm and rp10s limits for the model deployment -->
-                <rate-limit-by-key counter-key="@(context.Variables["selected-deployment-id"] + "|batch-tokens-limit")"
-                    calls="@((int)context.Variables["batch-tpm-threshold"])"
-                    renewal-period="60"
-                    increment-condition="@(context.Response.StatusCode != 429)"
-                    increment-count="@((int)context.Variables["consumed-tokens"])"
-                    retry-after-header-name="x-apim-batch-tokens-retry-after"
-                    retry-after-variable-name="batch-tokens-retry-after"
-                    remaining-calls-header-name="x-apim-remaining-batch-tokens" 
-                    remaining-calls-variable-name="remaining-batch-tokens"
-                    total-calls-header-name="x-apim-total-batch-tokens"/>
-                <rate-limit-by-key counter-key="@(context.Variables["selected-deployment-id"] + "|batch-requests-limit")"
-                    calls="@((int)context.Variables["batch-rp10s-threshold"])"
-                    renewal-period="10"
-                    increment-condition="@(context.Response.StatusCode != 429)"
-                    retry-after-header-name="x-apim-batch-requests-retry-after"
-                    retry-after-variable-name="batch-requests-retry-after"
-                    remaining-calls-header-name="x-apim-remaining-batch-requests"
-                    remaining-calls-variable-name="remaining-batch-requests"
-                    total-calls-header-name="x-apim-total-batch-requests"/>
+                <choose>
+                    <when condition="@((int)context.Variables["remaining-tokens"] < (int)context.Variables["batch-tpm-threshold"])">
+                        <return-response>
+                            <set-status code="429" reason="Too Many Tokens" />
+                        </return-response>
+                    </when>
+                    <when condition="@((int)context.Variables["remaining-requests"] < (int)context.Variables["batch-rp10s-threshold"])">
+                        <return-response>
+                            <set-status code="429" reason="Too Many Requests" />
+                        </return-response>
+                    </when>
+                </choose>
             </when>
         </choose>
         <!-- emit token metrics for e2e test validation -->
