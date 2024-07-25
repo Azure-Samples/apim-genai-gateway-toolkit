@@ -143,12 +143,46 @@ ApiManagementGatewayLogs
         include_link=True,
     )
 
+    query_processor.add_query(
+        title="Total tokens",
+        query=f"""
+AppMetrics
+| where Name== "Total Tokens" and {time_range}
+| extend subscription_id = tostring(Properties["Subscription ID"])
+| summarize tokens=sum(Sum) by bin(TimeGenerated, 1m), subscription_id
+| render timechart     
+""".strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
+        is_chart=True,
+        chart_config={
+            "height": 15,
+            "min": 0,
+            "colors": [
+                asciichart.yellow,
+                asciichart.blue,
+            ],
+        },
+        group_definition=GroupDefinition(
+            id_column="TimeGenerated",
+            group_column="subscription_id",
+            value_column="tokens",
+            missing_value=float("nan"),
+        ),
+        timespan=(test_start_time, test_stop_time),
+        show_query=True,
+        include_link=True,
+    )
+
     query_processor.run_queries()
-    query_processor.build_usage_tracking_token_metric_url_by_subscription_id(test_start_time, test_stop_time)
+
 
 def get_random_key():
-    keys = [apim_subscription_one_key, apim_subscription_two_key, apim_subscription_three_key]
+    keys = [
+        apim_subscription_one_key,
+        apim_subscription_two_key,
+        apim_subscription_three_key,
+    ]
     return random.choice(keys)
+
 
 def get_random_max_tokens():
     return random.randint(5, 20)
