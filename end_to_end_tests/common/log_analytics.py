@@ -105,6 +105,7 @@ def get_log_analytics_usage_tracking_token_metric_url_by_subscription_id(
     link = get_link("View Token Metrics in Log Analytics", url)
     return link
 
+
 def get_log_analytics_batch_processing_token_metric_url_by_is_batch_one(
     tenant_id: str,
     subscription_id: str,
@@ -131,6 +132,7 @@ def get_log_analytics_batch_processing_token_metric_url_by_is_batch_one(
     url = f"https://portal.azure.com/#@{tenant_id}/blade/Microsoft_Azure_MonitoringMetrics/Metrics.ReactView/Referer/MetricsExplorer/ResourceId/%2Fsubscriptions%2F{subscription_id}%2FresourceGroups%2F{resource_group_name}%2Fproviders%2FMicrosoft.Insights%2Fcomponents%2F{app_insights_name}/TimeContext/{encoded_time_context}/ChartDefinition/{encoded_chart_definition}"
     link = get_link("View Token Metrics in Log Analytics", url)
     return link
+
 
 def get_log_analytics_batch_processing_token_metric_url_by_is_batch_two(
     tenant_id: str,
@@ -379,7 +381,7 @@ class QueryProcessor:
         columns = table.columns
         return Table(columns=columns, rows=rows), None
 
-    def wait_for_non_zero_count(self, query, max_retries=10, wait_time_seconds=30):
+    def wait_for_non_zero_count(self, query, max_retries=20, wait_time_seconds=30):
         """
         Run a query until it returns a non-zero count.
         """
@@ -398,7 +400,9 @@ class QueryProcessor:
 
         raise Exception("❌ No metrics data found")
 
-    def build_usage_tracking_token_metric_url_by_subscription_id(self, start_time, end_time):
+    def build_usage_tracking_token_metric_url_by_subscription_id(
+        self, start_time, end_time
+    ):
         """
         Build the url to view total token metrics over time for the usage tracking policy, split by SubscriptionID.
         """
@@ -413,7 +417,9 @@ class QueryProcessor:
         print(link)
         print("")
 
-    def build_batch_processing_token_metric_urls_by_is_batch(self, start_time, end_time):
+    def build_batch_processing_token_metric_urls_by_is_batch(
+        self, start_time, end_time
+    ):
         """
         Build the url to view total token metrics over time for the batch processing policy, split by presence of is-batch header.
         """

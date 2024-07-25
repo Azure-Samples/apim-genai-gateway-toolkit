@@ -38,5 +38,9 @@
 	"embedding" : {
 		"model": "text-embedding-ada-002",
 		"tokensPerMinute" : 10000
+	},
+	"embedding100k" : {
+		"model": "text-embedding-ada-002",
+		"tokensPerMinute" : 100000
 	}
 }
