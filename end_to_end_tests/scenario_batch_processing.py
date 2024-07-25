@@ -4,6 +4,7 @@ import logging
 import asciichartpy as asciichart
 from azure.identity import DefaultAzureCredential
 from locust import HttpUser, LoadTestShape, task, constant, events
+from locust.clients import HttpSession
 
 from common.log_analytics import (
     GroupDefinition,
@@ -29,9 +30,28 @@ test_start_time = None
 deployment_name = "embedding100k"
 
 # use short input text to validate request-based limiting, longer text to validate token-based limiting
-# TODO - split tests!
 # input_text = "This is some text to generate embeddings for
 input_text = "Lorem ipsum dolor sit amet."
+
+def make_completion_request(client: HttpSession, max_tokens: int, batch: bool):
+    extra_query_string = "&is-batch=true" if batch else ""
+    url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15{extra_query_string}"
+    payload = {
+        "input": input_text,
+        "model": "embedding",
+        "max_tokens": max_tokens,
+    }
+    try:
+        client.post(
+            url,
+            json=payload,
+            headers={
+                "ocp-apim-subscription-key": apim_subscription_one_key,
+            },
+        )
+    except Exception as e:
+        logging.error(e)
+        raise
 
 class EmbeddingUserHighTokens(HttpUser):
     """
@@ -43,24 +63,7 @@ class EmbeddingUserHighTokens(HttpUser):
 
     @task
     def get_completion(self):
-        url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15"
-        payload = {
-            "input": input_text,
-            "model": "embedding",
-            "max_tokens": 500,
-        }
-        try:
-            self.client.post(
-                url,
-                json=payload,
-                headers={
-                    "ocp-apim-subscription-key": apim_subscription_one_key,
-                },
-            )
-        except Exception as e:
-            print()
-            logging.error(e)
-            raise
+        make_completion_request(self.client, 500, False)
 
 
 class EmbeddingUserLowTokens(HttpUser):
@@ -73,24 +76,7 @@ class EmbeddingUserLowTokens(HttpUser):
 
     @task
     def get_completion(self):
-        url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15"
-        payload = {
-            "input": input_text,
-            "model": "embedding",
-            "max_tokens": 10,
-        }
-        try:
-            self.client.post(
-                url,
-                json=payload,
-                headers={
-                    "ocp-apim-subscription-key": apim_subscription_one_key,
-                },
-            )
-        except Exception as e:
-            print()
-            logging.error(e)
-            raise
+        make_completion_request(self.client, 10, False)
 
 
 class BatchEmbeddingUserHighTokens(HttpUser):
@@ -103,24 +89,7 @@ class BatchEmbeddingUserHighTokens(HttpUser):
 
     @task
     def get_completion(self):
-        url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15&is-batch=true"
-        payload = {
-            "input": input_text,
-            "model": "embedding",
-            "max_tokens": 300,
-        }
-        try:
-            self.client.post(
-                url,
-                json=payload,
-                headers={
-                    "ocp-apim-subscription-key": apim_subscription_one_key,
-                },
-            )
-        except Exception as e:
-            print()
-            logging.error(e)
-            raise
+        make_completion_request(self.client, 300, True)
 
 
 class BatchEmbeddingUserLowTokens(HttpUser):
@@ -133,24 +102,7 @@ class BatchEmbeddingUserLowTokens(HttpUser):
 
     @task
     def get_completion(self):
-        url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15&is-batch=true"
-        payload = {
-            "input": input_text,
-            "model": "embedding",
-            "max_tokens": 10,
-        }
-        try:
-            self.client.post(
-                url,
-                json=payload,
-                headers={
-                    "ocp-apim-subscription-key": apim_subscription_one_key,
-                },
-            )
-        except Exception as e:
-            print()
-            logging.error(e)
-            raise
+        make_completion_request(self.client, 10, True)
 
 class StagesShape(LoadTestShape):
     """
@@ -210,9 +162,6 @@ def on_locust_init(environment, **kwargs):
         logging.warning(
             "App Insights connection string not found - request metrics disabled"
         )
-
-    # Tweak the logging output :-)
-    # logging.getLogger("locust").setLevel(logging.WARNING)
 
 
 @events.test_start.add_listener
