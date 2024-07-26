@@ -33,6 +33,7 @@ deployment_name = "embedding"
 # input_text = "This is some text to generate embeddings for
 input_text = "Lorem ipsum dolor sit amet."
 
+
 class EmbeddingUserHighTokens(HttpUser):
     """
     EmbeddingUserHighTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM
@@ -152,6 +153,7 @@ class BatchEmbeddingUserLowTokens(HttpUser):
             logging.error(e)
             raise
 
+
 class StagesShape(LoadTestShape):
     """
     Custom LoadTestShape to simulate a spike in traffic part way through the test
@@ -162,27 +164,82 @@ class StagesShape(LoadTestShape):
     # Batch Limits - 3 RP10S, 3000 TPM
     stages = [
         # show 200s (1 RP10S, 3000 TPM)
-        {"duration": 30, "users": 1, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
+        {
+            "duration": 30,
+            "users": 1,
+            "spawn_rate": 1,
+            "user_classes": [EmbeddingUserHighTokens],
+        },
         # show 429s due to token-based rate limiting, non-batch (5 RP10S, 15000 TPM)
-        {"duration": 90, "users": 5, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
+        {
+            "duration": 90,
+            "users": 5,
+            "spawn_rate": 1,
+            "user_classes": [EmbeddingUserHighTokens],
+        },
         # ramp back down
-        {"duration": 120, "users": 0, "spawn_rate": 1, "user_classes": [EmbeddingUserHighTokens]},
+        {
+            "duration": 120,
+            "users": 0,
+            "spawn_rate": 1,
+            "user_classes": [EmbeddingUserHighTokens],
+        },
         # show 200s (1 RP10S, 60 TPM)
-        {"duration": 150, "users": 1, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
+        {
+            "duration": 150,
+            "users": 1,
+            "spawn_rate": 1,
+            "user_classes": [EmbeddingUserLowTokens],
+        },
         # show 429s due to request-based rate limiting, non-batch  (15 RP10S, 900 TPM)
-        {"duration": 210, "users": 15, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
+        {
+            "duration": 210,
+            "users": 15,
+            "spawn_rate": 1,
+            "user_classes": [EmbeddingUserLowTokens],
+        },
         # ramp back down
-        {"duration": 240, "users": 0, "spawn_rate": 1, "user_classes": [EmbeddingUserLowTokens]},
+        {
+            "duration": 240,
+            "users": 0,
+            "spawn_rate": 1,
+            "user_classes": [EmbeddingUserLowTokens],
+        },
         # show 200s (1 RP10S, 1800 TPM)
-        {"duration": 270, "users": 1, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
+        {
+            "duration": 270,
+            "users": 1,
+            "spawn_rate": 1,
+            "user_classes": [BatchEmbeddingUserHighTokens],
+        },
         # show 429s due to token-based rate limiting, batch  (2 RP10S, 3600 TPM)
-        {"duration": 330, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
+        {
+            "duration": 330,
+            "users": 2,
+            "spawn_rate": 1,
+            "user_classes": [BatchEmbeddingUserHighTokens],
+        },
         # ramp back down
-        {"duration": 360, "users": 0, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserHighTokens]},
+        {
+            "duration": 360,
+            "users": 0,
+            "spawn_rate": 1,
+            "user_classes": [BatchEmbeddingUserHighTokens],
+        },
         # show 200s (1 RP10S, 60 TPM)
-        {"duration": 390, "users": 1, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserLowTokens]},
+        {
+            "duration": 390,
+            "users": 1,
+            "spawn_rate": 1,
+            "user_classes": [BatchEmbeddingUserLowTokens],
+        },
         # show 429s due to request-based rate limiting (5 RP10S, 300 TPM)
-        {"duration": 450, "users": 5, "spawn_rate": 1, "user_classes": [BatchEmbeddingUserLowTokens]},
+        {
+            "duration": 450,
+            "users": 5,
+            "spawn_rate": 1,
+            "user_classes": [BatchEmbeddingUserLowTokens],
+        },
     ]
 
     def tick(self):
@@ -191,12 +248,17 @@ class StagesShape(LoadTestShape):
         for stage in self.stages:
             if run_time < stage["duration"]:
                 try:
-                    tick_data = (stage["users"], stage["spawn_rate"], stage["user_classes"])
+                    tick_data = (
+                        stage["users"],
+                        stage["spawn_rate"],
+                        stage["user_classes"],
+                    )
                 except:
                     tick_data = (stage["users"], stage["spawn_rate"])
                 return tick_data
 
         return None
+
 
 @events.init.add_listener
 def on_locust_init(environment, **kwargs):
@@ -354,5 +416,64 @@ ApiManagementGatewayLogs
         include_link=True,
     )
 
+    query_processor.add_query(
+        title="Total tokens",
+        query=f"""
+AppMetrics
+| where Name== "Total Tokens" and {time_range}
+| extend IsBatch = tobool(Properties["IsBatch"])
+| extend label = iif(IsBatch, "Batch", "Non-Batch")
+| summarize tokens=sum(Sum) by bin(TimeGenerated, 10s), label
+| render timechart         
+""".strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
+        is_chart=True,
+        chart_config={
+            "height": 15,
+            "min": 0,
+            "colors": [
+                asciichart.yellow,
+                asciichart.blue,
+            ],
+        },
+        group_definition=GroupDefinition(
+            id_column="TimeGenerated",
+            group_column="label",
+            value_column="tokens",
+            missing_value=float("nan"),
+        ),
+        timespan=(test_start_time, test_stop_time),
+        show_query=True,
+        include_link=True,
+    )
+
+    query_processor.add_query(
+        title="Consumed tokens",
+        query=f"""
+AppMetrics
+| where Name== "ConsumedTokens" and {time_range}
+| extend IsBatch = tobool(Properties["IsBatch"])
+| extend label = iif(IsBatch, "Batch", "Non-Batch")
+| summarize tokens=sum(Sum) by bin(TimeGenerated, 10s), label
+| render timechart         
+""".strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
+        is_chart=True,
+        chart_config={
+            "height": 15,
+            "min": 0,
+            "colors": [
+                asciichart.yellow,
+                asciichart.blue,
+            ],
+        },
+        group_definition=GroupDefinition(
+            id_column="TimeGenerated",
+            group_column="label",
+            value_column="tokens",
+            missing_value=float("nan"),
+        ),
+        timespan=(test_start_time, test_stop_time),
+        show_query=True,
+        include_link=True,
+    )
+
     query_processor.run_queries()
-    query_processor.build_batch_processing_token_metric_urls_by_is_batch(test_start_time, test_stop_time)
