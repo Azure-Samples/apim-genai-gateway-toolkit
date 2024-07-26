@@ -24,7 +24,7 @@
                             });
                             deployments.Add(new JObject()
                             {
-                                { "deployment-id", "embedding10k" },
+                                { "deployment-id", "embedding100k" },
                                 { "tpm-limit", 100000},
                                 { "batch-tpm-threshold", 30000},
                                 { "rp10s-limit", 10 },
