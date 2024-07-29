@@ -61,10 +61,17 @@
                             return deployment;
                         }
                     }
-                    // default to first deployment
-                    // TODO - what should the behaviour here be?
-                    return deployments[0];
+                    // Deployment not found
+                    return null;
                 }" />
+                <choose>
+                    <when condition="@(context.Variables["selected-deployment"] == null)">
+                        <return-response>
+                            <set-status code="404" reason="Deployment not found" />
+                            <set-body>Deployment not found</set-body>
+                        </return-response>
+                    </when>
+                </choose>
                 <set-variable name="tpm-limit" value="@{
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
                     return selectedDeployment.Value<int>("tpm-limit");
