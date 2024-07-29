@@ -182,6 +182,7 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
             // https://opentelemetry-python.readthedocs.io/en/latest/sdk/environment_variables.html#opentelemetry.sdk.environment_variables.OTEL_SERVICE_NAME
             { name: 'OTEL_SERVICE_NAME', value: apiSimulatorName }
             { name: 'OTEL_METRIC_EXPORT_INTERVAL', value: '10000' } // metric export interval in milliseconds
+            { name: 'ALLOW_UNDEFINED_OPENAI_DEPLOYMENTS', value: 'False' }
           ]
           volumeMounts: [
             {

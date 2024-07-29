@@ -106,34 +106,6 @@ def get_log_analytics_usage_tracking_token_metric_url_by_subscription_id(
     return link
 
 
-def get_log_analytics_batch_processing_token_metric_url_by_is_batch(
-    tenant_id: str,
-    subscription_id: str,
-    resource_group_name: str,
-    app_insights_name: str,
-    start_time: datetime,
-    end_time: datetime,
-):
-    """
-    Build a URL to deep link into the Azure Portal to view APIM token metrics in Log Analytics for the batch processing policy, split by presence of is-batch header.
-    """
-    # ensure start and end time are at the top of the minute so that the Azure Metrics blade can properly render the chart
-    start = start_time.isoformat()[:-12] + "000Z"
-    end = end_time.isoformat()[:-12] + "000Z"
-    time_context = {
-        "absolute": {"startTime": start, "endTime": end},
-        "showUTCTime": False,
-        "grain": 1,
-    }
-    time_context_string = json.dumps(time_context, separators=(",", ":"))
-    encoded_time_context = urllib.parse.quote(time_context_string)
-    # building and encoding the chart_definition JSON object like time_context does not work properly as nested slashes and other special characters are not encoded correctly
-    encoded_chart_definition = f"%7B%22v2charts%22%3A%5B%7B%22metrics%22%3A%5B%7B%22resourceMetadata%22%3A%7B%22id%22%3A%22%2Fsubscriptions%2F{subscription_id}%2FresourceGroups%2F{resource_group_name}%2Fproviders%2FMicrosoft.Insights%2Fcomponents%2F{app_insights_name}%22%7D%2C%22name%22%3A%22ConsumedTokens%22%2C%22aggregationType%22%3A1%2C%22namespace%22%3A%22token-usage-metrics-2%22%2C%22metricVisualization%22%3A%7B%22displayName%22%3A%22ConsumedTokens%22%2C%22resourceDisplayName%22%3A%22{app_insights_name}%22%7D%7D%5D%2C%22title%22%3A%22Sum%20ConsumedTokens%20for%20{app_insights_name}%22%2C%22titleKind%22%3A1%2C%22visualization%22%3A%7B%22chartType%22%3A2%2C%22legendVisualization%22%3A%7B%22isVisible%22%3Atrue%2C%22position%22%3A2%2C%22hideHoverCard%22%3Afalse%2C%22hideLabelNames%22%3Atrue%7D%2C%22axisVisualization%22%3A%7B%22x%22%3A%7B%22isVisible%22%3Atrue%2C%22axisType%22%3A2%7D%2C%22y%22%3A%7B%22isVisible%22%3Atrue%2C%22axisType%22%3A1%7D%7D%7D%7D%5D%7D"
-    url = f"https://portal.azure.com/#@{tenant_id}/blade/Microsoft_Azure_MonitoringMetrics/Metrics.ReactView/Referer/MetricsExplorer/ResourceId/%2Fsubscriptions%2F{subscription_id}%2FresourceGroups%2F{resource_group_name}%2Fproviders%2FMicrosoft.Insights%2Fcomponents%2F{app_insights_name}/TimeContext/{encoded_time_context}/ChartDefinition/{encoded_chart_definition}"
-    link = get_link("View Token Metrics in Log Analytics", url)
-    return link
-
-
 def get_log_analytics_portal_url(
     tenant_id: str,
     subscription_id: str,
@@ -379,24 +351,6 @@ class QueryProcessor:
         Build the url to view total token metrics over time for the usage tracking policy, split by SubscriptionID.
         """
         link = get_log_analytics_usage_tracking_token_metric_url_by_subscription_id(
-            self.__tenant_id,
-            self.__subscription_id,
-            self.__resource_group_name,
-            self.__app_insights_name,
-            start_time,
-            end_time,
-        )
-        print(link)
-        print("")
-
-    def build_batch_processing_token_metric_url_by_is_batch(
-        self, start_time, end_time
-    ):
-        """
-        Build the url to view total token metrics over time for the batch processing policy, split by presence of is-batch header.
-        """
-
-        link = get_log_analytics_batch_processing_token_metric_url_by_is_batch(
             self.__tenant_id,
             self.__subscription_id,
             self.__resource_group_name,

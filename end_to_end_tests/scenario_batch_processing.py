@@ -53,7 +53,6 @@ def make_completion_request(client: HttpSession, max_tokens: int, batch: bool):
         logging.error(e)
         raise
 
-
 class NonBatchEmbeddingUser(HttpUser):
     """
     """
@@ -74,7 +73,6 @@ class NonBatchHighTokenEmbeddingUser(HttpUser):
     def get_completion_non_batch(self):
         make_completion_request(self.client, 1000, False)
 
-
 class BatchEmbeddingUser(HttpUser):
     """
     """
@@ -84,7 +82,6 @@ class BatchEmbeddingUser(HttpUser):
     @task
     def get_completion_batch(self):
         make_completion_request(self.client, 200, True)
-
 
 class MixedEmbeddingUser(HttpUser):
     """
@@ -137,7 +134,11 @@ class StagesShape(LoadTestShape):
         for stage in self.stages:
             if run_time < stage["duration"]:
                 try:
-                    tick_data = (stage["users"], stage["spawn_rate"], stage["user_classes"])
+                    tick_data = (
+                        stage["users"],
+                        stage["spawn_rate"],
+                        stage["user_classes"],
+                    )
                 except:
                     tick_data = (stage["users"], stage["spawn_rate"])
                 return tick_data
@@ -157,7 +158,6 @@ def on_locust_init(environment, **kwargs):
             "App Insights connection string not found - request metrics disabled"
         )
 
-
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
     """
@@ -172,7 +172,6 @@ def on_test_start(environment, **kwargs):
 
     logging.info("👟 Test setup done")
     logging.info("🚀 Running test...")
-
 
 @events.test_stop.add_listener
 def on_test_stop(environment, **kwargs):
@@ -297,5 +296,34 @@ ApiManagementGatewayLogs
         include_link=True,
     )
 
+    query_processor.add_query(
+        title="Consumed tokens",
+        query=f"""
+AppMetrics
+| where Name== "ConsumedTokens" and {time_range}
+| extend IsBatch = tobool(Properties["IsBatch"])
+| extend label = iif(IsBatch, "Batch", "Non-Batch")
+| summarize tokens=sum(Sum) by bin(TimeGenerated, 10s), label
+| render timechart         
+""".strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
+        is_chart=True,
+        chart_config={
+            "height": 15,
+            "min": 0,
+            "colors": [
+                asciichart.yellow,
+                asciichart.blue,
+            ],
+        },
+        group_definition=GroupDefinition(
+            id_column="TimeGenerated",
+            group_column="label",
+            value_column="tokens",
+            missing_value=float("nan"),
+        ),
+        timespan=(test_start_time, test_stop_time),
+        show_query=True,
+        include_link=True,
+    )
+
     query_processor.run_queries()
-    query_processor.build_batch_processing_token_metric_url_by_is_batch(test_start_time, test_stop_time)
