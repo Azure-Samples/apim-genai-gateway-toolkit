@@ -6,6 +6,7 @@
         <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
         <choose>
             <when condition="@(context.Variables.ContainsKey("list-deployments") == false)">
+                <!-- when remaining tokens/requests goes under the batch threshold, batch requests are disallowed  -->
                 <set-variable name="list-deployments" value="@{
                     JArray deployments = new JArray();
                     deployments.Add(new JObject()
@@ -128,9 +129,6 @@
             </when>
         </choose>
         <!-- emit token metrics for e2e test validation -->
-        <azure-openai-emit-token-metric namespace="token-usage-metrics" >
-            <dimension name="IsBatch" value="@(context.Variables["is-batch"].ToString())" />
-        </azure-openai-emit-token-metric>
         <emit-metric name="ConsumedTokens" value="@((double)(int)context.Variables["consumed-tokens"])" namespace="token-usage-metrics-2" />
     </inbound>
     <backend>

@@ -62,7 +62,7 @@ class NonBatchEmbeddingUser(HttpUser):
 
     @task
     def get_completion_non_batch(self):
-        make_completion_request(self.client, 1000, False)
+        make_completion_request(self.client, 200, False)
 
 
 class BatchEmbeddingUser(HttpUser):
@@ -73,7 +73,7 @@ class BatchEmbeddingUser(HttpUser):
 
     @task
     def get_completion_batch(self):
-        make_completion_request(self.client, 1000, True)
+        make_completion_request(self.client, 200, True)
 
 
 class MixedEmbeddingUser(HttpUser):
@@ -84,11 +84,11 @@ class MixedEmbeddingUser(HttpUser):
 
     @task
     def get_completion_non_batch(self):
-        make_completion_request(self.client, 1000, False)
+        make_completion_request(self.client, 200, False)
 
     @task
     def get_completion(self):
-        make_completion_request(self.client, 1000, True)
+        make_completion_request(self.client, 200, True)
 
 class StagesShape(LoadTestShape):
     """
@@ -97,19 +97,24 @@ class StagesShape(LoadTestShape):
 
     # See https://docs.locust.io/en/stable/custom-load-shape.html
     stages = [
-        # Limits: 100000 TPM and 100 RP10S
-        # 20 RP10S, 20000 TPM (show 200s for interactive requests)
+        # Total Limits: 100000 TPM and 100 RP10S
+        # Batch Threshold: 30000 TPM and 30 RP10S
+        # 20 RP10S, 24000 TPM (show 200s for interactive requests)
         {"duration": 60, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
-        # 120 RP10S, 120000 TPM (show 429s for interactive requests)
+        # 120 RP10S, 144000 TPM (show 429s for interactive requests)
         {"duration": 120, "users": 12, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
-        # 20 RP10S, 20000 TPM (show 200s for interactive requests)
+        # 20 RP10S, 24000 TPM (show 200s for interactive requests)
         {"duration": 180, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
-        # 50 RP10S, 50000 TPM (show 200s for both interactive and batch requests)
-        {"duration": 240, "users": 5, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
-        # 90 RP10S, 90000 TPM (show 200s for interactive requests and 429s for batch requests)
-        {"duration": 300, "users": 12, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
-        # 50 RP10S, 50000 TPM (show 200s for batch requests)
-        {"duration": 360, "users": 5, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
+        # scale back down to 0 users
+        {"duration": 190, "users": 0, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # 50 RP10S, 60000 TPM (show 200s for both interactive and batch requests)
+        {"duration": 250, "users": 5, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        # 120 RP10S, 144000 TPM (show 200s for interactive requests and 429s for batch requests)
+        {"duration": 310, "users": 12, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        # scale back down to 0 users
+        {"duration": 320, "users": 0, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        # 20 RP10S, 24000 TPM (show 200s for batch requests)
+        {"duration": 380, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
     ]
 
     def tick(self):
@@ -254,7 +259,7 @@ ApiManagementGatewayLogs
 | summarize request_count = count() by bin(TimeGenerated, 10s), label
 | project TimeGenerated, request_count, label
 | order by TimeGenerated asc
-| render timechart
+| render areachart
 """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
         chart_config={
@@ -279,4 +284,4 @@ ApiManagementGatewayLogs
     )
 
     query_processor.run_queries()
-    query_processor.build_batch_processing_token_metric_urls_by_is_batch(test_start_time, test_stop_time)
+    query_processor.build_batch_processing_token_metric_url_by_is_batch(test_start_time, test_stop_time)
