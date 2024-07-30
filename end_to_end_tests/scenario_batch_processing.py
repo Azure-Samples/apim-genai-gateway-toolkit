@@ -123,9 +123,9 @@ class StagesShape(LoadTestShape):
         # 120 RP10S, 144000 TPM (show 200s for interactive requests and 429s for batch requests)
         {"duration": 370, "users": 12, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
         # scale back down to 0 users
-        {"duration": 380, "users": 0, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        {"duration": 390, "users": 0, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
         # 20 RP10S, 24000 TPM (show 200s for batch requests)
-        {"duration": 440, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
+        {"duration": 450, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
     ]
 
     def tick(self):
