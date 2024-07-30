@@ -114,8 +114,8 @@ class StagesShape(LoadTestShape):
         {"duration": 180, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
         # scale back down to 0 users
         {"duration": 190, "users": 0, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
-        # 20 RP10S, 120000 TPM (show 429s for interactive requests due to tpm limit)
-        {"duration": 250, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchHighTokenEmbeddingUser]},
+        # 30 RP10S, 180000 TPM (show 429s for interactive requests due to tpm limit)
+        {"duration": 250, "users": 3, "spawn_rate": 1, "user_classes": [NonBatchHighTokenEmbeddingUser]},
         # scale back down to 0 users
         {"duration": 260, "users": 0, "spawn_rate": 1, "user_classes": [NonBatchHighTokenEmbeddingUser]},
         # 50 RP10S, 60000 TPM (show 200s for both interactive and batch requests)
