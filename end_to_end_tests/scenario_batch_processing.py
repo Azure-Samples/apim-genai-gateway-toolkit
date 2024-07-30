@@ -4,6 +4,7 @@ import logging
 import asciichartpy as asciichart
 from azure.identity import DefaultAzureCredential
 from locust import HttpUser, LoadTestShape, task, constant, events
+from locust.clients import HttpSession
 
 from common.log_analytics import (
     GroupDefinition,
@@ -26,133 +27,75 @@ from common.config import (
 )
 
 test_start_time = None
-deployment_name = "embedding"
+deployment_name = "embedding100k"
 
 # use short input text to validate request-based limiting, longer text to validate token-based limiting
-# TODO - split tests!
 # input_text = "This is some text to generate embeddings for
 input_text = "Lorem ipsum dolor sit amet."
 
+def make_completion_request(client: HttpSession, max_tokens: int, batch: bool):
+    extra_query_string = "&is-batch=true" if batch else ""
+    url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15{extra_query_string}"
+    payload = {
+        "input": input_text,
+        "model": "embedding",
+        "max_tokens": max_tokens,
+    }
+    try:
+        client.post(
+            url,
+            json=payload,
+            headers={
+                "ocp-apim-subscription-key": apim_subscription_one_key,
+            },
+        )
+    except Exception as e:
+        logging.error(e)
+        raise
 
-class EmbeddingUserHighTokens(HttpUser):
+class NonBatchEmbeddingUser(HttpUser):
     """
-    EmbeddingUserHighTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM
-    EmbeddingUserHighTokens will be throttled by the token-based rate limit applied by APIM
     """
 
-    wait_time = constant(10)  # wait 10 seconds between requests
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_non_batch(self):
+        make_completion_request(self.client, 200, False)
+
+class NonBatchHighTokenEmbeddingUser(HttpUser):
+    """
+    """
+
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_non_batch(self):
+        make_completion_request(self.client, 1000, False)
+
+class BatchEmbeddingUser(HttpUser):
+    """
+    """
+
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_batch(self):
+        make_completion_request(self.client, 200, True)
+
+class MixedEmbeddingUser(HttpUser):
+    """
+    """
+
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_non_batch(self):
+        make_completion_request(self.client, 200, False)
 
     @task
     def get_completion(self):
-        url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15"
-        payload = {
-            "input": input_text,
-            "model": "embedding",
-            "max_tokens": 500,
-        }
-        try:
-            self.client.post(
-                url,
-                json=payload,
-                headers={
-                    "ocp-apim-subscription-key": apim_subscription_one_key,
-                },
-            )
-        except Exception as e:
-            print()
-            logging.error(e)
-            raise
-
-
-class EmbeddingUserLowTokens(HttpUser):
-    """
-    EmbeddingUserLowTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM
-    EmbeddingUserLowTokens will be throttled by the request-based rate limit applied by APIM
-    """
-
-    wait_time = constant(10)  # wait 10 seconds between requests
-
-    @task
-    def get_completion(self):
-        url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15"
-        payload = {
-            "input": input_text,
-            "model": "embedding",
-            "max_tokens": 10,
-        }
-        try:
-            self.client.post(
-                url,
-                json=payload,
-                headers={
-                    "ocp-apim-subscription-key": apim_subscription_one_key,
-                },
-            )
-        except Exception as e:
-            print()
-            logging.error(e)
-            raise
-
-
-class BatchEmbeddingUserHighTokens(HttpUser):
-    """
-    BatchEmbeddingUserHighTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM and sets the is-batch query string value
-    BatchEmbeddingUserHighTokens will be throttled by the token-based rate limit applied by APIM
-    """
-
-    wait_time = constant(10)  # wait 10 seconds between requests
-
-    @task
-    def get_completion(self):
-        url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15&is-batch=true"
-        payload = {
-            "input": input_text,
-            "model": "embedding",
-            "max_tokens": 300,
-        }
-        try:
-            self.client.post(
-                url,
-                json=payload,
-                headers={
-                    "ocp-apim-subscription-key": apim_subscription_one_key,
-                },
-            )
-        except Exception as e:
-            print()
-            logging.error(e)
-            raise
-
-
-class BatchEmbeddingUserLowTokens(HttpUser):
-    """
-    BatchEmbeddingUserLowTokens makes calls to the OpenAI Embeddings endpoint to show traffic via APIM and sets the is-batch query string value
-    BatchEmbeddingUserLowTokens will be throttled by the request-based rate limit applied by APIM
-    """
-
-    wait_time = constant(10)  # wait 10 seconds between requests
-
-    @task
-    def get_completion(self):
-        url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15&is-batch=true"
-        payload = {
-            "input": input_text,
-            "model": "embedding",
-            "max_tokens": 10,
-        }
-        try:
-            self.client.post(
-                url,
-                json=payload,
-                headers={
-                    "ocp-apim-subscription-key": apim_subscription_one_key,
-                },
-            )
-        except Exception as e:
-            print()
-            logging.error(e)
-            raise
-
+        make_completion_request(self.client, 200, True)
 
 class StagesShape(LoadTestShape):
     """
@@ -160,86 +103,29 @@ class StagesShape(LoadTestShape):
     """
 
     # See https://docs.locust.io/en/stable/custom-load-shape.html
-    # Non-Batch Limits - 10 RP10S, 10000 TPM
-    # Batch Limits - 3 RP10S, 3000 TPM
     stages = [
-        # show 200s (1 RP10S, 3000 TPM)
-        {
-            "duration": 30,
-            "users": 1,
-            "spawn_rate": 1,
-            "user_classes": [EmbeddingUserHighTokens],
-        },
-        # show 429s due to token-based rate limiting, non-batch (5 RP10S, 15000 TPM)
-        {
-            "duration": 90,
-            "users": 5,
-            "spawn_rate": 1,
-            "user_classes": [EmbeddingUserHighTokens],
-        },
-        # ramp back down
-        {
-            "duration": 120,
-            "users": 0,
-            "spawn_rate": 1,
-            "user_classes": [EmbeddingUserHighTokens],
-        },
-        # show 200s (1 RP10S, 60 TPM)
-        {
-            "duration": 150,
-            "users": 1,
-            "spawn_rate": 1,
-            "user_classes": [EmbeddingUserLowTokens],
-        },
-        # show 429s due to request-based rate limiting, non-batch  (15 RP10S, 900 TPM)
-        {
-            "duration": 210,
-            "users": 15,
-            "spawn_rate": 1,
-            "user_classes": [EmbeddingUserLowTokens],
-        },
-        # ramp back down
-        {
-            "duration": 240,
-            "users": 0,
-            "spawn_rate": 1,
-            "user_classes": [EmbeddingUserLowTokens],
-        },
-        # show 200s (1 RP10S, 1800 TPM)
-        {
-            "duration": 270,
-            "users": 1,
-            "spawn_rate": 1,
-            "user_classes": [BatchEmbeddingUserHighTokens],
-        },
-        # show 429s due to token-based rate limiting, batch  (2 RP10S, 3600 TPM)
-        {
-            "duration": 330,
-            "users": 2,
-            "spawn_rate": 1,
-            "user_classes": [BatchEmbeddingUserHighTokens],
-        },
-        # ramp back down
-        {
-            "duration": 360,
-            "users": 0,
-            "spawn_rate": 1,
-            "user_classes": [BatchEmbeddingUserHighTokens],
-        },
-        # show 200s (1 RP10S, 60 TPM)
-        {
-            "duration": 390,
-            "users": 1,
-            "spawn_rate": 1,
-            "user_classes": [BatchEmbeddingUserLowTokens],
-        },
-        # show 429s due to request-based rate limiting (5 RP10S, 300 TPM)
-        {
-            "duration": 450,
-            "users": 5,
-            "spawn_rate": 1,
-            "user_classes": [BatchEmbeddingUserLowTokens],
-        },
+        # Total Limits: 100000 TPM and 100 RP10S
+        # Batch Threshold: 30000 TPM and 30 RP10S
+        # 20 RP10S, 24000 TPM (show 200s for interactive requests)
+        {"duration": 60, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # 120 RP10S, 144000 TPM (show 429s for interactive requests due to rp10s limit)
+        {"duration": 120, "users": 12, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # 20 RP10S, 24000 TPM (show 200s for interactive requests)
+        {"duration": 180, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # scale back down to 0 users
+        {"duration": 190, "users": 0, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # 30 RP10S, 180000 TPM (show 429s for interactive requests due to tpm limit)
+        {"duration": 250, "users": 3, "spawn_rate": 1, "user_classes": [NonBatchHighTokenEmbeddingUser]},
+        # scale back down to 0 users
+        {"duration": 260, "users": 0, "spawn_rate": 1, "user_classes": [NonBatchHighTokenEmbeddingUser]},
+        # 50 RP10S, 60000 TPM (show 200s for both interactive and batch requests)
+        {"duration": 320, "users": 5, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        # 120 RP10S, 144000 TPM (show 200s for interactive requests and 429s for batch requests)
+        {"duration": 370, "users": 12, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        # scale back down to 0 users
+        {"duration": 390, "users": 0, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        # 20 RP10S, 24000 TPM (show 200s for batch requests)
+        {"duration": 450, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
     ]
 
     def tick(self):
@@ -259,7 +145,6 @@ class StagesShape(LoadTestShape):
 
         return None
 
-
 @events.init.add_listener
 def on_locust_init(environment, **kwargs):
     """
@@ -272,10 +157,6 @@ def on_locust_init(environment, **kwargs):
         logging.warning(
             "App Insights connection string not found - request metrics disabled"
         )
-
-    # Tweak the logging output :-)
-    # logging.getLogger("locust").setLevel(logging.WARNING)
-
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
@@ -291,7 +172,6 @@ def on_test_start(environment, **kwargs):
 
     logging.info("👟 Test setup done")
     logging.info("🚀 Running test...")
-
 
 @events.test_stop.add_listener
 def on_test_stop(environment, **kwargs):
@@ -392,7 +272,7 @@ ApiManagementGatewayLogs
 | summarize request_count = count() by bin(TimeGenerated, 10s), label
 | project TimeGenerated, request_count, label
 | order by TimeGenerated asc
-| render timechart
+| render areachart
 """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
         chart_config={
@@ -409,36 +289,6 @@ ApiManagementGatewayLogs
             id_column="TimeGenerated",
             group_column="label",
             value_column="request_count",
-            missing_value=float("nan"),
-        ),
-        timespan=(test_start_time, test_stop_time),
-        show_query=True,
-        include_link=True,
-    )
-
-    query_processor.add_query(
-        title="Total tokens",
-        query=f"""
-AppMetrics
-| where Name== "Total Tokens" and {time_range}
-| extend IsBatch = tobool(Properties["IsBatch"])
-| extend label = iif(IsBatch, "Batch", "Non-Batch")
-| summarize tokens=sum(Sum) by bin(TimeGenerated, 10s), label
-| render timechart         
-""".strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
-        is_chart=True,
-        chart_config={
-            "height": 15,
-            "min": 0,
-            "colors": [
-                asciichart.yellow,
-                asciichart.blue,
-            ],
-        },
-        group_definition=GroupDefinition(
-            id_column="TimeGenerated",
-            group_column="label",
-            value_column="tokens",
             missing_value=float("nan"),
         ),
         timespan=(test_start_time, test_stop_time),

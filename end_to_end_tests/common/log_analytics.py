@@ -77,7 +77,6 @@ class Table:
 
         return Table(rows=rows, columns=new_columns)
 
-
 def get_log_analytics_portal_url(
     tenant_id: str,
     subscription_id: str,
