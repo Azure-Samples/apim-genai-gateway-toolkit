@@ -16,34 +16,30 @@
                             JArray deployments = new JArray();
                             deployments.Add(new JObject()
                             {
-                                { "deployment-id", "embedding" },
-                                { "tpm-limit", 10000},
-                                { "batch-tpm-threshold", 3000},
-                                { "rp10s-limit", 10 },
+                                { "deployment-id", "embedding100k" },
+                                // embedding100k has a 100,000 TPM limit
+                                // Set batch-tpm-threshold to 30,000 to reserve 30,000 TPM for non-batch requests
+                                // 100,000 TPM  = 6/1000 * 100,000 = 600 RPM
+                                //              = 10 RP10S (requests per 10 seconds)
+                                { "batch-tpm-threshold", 30000},
                                 { "batch-rp10s-threshold", 3},
                             });
                             deployments.Add(new JObject()
                             {
-                                { "deployment-id", "embedding100k" },
-                                { "tpm-limit", 100000},
-                                { "batch-tpm-threshold", 30000},
-                                { "rp10s-limit", 10 },
+                                { "deployment-id", "embedding" },
+                                { "batch-tpm-threshold", 3000},
                                 { "batch-rp10s-threshold", 3},
                             });
                             deployments.Add(new JObject()
                             {
                                 { "deployment-id", "gpt-35-turbo-10k-token" },
-                                { "tpm-limit", 10000},
                                 { "batch-tpm-threshold", 3000},
-                                { "rp10s-limit", 10 },
                                 { "batch-rp10s-threshold", 3},
                             });
                             deployments.Add(new JObject()
                             {
                                 { "deployment-id", "gpt-35-turbo-20k-token" },
-                                { "tpm-limit", 20000},
                                 { "batch-tpm-threshold", 3000},
-                                { "rp10s-limit", 10 },
                                 { "batch-rp10s-threshold", 3},
                             });
                             return deployments;   
@@ -72,25 +68,51 @@
                         </return-response>
                     </when>
                 </choose>
-                <set-variable name="tpm-limit" value="@{
+                <set-variable name="batch-rp10s-threshold" value="@{
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
-                    return selectedDeployment.Value<int>("tpm-limit");
+                    return selectedDeployment.Value<int>("batch-rp10s-threshold");
                 }" />
                 <set-variable name="batch-tpm-threshold" value="@{
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
                     return selectedDeployment.Value<int>("batch-tpm-threshold");
                 }" />
+                <!-- Lookup the last tokens-remaining/requests-remaining values -->
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" default-value="@(-1)" variable-name="tokens-remaining" />
-                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["tokens-remaining"])" namespace="batch-processing-alt1" />
+                <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|requests-remaining")" default-value="@(-1)" variable-name="requests-remaining" />
+                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["tokens-remaining"])" namespace="batch-processing-alt1">
+                    <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
+                </emit-metric>
+                <!-- Test whether or not to allow the batch request through to the backend -->
                 <choose>
                     <when condition="@(((int)context.Variables["tokens-remaining"] != -1) && ((int)context.Variables["tokens-remaining"]) < ((int)context.Variables["batch-tpm-threshold"]) )">
+                        <set-variable name="batch-threshold-reason" value="tokens" />
                         <return-response>
-                            <set-status code="418" reason="Tokens below batch threshold for deployment" />
+                            <set-status code="429" reason="Tokens below batch threshold for deployment" />
+                            <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                <value>tokens-below-batch-threshold</value>
+                            </set-header>
+                            <!-- return the current value in the logs - useful for validation/debugging -->
+                            <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                <value>@(((int)context.Variables["tokens-remaining"]).ToString())</value>
+                            </set-header>
                             <set-body>Batch rate-limiting triggered by token usage</set-body>
                         </return-response>
                     </when>
+                    <when condition="@(((int)context.Variables["requests-remaining"] != -1) && ((int)context.Variables["requests-remaining"]) < ((int)context.Variables["batch-rp10s-threshold"]) )">
+                        <set-variable name="batch-threshold-reason" value="tokens" />
+                        <return-response>
+                            <set-status code="429" reason="Requests below batch threshold for deployment" />
+                            <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                <value>requests-below-batch-threshold</value>
+                            </set-header>
+                            <!-- return the current value in the logs - useful for validation/debugging -->
+                            <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                <value>@(((int)context.Variables["requests-remaining"]).ToString())</value>
+                            </set-header>
+                            <set-body>Batch rate-limiting triggered by requests usage</set-body>
+                        </return-response>
+                    </when>
                 </choose>
-                <!-- TODO RP10S limiting -->
             </when>
         </choose>
     </inbound>
@@ -99,12 +121,48 @@
     </backend>
     <outbound>
         <base />
-        <!-- store remaining tokens value for 60 seconds
-             it will expire after than and we default back to full quota
-             TODO: also store the time. Q: how do we use the time to determine the validity of the tokens-remaining value? -->
-        <!-- default to 0 here: if we get a 429 response back from the backend then we're out of requests
-             but the header doesn't exist -->
-        <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-tokens","0")))" duration="60" />
+        <!-- Update the remaining tokens/requests count for the deployment -->
+        <set-variable name="tokens-remaining" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-tokens","0")))" />
+        <set-variable name="requests-remaining" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-requests","0")))" />
+        <choose>
+            <when condition="@(context.Response.StatusCode == 200)">
+                <!-- store the tokens-remaining value for up to 60 seconds -->
+                <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-tokens","0")))" duration="60" />
+                <!-- store the requests-remaining value for up to 10 seconds -->
+                <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|requests-remaining")" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-requests","0")))" duration="10" />
+            </when>
+            <when condition="@(context.Response.StatusCode == 429)">
+                <!-- Determine whether the rate-limit was for tokens or requests-->
+                <set-variable name="tokens-reset" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-reset-tokens","-1337")))" />
+                <set-variable name="requests-reset" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-reset-requests","-1337")))" />
+                <choose>
+                    <when condition="@((int)context.Variables["tokens-reset"]>0)">
+                        <!-- no tokens remaining for the next tokens-reset seconds -->
+                        <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" value="@(0)" duration="@((int)context.Variables["tokens-reset"])" />
+                    </when>
+                    <when condition="@((int)context.Variables["requests-reset"]>0)">
+                        <!-- no requests remaining for the next requests-reset seconds -->
+                        <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|requests-remaining")" value="@(0)" duration="@((int)context.Variables["requests-reset"])" />
+                    </when>
+                    <otherwise>
+                        <return-response>
+                            <set-status code="500" reason="@("Unexpected response headers: Got tokens-reset=" + context.Variables["tokens-reset"] + ", requests-reset=" + context.Variables["requests-reset"])" />
+                            <set-body>Expected to get one of x-ratelimit-remaining-requests or x-ratelimit-remaining-tokens in response headers for a 429 response</set-body>
+                        </return-response>
+                    </otherwise>
+                </choose>
+            </when>
+        </choose>
+        <!-- get latest remaining tokens/requests values and return in headers -->
+        <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" default-value="@(-1)" variable-name="tokens-remaining" />
+        <set-header name="x-gw-remaining-tokens" exists-action="override">
+            <value>@(((int)context.Variables["tokens-remaining"]).ToString())</value>
+        </set-header>
+        <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|requests-remaining")" default-value="@(-1)" variable-name="requests-remaining" />
+        <set-header name="x-gw-remaining-requests" exists-action="override">
+            <value>@(((int)context.Variables["requests-remaining"]).ToString())</value>
+        </set-header>
+
     </outbound>
     <on-error>
         <base />

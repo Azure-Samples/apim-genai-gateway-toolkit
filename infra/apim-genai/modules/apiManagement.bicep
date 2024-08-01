@@ -719,6 +719,37 @@ resource allApisAzureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnos
   name: 'azuremonitor'
   properties: {
     loggerId: azureMonitorLogger.id
+    metrics: true
+    verbosity: 'information'
+    logClientIp: false
+    sampling: {
+      percentage: 100
+      samplingType: 'fixed'
+    }
+    frontend: {
+      request: {
+        headers: [
+          'x-batch'
+        ]
+      }
+      response: {
+        headers: [
+          'x-gw-ratelimit-reason'
+        ]
+      }
+    }
+    backend: {
+      request: {
+        headers: [
+          'x-batch'
+        ]
+      }
+      response: {
+        headers: [
+          'x-gw-ratelimit-reason'
+        ]
+      }
+    }
   }
 }
 
@@ -726,7 +757,7 @@ resource azureOpenAIUsageTrackingAPIDiagnostics 'Microsoft.ApiManagement/service
   parent: azureOpenAIUsageTrackingAPI
   name: 'applicationinsights'
   properties: {
-    loggerId: appInsightsLogger.id  
+    loggerId: appInsightsLogger.id
     metrics: true
   }
 }
@@ -735,8 +766,9 @@ resource azureOpenAIBatchProcessingAPIDiagnostics 'Microsoft.ApiManagement/servi
   parent: azureOpenAIBatchProcessingAPI
   name: 'applicationinsights'
   properties: {
-    loggerId: appInsightsLogger.id  
+    loggerId: appInsightsLogger.id
     metrics: true
+    
   }
 }
 
