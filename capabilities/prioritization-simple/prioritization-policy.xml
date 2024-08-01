@@ -4,17 +4,17 @@
         <set-backend-service backend-id="payg-backend-1" />
         <!-- apply threshold checks to batch - always allow non-batch through -->
         <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
-        <set-variable name="is-batch" value="@{
-            if (context.Request.Url.Query.GetValueOrDefault("is-batch", "") == "true"){
+        <set-variable name="low-priority" value="@{
+            if (context.Request.Url.Query.GetValueOrDefault("priority", "") == "low"){
                 return true;
             }
-            if (context.Request.Headers.GetValueOrDefault("x-is-batch", "") == "true"){
+            if (context.Request.Headers.GetValueOrDefault("x-priority", "") == "low"){
                 return true;
             }
             return false;
             }" />
         <choose>
-            <when condition="@((bool)context.Variables["is-batch"])">
+            <when condition="@((bool)context.Variables["low-priority"])">
                 <!-- get the configuration for the model deployment -->
                 <!-- TODO is this a good candidate for a fragment? -->
                 <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
@@ -26,29 +26,29 @@
                             {
                                 { "deployment-id", "embedding100k" },
                                 // embedding100k has a 100,000 TPM limit
-                                // Set batch-tpm-threshold to 30,000 to reserve 30,000 TPM for non-batch requests
+                                // Set low-priority-tpm-threshold to 30,000 to reserve 30,000 TPM for high priority requests
                                 // 100,000 TPM  = 6/1000 * 100,000 = 600 RPM
                                 //              = 10 RP10S (requests per 10 seconds)
-                                { "batch-tpm-threshold", 30000},
-                                { "batch-rp10s-threshold", 3},
+                                { "low-priority-tpm-threshold", 30000},
+                                { "low-priority-rp10s-threshold", 3},
                             });
                             deployments.Add(new JObject()
                             {
                                 { "deployment-id", "embedding" },
-                                { "batch-tpm-threshold", 3000},
-                                { "batch-rp10s-threshold", 3},
+                                { "low-priority-tpm-threshold", 3000},
+                                { "low-priority-rp10s-threshold", 3},
                             });
                             deployments.Add(new JObject()
                             {
                                 { "deployment-id", "gpt-35-turbo-10k-token" },
-                                { "batch-tpm-threshold", 3000},
-                                { "batch-rp10s-threshold", 3},
+                                { "low-priority-tpm-threshold", 3000},
+                                { "low-priority-rp10s-threshold", 3},
                             });
                             deployments.Add(new JObject()
                             {
                                 { "deployment-id", "gpt-35-turbo-20k-token" },
-                                { "batch-tpm-threshold", 3000},
-                                { "batch-rp10s-threshold", 3},
+                                { "low-priority-tpm-threshold", 3000},
+                                { "low-priority-rp10s-threshold", 3},
                             });
                             return deployments;   
                         }" />
@@ -76,48 +76,48 @@
                         </return-response>
                     </when>
                 </choose>
-                <set-variable name="batch-rp10s-threshold" value="@{
+                <set-variable name="low-priority-rp10s-threshold" value="@{
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
-                    return selectedDeployment.Value<int>("batch-rp10s-threshold");
+                    return selectedDeployment.Value<int>("low-priority-rp10s-threshold");
                 }" />
-                <set-variable name="batch-tpm-threshold" value="@{
+                <set-variable name="low-priority-tpm-threshold" value="@{
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
-                    return selectedDeployment.Value<int>("batch-tpm-threshold");
+                    return selectedDeployment.Value<int>("low-priority-tpm-threshold");
                 }" />
                 <!-- Lookup the last tokens-remaining/requests-remaining values -->
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" default-value="@(-1)" variable-name="tokens-remaining" />
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|requests-remaining")" default-value="@(-1)" variable-name="requests-remaining" />
-                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["tokens-remaining"])" namespace="batch-processing-simple">
+                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["tokens-remaining"])" namespace="priority-processing-simple">
                     <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
                 </emit-metric>
-                <!-- Test whether or not to allow the batch request through to the backend -->
+                <!-- Test whether or not to allow the low-priority request through to the backend -->
                 <choose>
-                    <when condition="@(((int)context.Variables["tokens-remaining"] != -1) && ((int)context.Variables["tokens-remaining"]) < ((int)context.Variables["batch-tpm-threshold"]) )">
-                        <set-variable name="batch-threshold-reason" value="tokens" />
+                    <when condition="@(((int)context.Variables["tokens-remaining"] != -1) && ((int)context.Variables["tokens-remaining"]) < ((int)context.Variables["low-priority-tpm-threshold"]) )">
+                        <set-variable name="low-priority-threshold-reason" value="tokens" />
                         <return-response>
-                            <set-status code="429" reason="Tokens below batch threshold for deployment" />
+                            <set-status code="429" reason="Tokens below low-priority threshold for deployment" />
                             <set-header name="x-gw-ratelimit-reason" exists-action="override">
-                                <value>tokens-below-batch-threshold</value>
+                                <value>tokens-below-low-priority-threshold</value>
                             </set-header>
                             <!-- return the current value in the logs - useful for validation/debugging -->
                             <set-header name="x-gw-ratelimit-value" exists-action="override">
                                 <value>@(((int)context.Variables["tokens-remaining"]).ToString())</value>
                             </set-header>
-                            <set-body>Batch rate-limiting triggered by token usage</set-body>
+                            <set-body>Low priority rate-limiting triggered by token usage</set-body>
                         </return-response>
                     </when>
-                    <when condition="@(((int)context.Variables["requests-remaining"] != -1) && ((int)context.Variables["requests-remaining"]) < ((int)context.Variables["batch-rp10s-threshold"]) )">
-                        <set-variable name="batch-threshold-reason" value="tokens" />
+                    <when condition="@(((int)context.Variables["requests-remaining"] != -1) && ((int)context.Variables["requests-remaining"]) < ((int)context.Variables["low-priority-rp10s-threshold"]) )">
+                        <set-variable name="low-priority-threshold-reason" value="tokens" />
                         <return-response>
-                            <set-status code="429" reason="Requests below batch threshold for deployment" />
+                            <set-status code="429" reason="Requests below low-priority threshold for deployment" />
                             <set-header name="x-gw-ratelimit-reason" exists-action="override">
-                                <value>requests-below-batch-threshold</value>
+                                <value>requests-below-low-priority-threshold</value>
                             </set-header>
                             <!-- return the current value in the logs - useful for validation/debugging -->
                             <set-header name="x-gw-ratelimit-value" exists-action="override">
                                 <value>@(((int)context.Variables["requests-remaining"]).ToString())</value>
                             </set-header>
-                            <set-body>Batch rate-limiting triggered by requests usage</set-body>
+                            <set-body>Low priority rate-limiting triggered by requests usage</set-body>
                         </return-response>
                     </when>
                 </choose>

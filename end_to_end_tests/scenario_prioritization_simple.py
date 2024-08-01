@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, UTC
 import logging
+import os
 
 import asciichartpy as asciichart
 from azure.identity import DefaultAzureCredential
@@ -26,8 +27,14 @@ from common.config import (
     log_analytics_workspace_name,
 )
 
+load_pattern = os.getenv("LOAD_PATTERN", "cycle")
+
 test_start_time = None
 deployment_name = "embedding100k"
+
+
+print(f"Load pattern: {load_pattern}")
+print(f"Deployment name: {deployment_name}")
 
 
 histogram_request_result = metrics.get_meter(__name__).create_histogram(
@@ -54,26 +61,29 @@ input_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do ei
 
 
 # TODO - use env var to request type (embeddings vs chat vs streaming chat)
-def make_request(client: HttpSession, batch: bool):
+def make_request(client: HttpSession, low_priority: bool):
     url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15"
     payload = {
         "input": input_text,
         "model": "embedding",
     }
     try:
+        headers = {
+            "ocp-apim-subscription-key": apim_subscription_one_key,
+        }
+        if low_priority:
+            headers["x-priority"] = "low"
+
         r = client.post(
             url,
             json=payload,
-            headers={
-                "ocp-apim-subscription-key": apim_subscription_one_key,
-                "x-is-batch": "true" if batch else "false",
-            },
+            headers=headers,
         )
         histogram_request_result.record(
             1,
             {
                 "status_code": str(r.status_code),
-                "batch": str(batch),
+                "priority": "low" if low_priority else "high",
                 "reason": r.reason,
             },
         )
@@ -84,97 +94,108 @@ def make_request(client: HttpSession, batch: bool):
         raise
 
 
-class NonBatchUser(HttpUser):
+class HighPriorityUser(HttpUser):
     """
-    NonBatchUser makes calls to the OpenAI endpoint to show traffic via APIM
+    HighPriorityUser makes calls to the OpenAI endpoint to show traffic via APIM
     """
 
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def make_request_non_batch(self):
+    def make_request_high_priority(self):
         make_request(self.client, False)
 
 
-class BatchUser(HttpUser):
+class LowPriorityUser(HttpUser):
     """
-    BatchUser makes calls to the OpenAI endpoint to show traffic via APIM and sets the is-batch query string value
+    LowPriorityUser makes calls to the OpenAI endpoint to show traffic via APIM and sets the x-priority header to "low"
     """
 
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def make_request_batch(self):
+    def make_request_low_priority(self):
         make_request(self.client, True)
 
 
 class MixedUser_1_1(HttpUser):
     """
     MixedUser_1_1 makes calls to the OpenAI endpoint to show traffic via APIM.
-    It has a 1:1 ratio of batch to non-batch requests.
+    It has a 1:1 ratio of high to low priority requests.
     """
 
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def make_request_non_batch(self):
+    def make_request_high_priority(self):
         make_request(self.client, False)
 
     @task
-    def make_request_batch(self):
+    def make_request_low_priority(self):
         make_request(self.client, True)
 
 
 class StagesShape(LoadTestShape):
     """
-    Custom LoadTestShape to simulate variations in non-batch and batch processing
+    Custom LoadTestShape to simulate variations in high and low priority processing
     """
 
-    # See https://docs.locust.io/en/stable/custom-load-shape.html
-    stages = [
-        # Start with batch processing
-        {
-            "duration": 120,
-            "users": 9,
-            "spawn_rate": 1,
-            "user_classes": [BatchUser],
-        },
-        # Add non-batch
-        {
-            "duration": 240,
-            "users": 18,
-            "spawn_rate": 1,
-            "user_classes": [MixedUser_1_1],
-        },
-        # Stop batch processing
-        {
-            "duration": 360,
-            "users": 9,
-            "spawn_rate": 1,
-            "user_classes": [NonBatchUser],
-        },
-        # Add batch back in
-        {
-            "duration": 480,
-            "users": 18,
-            "spawn_rate": 1,
-            "user_classes": [MixedUser_1_1],
-        },
-        # Switch to only batch
-        {
-            "duration": 600,
-            "users": 9,
-            "spawn_rate": 1,
-            "user_classes": [BatchUser],
-        },
-        # # {"duration": 60, "users": 4, "spawn_rate": 1},
-        # # {"duration": 120, "users": 8, "spawn_rate": 1},
-        # # {"duration": 180, "users": 12, "spawn_rate": 1},
-        # # {"duration": 240, "users": 16, "spawn_rate": 1},
-        # # {"duration": 300, "users": 20, "spawn_rate": 1},
-    ]
+    def __init__(self):
+        super().__init__()
 
-    _current_stage = stages[0]
+        if load_pattern == "cycle":
+            # See https://docs.locust.io/en/stable/custom-load-shape.html
+            self.stages = [
+                # Start with low priority
+                {
+                    "duration": 120,
+                    "users": 9,
+                    "spawn_rate": 1,
+                    "user_classes": [LowPriorityUser],
+                },
+                # Add high priority
+                {
+                    "duration": 240,
+                    "users": 18,
+                    "spawn_rate": 1,
+                    "user_classes": [MixedUser_1_1],
+                },
+                # Stop low priority
+                {
+                    "duration": 360,
+                    "users": 9,
+                    "spawn_rate": 1,
+                    "user_classes": [HighPriorityUser],
+                },
+                # Add low priority back in
+                {
+                    "duration": 480,
+                    "users": 18,
+                    "spawn_rate": 1,
+                    "user_classes": [MixedUser_1_1],
+                },
+                # Switch to only low priority
+                {
+                    "duration": 600,
+                    "users": 9,
+                    "spawn_rate": 1,
+                    "user_classes": [LowPriorityUser],
+                },
+            ]
+        elif load_pattern == "low-priority":
+            self.stages = [
+                # low priority only
+                {
+                    "duration": 300,
+                    "users": 9,
+                    "spawn_rate": 1,
+                    "user_classes": [LowPriorityUser],
+                }
+            ]
+        else:
+            raise ValueError(f"Unhandled load pattern: {load_pattern}")
+
+        self._current_stage = self.stages[0]
 
     def tick(self):
         run_time = self.get_run_time()
@@ -211,9 +232,6 @@ def on_locust_init(environment, **kwargs):
         logging.warning(
             "App Insights connection string not found - request metrics disabled"
         )
-
-    # Tweak the logging output :-)
-    # logging.getLogger("locust").setLevel(logging.WARNING)
 
 
 @events.test_start.add_listener
@@ -288,15 +306,14 @@ ApiManagementGatewayLogs
     )
 
     query_processor.add_query(
-        title="Successful request count by request type (Non-batch -> Blue, Batch -> Yellow)",
+        title="Successful request count by request type (High Priority -> Blue, Low Priority -> Yellow)",
         query=f"""
 {time_vars}
 ApiManagementGatewayLogs
 | where OperationName != "" and  TimeGenerated > startTime and TimeGenerated < endTime
 | where BackendId != ""
 | where ResponseCode == 200
-| extend is_batch = parse_url(Url)["Query Parameters"]["is-batch"] == "true"
-| extend label = iif(is_batch, "batch", "non-batch")
+| extend label = coalesce(RequestHeaders["x-priority"], "high")
 | summarize request_count = count() by bin(TimeGenerated, 10s), label
 | order by TimeGenerated asc
 | render timechart with (title="Successful request count by request type")
