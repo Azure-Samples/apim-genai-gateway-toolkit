@@ -328,7 +328,7 @@ ApiManagementGatewayLogs
 ApiManagementGatewayLogs
 | where TimeGenerated > startTime and TimeGenerated < endTime
 | extend 
-    remaining_tokens = toint(ResponseHeaders["x-ratelimit-remaining-tokens"])
+    remaining_tokens = toint(ResponseHeaders["x-gw-remaining-tokens"])
 | summarize max_remaining_tokens=max(remaining_tokens), min_remaining_tokens=min(remaining_tokens), avg_remaining_tokens=sum(remaining_tokens)/count(remaining_tokens) by bin(TimeGenerated, 10s)
 | render timechart with (title="Remaining tokens")
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
@@ -364,11 +364,6 @@ AppMetrics
 | render timechart with (title="Rate-limit tokens")
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
-        columns=[
-            "number",
-            "min_remaining_tokens",
-            "avg_remaining_tokens",
-        ],
         chart_config={
             "height": 15,
             "min": 0,
@@ -378,6 +373,12 @@ AppMetrics
                 asciichart.green,
             ],
         },
+        group_definition=GroupDefinition(
+            id_column="TimeGenerated",
+            group_column="deployment",
+            value_column="number",
+            missing_value=float("nan"),
+        ),
         timespan=(test_start_time, test_stop_time),
         show_query=True,
         include_link=True,

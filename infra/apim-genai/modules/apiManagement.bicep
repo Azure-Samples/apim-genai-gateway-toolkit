@@ -734,19 +734,21 @@ resource allApisAzureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnos
       }
       response: {
         headers: [
-          'x-gw-ratelimit-reason', 'x-gw-ratelimit-value', 'x-gw-remaining-tokens', 'x-gw-remaining-requests'
-
+          'x-gw-ratelimit-reason'
+          'x-gw-ratelimit-value'
+          'x-gw-remaining-tokens'
+          'x-gw-remaining-requests'
         ]
       }
     }
     backend: {
       request: {
-        headers: [
-        ]
+        headers: []
       }
       response: {
         headers: [
-          'x-ratelimit-remaining-tokens', 'x-ratelimit-remaining-requests'
+          'x-ratelimit-remaining-tokens'
+          'x-ratelimit-remaining-requests'
         ]
       }
     }
@@ -768,7 +770,6 @@ resource azureOpenAIBatchProcessingAPIDiagnostics 'Microsoft.ApiManagement/servi
   properties: {
     loggerId: appInsightsLogger.id
     metrics: true
-    
   }
 }
 

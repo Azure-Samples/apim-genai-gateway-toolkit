@@ -77,6 +77,7 @@ class Table:
 
         return Table(rows=rows, columns=new_columns)
 
+
 def get_log_analytics_portal_url(
     tenant_id: str,
     subscription_id: str,
@@ -156,6 +157,7 @@ class QueryProcessor:
         chart_config=dict(),
         show_query=False,
         include_link=False,
+        missing_value=float("nan"),
     ):
         """
         Adds a query to be executed.
@@ -186,6 +188,7 @@ class QueryProcessor:
                 group_definition,
                 show_query,
                 include_link,
+                missing_value,
             )
         )
 
@@ -205,6 +208,7 @@ class QueryProcessor:
             group_definition,
             show_query,
             include_link,
+            missing_value,
         ) in enumerate(self.__queries):
             print()
             print(f"Running query {query_index + 1} of {len(self.__queries)}")
@@ -250,9 +254,9 @@ class QueryProcessor:
                 columns = sorted(columns)
 
             if is_chart:
-                self.__output_chart(result, title, columns, chart_config)
+                self.__output_chart(result, columns, missing_value, chart_config)
             else:
-                self.__output_table(result, title)
+                self.__output_table(result)
 
             # Validate result
             if validation_func:
@@ -315,7 +319,7 @@ class QueryProcessor:
 
         raise Exception("❌ No metrics data found")
 
-    def __output_table(self, query_result: Table, title):
+    def __output_table(self, query_result: Table):
         """
         Outputs the result of the ran query in table format.
 
@@ -325,7 +329,9 @@ class QueryProcessor:
         """
         print(tabulate(query_result.rows, query_result.columns))
 
-    def __output_chart(self, query_result: Table, title, columns, config=dict()):
+    def __output_chart(
+        self, query_result: Table, columns, missing_value, config=dict()
+    ):
         """
         Outputs the result of the ran query in chart format.
 
@@ -344,7 +350,7 @@ class QueryProcessor:
                     f"Column '{column}' not found in table columns: "
                     + ",".join(table.columns)
                 )
-            return [row[column_index] for row in table.rows]
+            return [row[column_index] or missing_value for row in table.rows]
 
         series = [get_column_values(query_result, column) for column in columns]
         print(asciichart.plot(series, config))
