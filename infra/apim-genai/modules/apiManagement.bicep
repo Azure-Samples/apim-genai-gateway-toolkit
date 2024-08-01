@@ -194,12 +194,12 @@ resource azureOpenAIBatchProcessingAPI 'Microsoft.ApiManagement/service/apis@202
   }
 }
 
-resource azureOpenAIBatchProcessingAlt1API 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+resource azureOpenAIPrioritizationSimpleAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-api-batch-processing-alt1'
+  name: 'aoai-api-prioritization-simple'
   properties: {
-    path: '/batch-processing-alt1/openai'
-    displayName: 'AOAIAPI-BatchProcessing-Alt1'
+    path: '/prioritization-simple/openai'
+    displayName: 'AOAIAPI-Prioritization-Simple'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
@@ -240,7 +240,7 @@ var azureOpenAIAPINames = [
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
   azureOpenAIBatchProcessingAPI.name
-  azureOpenAIBatchProcessingAlt1API.name
+  azureOpenAIPrioritizationSimpleAPI.name
   helperAPI.name
 ]
 
@@ -631,11 +631,11 @@ resource azureOpenAIBatchProcessingPolicy 'Microsoft.ApiManagement/service/apis/
   }
 }
 
-resource azureOpenAIBatchProcessingAlt1Policy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAlt1API
+resource azureOpenAIPrioritizationSimplePolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationSimpleAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities/batch-processing-alt1/batch-processing-policy.xml')
+    value: loadTextContent('../../../capabilities/prioritization-simple/prioritization-policy.xml')
     format: 'rawxml'
   }
 }
@@ -729,24 +729,24 @@ resource allApisAzureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnos
     frontend: {
       request: {
         headers: [
-          'x-batch'
+          'is-batch'
         ]
       }
       response: {
         headers: [
-          'x-gw-ratelimit-reason'
+          'x-gw-ratelimit-reason', 'x-gw-ratelimit-value', 'x-gw-remaining-tokens', 'x-gw-remaining-requests'
+
         ]
       }
     }
     backend: {
       request: {
         headers: [
-          'x-batch'
         ]
       }
       response: {
         headers: [
-          'x-gw-ratelimit-reason'
+          'x-ratelimit-remaining-tokens', 'x-ratelimit-remaining-requests'
         ]
       }
     }
@@ -772,8 +772,8 @@ resource azureOpenAIBatchProcessingAPIDiagnostics 'Microsoft.ApiManagement/servi
   }
 }
 
-resource azureOpenAIBatchProcessingAlt1APIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAlt1API
+resource azureOpenAIPrioritizationSimpleAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationSimpleAPI
   name: 'applicationinsights'
   properties: {
     loggerId: appInsightsLogger.id

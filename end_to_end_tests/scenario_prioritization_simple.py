@@ -55,8 +55,7 @@ input_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do ei
 
 # TODO - use env var to request type (embeddings vs chat vs streaming chat)
 def make_request(client: HttpSession, batch: bool):
-    extra_query_string = "&is-batch=true" if batch else ""
-    url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15{extra_query_string}"
+    url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15"
     payload = {
         "input": input_text,
         "model": "embedding",
@@ -67,7 +66,7 @@ def make_request(client: HttpSession, batch: bool):
             json=payload,
             headers={
                 "ocp-apim-subscription-key": apim_subscription_one_key,
-                "x-batch": "true" if batch else "false",
+                "x-is-batch": "true" if batch else "false",
             },
         )
         histogram_request_result.record(

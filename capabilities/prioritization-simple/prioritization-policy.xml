@@ -4,7 +4,15 @@
         <set-backend-service backend-id="payg-backend-1" />
         <!-- apply threshold checks to batch - always allow non-batch through -->
         <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
-        <set-variable name="is-batch" value="@(bool.Parse(context.Request.Url.Query.GetValueOrDefault("is-batch", "false")))" />
+        <set-variable name="is-batch" value="@{
+            if (context.Request.Url.Query.GetValueOrDefault("is-batch", "") == "true"){
+                return true;
+            }
+            if (context.Request.Headers.GetValueOrDefault("x-is-batch", "") == "true"){
+                return true;
+            }
+            return false;
+            }" />
         <choose>
             <when condition="@((bool)context.Variables["is-batch"])">
                 <!-- get the configuration for the model deployment -->
@@ -79,7 +87,7 @@
                 <!-- Lookup the last tokens-remaining/requests-remaining values -->
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|tokens-remaining")" default-value="@(-1)" variable-name="tokens-remaining" />
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|requests-remaining")" default-value="@(-1)" variable-name="requests-remaining" />
-                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["tokens-remaining"])" namespace="batch-processing-alt1">
+                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["tokens-remaining"])" namespace="batch-processing-simple">
                     <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
                 </emit-metric>
                 <!-- Test whether or not to allow the batch request through to the backend -->
