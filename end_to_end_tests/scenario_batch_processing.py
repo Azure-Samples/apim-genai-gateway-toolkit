@@ -64,8 +64,6 @@ class NonBatchEmbeddingUser(HttpUser):
         make_completion_request(self.client, 200, False)
 
 class NonBatchHighTokenEmbeddingUser(HttpUser):
-    """
-    """
 
     wait_time = constant(1)  # wait 1 second between requests
 
@@ -74,8 +72,6 @@ class NonBatchHighTokenEmbeddingUser(HttpUser):
         make_completion_request(self.client, 1000, False)
 
 class BatchEmbeddingUser(HttpUser):
-    """
-    """
 
     wait_time = constant(1)  # wait 1 second between requests
 
@@ -84,8 +80,6 @@ class BatchEmbeddingUser(HttpUser):
         make_completion_request(self.client, 200, True)
 
 class MixedEmbeddingUser(HttpUser):
-    """
-    """
 
     wait_time = constant(1)  # wait 1 second between requests
 
@@ -96,6 +90,18 @@ class MixedEmbeddingUser(HttpUser):
     @task
     def get_completion(self):
         make_completion_request(self.client, 200, True)
+
+class MixedEmbeddingHighTokenUser(HttpUser):
+
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_non_batch(self):
+        make_completion_request(self.client, 1000, False)
+
+    @task
+    def get_completion(self):
+        make_completion_request(self.client, 1000, True)
 
 class StagesShape(LoadTestShape):
     """
@@ -120,12 +126,18 @@ class StagesShape(LoadTestShape):
         {"duration": 260, "users": 0, "spawn_rate": 1, "user_classes": [NonBatchHighTokenEmbeddingUser]},
         # 50 RP10S, 60000 TPM (show 200s for both interactive and batch requests)
         {"duration": 320, "users": 5, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
-        # 120 RP10S, 144000 TPM (show 200s for interactive requests and 429s for batch requests)
+        # 120 RP10S, 144000 TPM (show 200s for interactive requests and 429s for batch requests due to rp10s limit)
         {"duration": 370, "users": 12, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
         # scale back down to 0 users
         {"duration": 390, "users": 0, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
         # 20 RP10S, 24000 TPM (show 200s for batch requests)
         {"duration": 450, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
+        # scale back down to 0 users
+        {"duration": 460, "users": 0, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
+        # 30 RP10S, 180000 TPM (show 200s for interactive requests and 429s for batch requests due to tpm limit)
+        {"duration": 520, "users": 3, "spawn_rate": 1, "user_classes": [MixedEmbeddingHighTokenUser]},
+        # 50 RP10S, 300000 TPM (show 200s for interactive requests and 429s for batch requests due to tpm limit)
+        {"duration": 580, "users": 5, "spawn_rate": 1, "user_classes": [MixedEmbeddingHighTokenUser]}
     ]
 
     def tick(self):
