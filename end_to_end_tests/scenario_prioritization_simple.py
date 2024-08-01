@@ -28,12 +28,14 @@ from common.config import (
 )
 
 load_pattern = os.getenv("LOAD_PATTERN", "cycle")
+ramp_rate = int(os.getenv("RAMP_RATE", 1))
 
 test_start_time = None
 deployment_name = "embedding100k"
 
 
 print(f"Load pattern: {load_pattern}")
+print(f"Ramp rate: {ramp_rate}")
 print(f"Deployment name: {deployment_name}")
 
 
@@ -150,35 +152,35 @@ class StagesShape(LoadTestShape):
                 {
                     "duration": 120,
                     "users": 9,
-                    "spawn_rate": 1,
+                    "spawn_rate": ramp_rate,
                     "user_classes": [LowPriorityUser],
                 },
                 # Add high priority
                 {
                     "duration": 240,
                     "users": 18,
-                    "spawn_rate": 1,
+                    "spawn_rate": ramp_rate,
                     "user_classes": [MixedUser_1_1],
                 },
                 # Stop low priority
                 {
                     "duration": 360,
                     "users": 9,
-                    "spawn_rate": 1,
+                    "spawn_rate": ramp_rate,
                     "user_classes": [HighPriorityUser],
                 },
                 # Add low priority back in
                 {
                     "duration": 480,
                     "users": 18,
-                    "spawn_rate": 1,
+                    "spawn_rate": ramp_rate,
                     "user_classes": [MixedUser_1_1],
                 },
                 # Switch to only low priority
                 {
                     "duration": 600,
                     "users": 9,
-                    "spawn_rate": 1,
+                    "spawn_rate": ramp_rate,
                     "user_classes": [LowPriorityUser],
                 },
             ]
@@ -188,7 +190,7 @@ class StagesShape(LoadTestShape):
                 {
                     "duration": 300,
                     "users": 9,
-                    "spawn_rate": 1,
+                    "spawn_rate": ramp_rate,
                     "user_classes": [LowPriorityUser],
                 }
             ]
