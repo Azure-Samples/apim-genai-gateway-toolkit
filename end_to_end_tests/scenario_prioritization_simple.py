@@ -330,6 +330,7 @@ ApiManagementGatewayLogs
 | extend 
     remaining_tokens = toint(ResponseHeaders["x-gw-remaining-tokens"])
 | summarize max_remaining_tokens=max(remaining_tokens), min_remaining_tokens=min(remaining_tokens), avg_remaining_tokens=sum(remaining_tokens)/count(remaining_tokens) by bin(TimeGenerated, 10s)
+| order by TimeGenerated asc
 | render timechart with (title="Remaining tokens")
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
@@ -361,6 +362,7 @@ AppMetrics
 | where Name == "aoai-simulator.tokens.rate-limit" 
 | extend deployment = tostring(Properties["deployment"])
 | summarize number=sum(Sum) by bin(TimeGenerated, 10s), deployment
+| order by TimeGenerated asc
 | render timechart with (title="Rate-limit tokens")
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
