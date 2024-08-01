@@ -270,7 +270,7 @@ ApiManagementGatewayLogs
 | where BackendId != ""
 | summarize request_count = count() by bin(TimeGenerated, 10s)
 | order by TimeGenerated asc
-| render timechart
+| render timechart with (title="Overall request count")
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
         columns=["request_count"],
@@ -361,7 +361,7 @@ AppMetrics
 | where Name == "aoai-simulator.tokens.rate-limit" 
 | extend deployment = tostring(Properties["deployment"])
 | summarize number=sum(Sum) by bin(TimeGenerated, 10s), deployment
-| render timechart with (title="rate-limit tokens")
+| render timechart with (title="Rate-limit tokens")
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
         columns=[
