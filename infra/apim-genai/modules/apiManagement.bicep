@@ -182,12 +182,12 @@ resource azureOpenAIUsageTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-
   }
 }
 
-resource azureOpenAIBatchProcessingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+resource azureOpenAIPrioritizationTokenCountingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-api-batch-processing'
+  name: 'aoai-api-prioritization-token-counting'
   properties: {
-    path: '/batch-processing/openai'
-    displayName: 'AOAIAPI-BatchProcessing'
+    path: '/prioritization-token-counting/openai'
+    displayName: 'AOAIAPI-PrioritizationTokenCounting'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
@@ -239,7 +239,7 @@ var azureOpenAIAPINames = [
   azureOpenAIAdaptiveRateLimitingAPI.name
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
-  azureOpenAIBatchProcessingAPI.name
+  azureOpenAIPrioritizationTokenCountingAPI.name
   azureOpenAIBatchProcessingAlt1API.name
   helperAPI.name
 ]
@@ -622,11 +622,11 @@ resource azureOpenAIUsageTrackingPolicy 'Microsoft.ApiManagement/service/apis/po
   dependsOn: [usageTrackingPolicyFragmentInbound, usageTrackingPolicyFragmentOutbound]
 }
 
-resource azureOpenAIBatchProcessingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAPI
+resource azureOpenAIPrioritizationTokenCountingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenCountingAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities/batch-processing/batch-processing-policy.xml')
+    value: loadTextContent('../../../capabilities/prioritization-token-counting/prioritization-token-counting.xml')
     format: 'rawxml'
   }
 }
@@ -714,8 +714,8 @@ resource azureOpenAIUsageTrackingAPIDiagnostics 'Microsoft.ApiManagement/service
   }
 }
 
-resource azureOpenAIBatchProcessingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAPI
+resource azureOpenAIPrioritizationTokenCountingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenCountingAPI
   name: 'applicationinsights'
   properties: {
     loggerId: appInsightsLogger.id  
