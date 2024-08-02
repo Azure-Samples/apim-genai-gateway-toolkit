@@ -263,7 +263,7 @@ ApiManagementGatewayLogs
 ApiManagementGatewayLogs
 | where OperationName != "" and  {time_range}
 | where BackendId != ""
-| extend label = strcat(parse_url(Url)["Query Parameters"]["priority"], "-", ResponseCode)
+| extend label = strcat(parse_url(Url)["Query Parameters"]["priority"], "-", "priority-", ResponseCode)
 | summarize request_count = count() by bin(TimeGenerated, 10s), tostring(label)
 | project TimeGenerated, request_count, label
 | order by TimeGenerated asc
