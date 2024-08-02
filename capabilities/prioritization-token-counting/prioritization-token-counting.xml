@@ -1,7 +1,7 @@
 <policies>
     <inbound>
         <base />
-        <set-backend-service backend-id="payg-backend-1" />
+        <set-backend-service backend-id="ptu-backend-1" />
         <!-- get the configuration for the model deployments -->
         <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
         <choose>
