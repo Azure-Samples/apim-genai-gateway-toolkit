@@ -421,7 +421,15 @@ AppMetrics
 | extend deployment = tostring(Properties["deployment"])
 | summarize number=sum(Sum) by bin(TimeGenerated, 10s), deployment
 | order by TimeGenerated asc
-| render timechart with (title="Rate-limit tokens")
+| serialize 
+| extend sliding_average = number 
+                + coalesce(prev(number, 1),0.0) 
+                + coalesce(prev(number, 2),0.0) 
+                + coalesce(prev(number, 3),0.0) 
+                + coalesce(prev(number, 5),0.0) 
+                + coalesce(prev(number, 6),0.0)
+| project TimeGenerated, sliding_average, number
+| render timechart with (title="rate-limit tokens (with sliding 60s average)")
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
         chart_config={
