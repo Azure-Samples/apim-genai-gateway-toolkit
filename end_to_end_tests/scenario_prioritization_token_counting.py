@@ -28,14 +28,10 @@ from common.config import (
 
 test_start_time = None
 deployment_name = "embedding100k"
-
-# use short input text to validate request-based limiting, longer text to validate token-based limiting
-# input_text = "This is some text to generate embeddings for
 input_text = "Lorem ipsum dolor sit amet."
 
-def make_completion_request(client: HttpSession, max_tokens: int, batch: bool):
-    extra_query_string = "&is-batch=true" if batch else ""
-    url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15{extra_query_string}"
+def make_completion_request(client: HttpSession, max_tokens: int, priority: str):
+    url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15&priority={priority}"
     payload = {
         "input": input_text,
         "model": "embedding",
@@ -53,91 +49,80 @@ def make_completion_request(client: HttpSession, max_tokens: int, batch: bool):
         logging.error(e)
         raise
 
-class NonBatchEmbeddingUser(HttpUser):
-    """
-    """
-
+class HighPriorityLowTokenEmbeddingUser(HttpUser):
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def get_completion_non_batch(self):
-        make_completion_request(self.client, 200, False)
+    def get_completion_high_priority(self):
+        make_completion_request(self.client, 200, "high")
 
-class NonBatchHighTokenEmbeddingUser(HttpUser):
-
+class HighPriorityHighTokenEmbeddingUser(HttpUser):
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def get_completion_non_batch(self):
-        make_completion_request(self.client, 1000, False)
+    def get_completion_high_priority(self):
+        make_completion_request(self.client, 1000, "high")
 
-class BatchEmbeddingUser(HttpUser):
-
+class LowPriorityLowTokenEmbeddingUser(HttpUser):
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def get_completion_batch(self):
-        make_completion_request(self.client, 200, True)
+    def get_completion_low_priority(self):
+        make_completion_request(self.client, 200, "low")
 
-class MixedEmbeddingUser(HttpUser):
-
+class MixedPriorityLowTokenEmbeddingUser(HttpUser):
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def get_completion_non_batch(self):
-        make_completion_request(self.client, 200, False)
+    def get_completion_high_priority(self):
+        make_completion_request(self.client, 200, "high")
 
     @task
-    def get_completion(self):
-        make_completion_request(self.client, 200, True)
+    def get_completion_low_priority(self):
+        make_completion_request(self.client, 200, "low")
 
-class MixedEmbeddingHighTokenUser(HttpUser):
-
+class MixedPriorityHighTokenEmbeddingUser(HttpUser):
     wait_time = constant(1)  # wait 1 second between requests
 
     @task
-    def get_completion_non_batch(self):
-        make_completion_request(self.client, 1000, False)
+    def get_completion_high_priority(self):
+        make_completion_request(self.client, 1000, "high")
 
     @task
-    def get_completion(self):
-        make_completion_request(self.client, 1000, True)
+    def get_completion_low_priority(self):
+        make_completion_request(self.client, 1000, "low")
 
 class StagesShape(LoadTestShape):
-    """
-    Custom LoadTestShape to simulate a spike in traffic part way through the test
-    """
-
     # See https://docs.locust.io/en/stable/custom-load-shape.html
     stages = [
         # Total Limits: 100000 TPM and 100 RP10S
-        # Batch Threshold: 30000 TPM and 30 RP10S
-        # 20 RP10S, 24000 TPM (show 200s for interactive requests)
-        {"duration": 60, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
-        # 120 RP10S, 144000 TPM (show 429s for interactive requests due to rp10s limit)
-        {"duration": 120, "users": 12, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
-        # 20 RP10S, 24000 TPM (show 200s for interactive requests)
-        {"duration": 180, "users": 2, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
+        # Low priority Threshold: 30000 TPM and 30 RP10S
+        # 20 RP10S, 24000 TPM (show 200s for high priority requests)
+        {"duration": 60, "users": 2, "spawn_rate": 1, "user_classes": [HighPriorityLowTokenEmbeddingUser]},
+        # 120 RP10S, 144000 TPM (show 429s for high priority requests due to rp10s limit)
+        {"duration": 120, "users": 12, "spawn_rate": 1, "user_classes": [HighPriorityLowTokenEmbeddingUser]},
+        # 20 RP10S, 24000 TPM (show 200s for high priority requests)
+        {"duration": 180, "users": 2, "spawn_rate": 1, "user_classes": [HighPriorityLowTokenEmbeddingUser]},
         # scale back down to 0 users
-        {"duration": 190, "users": 0, "spawn_rate": 1, "user_classes": [NonBatchEmbeddingUser]},
-        # 30 RP10S, 180000 TPM (show 429s for interactive requests due to tpm limit)
-        {"duration": 250, "users": 3, "spawn_rate": 1, "user_classes": [NonBatchHighTokenEmbeddingUser]},
+        {"duration": 190, "users": 0, "spawn_rate": 1, "user_classes": [HighPriorityLowTokenEmbeddingUser]},
+        # 30 RP10S, 180000 TPM (show 429s for high priority requests due to tpm limit)
+        {"duration": 250, "users": 3, "spawn_rate": 1, "user_classes": [HighPriorityHighTokenEmbeddingUser]},
         # scale back down to 0 users
-        {"duration": 260, "users": 0, "spawn_rate": 1, "user_classes": [NonBatchHighTokenEmbeddingUser]},
-        # 50 RP10S, 60000 TPM (show 200s for both interactive and batch requests)
-        {"duration": 320, "users": 5, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
-        # 120 RP10S, 144000 TPM (show 200s for interactive requests and 429s for batch requests due to rp10s limit)
-        {"duration": 370, "users": 12, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
+        {"duration": 260, "users": 0, "spawn_rate": 1, "user_classes": [HighPriorityHighTokenEmbeddingUser]},
+        # 50 RP10S, 60000 TPM (show 200s for both high priority and low priority requests)
+        {"duration": 320, "users": 5, "spawn_rate": 1, "user_classes": [MixedPriorityLowTokenEmbeddingUser]},
+        # 120 RP10S, 144000 TPM (show 200s for high priority requests and 429s for low priority requests due to rp10s limit)
+        {"duration": 370, "users": 12, "spawn_rate": 1, "user_classes": [MixedPriorityLowTokenEmbeddingUser]},
         # scale back down to 0 users
-        {"duration": 390, "users": 0, "spawn_rate": 1, "user_classes": [MixedEmbeddingUser]},
-        # 20 RP10S, 24000 TPM (show 200s for batch requests)
-        {"duration": 450, "users": 2, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
+        {"duration": 390, "users": 0, "spawn_rate": 1, "user_classes": [MixedPriorityLowTokenEmbeddingUser]},
+        # 20 RP10S, 24000 TPM (show 200s for low priority requests)
+        {"duration": 450, "users": 2, "spawn_rate": 1, "user_classes": [LowPriorityLowTokenEmbeddingUser]},
         # scale back down to 0 users
-        {"duration": 460, "users": 0, "spawn_rate": 1, "user_classes": [BatchEmbeddingUser]},
-        # 30 RP10S, 180000 TPM (show 200s for interactive requests and 429s for batch requests due to tpm limit)
-        {"duration": 520, "users": 3, "spawn_rate": 1, "user_classes": [MixedEmbeddingHighTokenUser]},
-        # 50 RP10S, 300000 TPM (show 200s for interactive requests and 429s for batch requests due to tpm limit)
-        {"duration": 580, "users": 5, "spawn_rate": 1, "user_classes": [MixedEmbeddingHighTokenUser]}
+        {"duration": 460, "users": 0, "spawn_rate": 1, "user_classes": [LowPriorityLowTokenEmbeddingUser]},
+        # 30 RP10S, 180000 TPM (show 200s for high priority requests and 429s for low priority requests due to tpm limit)
+        {"duration": 520, "users": 3, "spawn_rate": 1, "user_classes": [MixedPriorityHighTokenEmbeddingUser]},
+        # 50 RP10S, 300000 TPM (show 200s for high priority requests and 429s for low priority requests due to tpm limit)
+        {"duration": 580, "users": 5, "spawn_rate": 1, "user_classes": [MixedPriorityHighTokenEmbeddingUser]}
     ]
 
     def tick(self):
@@ -239,14 +224,13 @@ ApiManagementGatewayLogs
     )
 
     query_processor.add_query(
-        title="Request count by batch status",
+        title="Request count by priority",
         query=f"""
 ApiManagementGatewayLogs
 | where OperationName != "" and  {time_range}
 | where BackendId != ""
-| extend is_batch = parse_url(Url)["Query Parameters"]["is-batch"] == "true"
-| extend label = strcat(iif(is_batch, "batch", "non-batch"))
-| summarize request_count = count() by bin(TimeGenerated, 10s), label
+| extend label = parse_url(Url)["Query Parameters"]["priority"]
+| summarize request_count = count() by bin(TimeGenerated, 10s), tostring(label)
 | project TimeGenerated, request_count, label
 | order by TimeGenerated asc
 | render timechart
@@ -274,14 +258,13 @@ ApiManagementGatewayLogs
     )
 
     query_processor.add_query(
-        title="Request count by batch status and response code",
+        title="Request count by priority and response code",
         query=f"""
 ApiManagementGatewayLogs
 | where OperationName != "" and  {time_range}
 | where BackendId != ""
-| extend is_batch = parse_url(Url)["Query Parameters"]["is-batch"] == "true"
-| extend label = strcat(iif(is_batch, "batch", "non-batch"), "-", ResponseCode)
-| summarize request_count = count() by bin(TimeGenerated, 10s), label
+| extend label = strcat(parse_url(Url)["Query Parameters"]["priority"], "-", ResponseCode)
+| summarize request_count = count() by bin(TimeGenerated, 10s), tostring(label)
 | project TimeGenerated, request_count, label
 | order by TimeGenerated asc
 | render areachart
@@ -313,9 +296,7 @@ ApiManagementGatewayLogs
         query=f"""
 AppMetrics
 | where Name== "ConsumedTokens" and {time_range}
-| extend IsBatch = tobool(Properties["IsBatch"])
-| extend label = iif(IsBatch, "Batch", "Non-Batch")
-| summarize tokens=sum(Sum) by bin(TimeGenerated, 10s), label
+| summarize tokens=sum(Sum) by bin(TimeGenerated, 10s)
 | render timechart         
 """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
@@ -327,12 +308,6 @@ AppMetrics
                 asciichart.blue,
             ],
         },
-        group_definition=GroupDefinition(
-            id_column="TimeGenerated",
-            group_column="label",
-            value_column="tokens",
-            missing_value=float("nan"),
-        ),
         timespan=(test_start_time, test_stop_time),
         show_query=True,
         include_link=True,
