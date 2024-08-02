@@ -1,7 +1,10 @@
 <policies>
     <inbound>
         <base />
-        <set-backend-service backend-id="payg-backend-1" />
+        <set-backend-service backend-id="ptu-backend-1" />
+
+        <set-variable name="test" value="" />
+
         <!-- apply threshold checks to low-priority - always allow high-priority through -->
         <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
         <set-variable name="low-priority" value="@{
@@ -93,21 +96,34 @@
                 <!-- Test whether or not to allow the low-priority request through to the backend -->
                 <choose>
                     <when condition="@(((int)context.Variables["remaining-tokens"] != -1) && ((int)context.Variables["remaining-tokens"]) < ((int)context.Variables["low-priority-tpm-threshold"]) )">
-                        <set-variable name="low-priority-threshold-reason" value="tokens" />
-                        <return-response>
-                            <set-status code="429" reason="Tokens below low-priority threshold for deployment" />
-                            <set-header name="x-gw-ratelimit-reason" exists-action="override">
-                                <value>tokens-below-low-priority-threshold</value>
-                            </set-header>
-                            <!-- return the current value in the logs - useful for validation/debugging -->
-                            <set-header name="x-gw-ratelimit-value" exists-action="override">
-                                <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
-                            </set-header>
-                            <set-header name="x-gw-priority" exists-action="override">
+                        <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|allow-additional-lowpri-request")" default-value="@(true)" variable-name="allow-additional-lowpri-request" />
+                        <choose>
+                            <when condition="@(((bool)context.Variables["allow-additional-lowpri-request"]) == true)">
+                                <!-- Allow a single request through to test the remaining tokens value -->
+                                <!-- Set allow-additional-lowpri-request to false to prevent other requests -->
+                                <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|allow-additional-lowpri-request")" value="@(false)" duration="10" />
+                            
+                                <set-variable name="test" value="allowing-extra-low-pri-request" />
+
+                            </when>
+                            <when condition="@(((bool)context.Variables["allow-additional-lowpri-request"]) == false)">
+                                <set-variable name="low-priority-threshold-reason" value="tokens" />
+                                <return-response>
+                                    <set-status code="429" reason="Tokens below low-priority threshold for deployment" />
+                                    <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                        <value>tokens-below-low-priority-threshold</value>
+                                    </set-header>
+                                    <!-- return the current value in the logs - useful for validation/debugging -->
+                                    <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                        <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
+                                    </set-header>
+                                    <set-header name="x-gw-priority" exists-action="override">
                                 <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
                             </set-header>
                             <set-body>Low priority rate-limiting triggered by token usage</set-body>
-                        </return-response>
+                                </return-response>
+                            </when>
+                        </choose>
                     </when>
                     <when condition="@(((int)context.Variables["remaining-requests"] != -1) && ((int)context.Variables["remaining-requests"]) < ((int)context.Variables["low-priority-rp10s-threshold"]) )">
                         <set-variable name="low-priority-threshold-reason" value="tokens" />
@@ -128,6 +144,11 @@
                     </when>
                 </choose>
             </when>
+            <otherwise>
+                <!-- Allow the request through -->
+                <!-- Set allow-additional-lowpri-request to false as we don't need that to update the remaining tokens -->
+                <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|allow-additional-lowpri-request")" value="@(false)" duration="10" />
+            </otherwise>
         </choose>
     </inbound>
     <backend>
