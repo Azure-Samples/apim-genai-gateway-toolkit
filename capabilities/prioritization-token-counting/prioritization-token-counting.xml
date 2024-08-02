@@ -163,7 +163,13 @@
             </when>
         </choose>
         <!-- emit token metrics for e2e test validation -->
-        <emit-metric name="ConsumedTokens" value="@((double)(int)context.Variables["consumed-tokens"])" namespace="token-usage-metrics-2" />
+        <emit-metric name="ConsumedTokens" value="@((double)(int)context.Variables["consumed-tokens"])" namespace="prioritization-token-counting">
+            <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
+        </emit-metric>
+        <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["remaining-tokens"])" namespace="prioritization-token-counting">
+            <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
+        </emit-metric>
+
     </inbound>
     <backend>
         <base />

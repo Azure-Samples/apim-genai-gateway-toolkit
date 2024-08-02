@@ -87,7 +87,7 @@
                 <!-- Lookup the last remaining-tokens/remaining-requests values -->
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|remaining-tokens")" default-value="@(-1)" variable-name="remaining-tokens" />
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|remaining-requests")" default-value="@(-1)" variable-name="remaining-requests" />
-                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["remaining-tokens"])" namespace="priority-processing-simple">
+                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["remaining-tokens"])" namespace="prioritization-simple">
                     <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
                 </emit-metric>
                 <!-- Test whether or not to allow the low-priority request through to the backend -->
