@@ -6,40 +6,40 @@
         <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
         <choose>
             <when condition="@(context.Variables.ContainsKey("list-deployments") == false)">
-                <!-- when remaining tokens/requests goes under the batch threshold, batch requests are disallowed  -->
+                <!-- when remaining tokens/requests goes under the low priority threshold, low-priority requests are disallowed  -->
                 <set-variable name="list-deployments" value="@{
                     JArray deployments = new JArray();
                     deployments.Add(new JObject()
                     {
                         { "deployment-id", "embedding" },
                         { "tpm-limit", 10000},
-                        { "batch-tpm-threshold", 3000},
+                        { "low-priority-tpm-threshold", 3000},
                         { "rp10s-limit", 10 },
-                        { "batch-rp10s-threshold", 3},
+                        { "low-priority-rp10s-threshold", 3},
                     });
                     deployments.Add(new JObject()
                     {
                         { "deployment-id", "embedding100k" },
                         { "tpm-limit", 100000},
-                        { "batch-tpm-threshold", 30000},
+                        { "low-priority-tpm-threshold", 30000},
                         { "rp10s-limit", 100 },
-                        { "batch-rp10s-threshold", 30},
+                        { "low-priority-rp10s-threshold", 30},
                     });
                     deployments.Add(new JObject()
                     {
                         { "deployment-id", "gpt-35-turbo-10k-token" },
                         { "tpm-limit", 10000},
-                        { "batch-tpm-threshold", 3000},
+                        { "low-priority-tpm-threshold", 3000},
                         { "rp10s-limit", 10 },
-                        { "batch-rp10s-threshold", 3},
+                        { "low-priority-rp10s-threshold", 3},
                     });
                     deployments.Add(new JObject()
                     {
                         { "deployment-id", "gpt-35-turbo-20k-token" },
                         { "tpm-limit", 20000},
-                        { "batch-tpm-threshold", 3000},
+                        { "low-priority-tpm-threshold", 3000},
                         { "rp10s-limit", 10 },
-                        { "batch-rp10s-threshold", 3},
+                        { "low-priority-rp10s-threshold", 3},
                     });
                     return deployments;   
                 }" />
@@ -109,27 +109,27 @@
             remaining-calls-header-name="x-apim-remaining-requests"
             remaining-calls-variable-name="remaining-requests"
             total-calls-header-name="x-apim-total-requests"/>
-        <!-- determine if the request is a batch request -->
-        <set-variable name="is-batch" value="@(bool.Parse(context.Request.Url.Query.GetValueOrDefault("is-batch", "false")))" />
+        <!-- determine if the request is a low-priority request -->
+        <set-variable name="priority" value="@(context.Request.Url.Query.GetValueOrDefault("priority", "high"))" />
         <choose>
-            <when condition="@((bool)context.Variables["is-batch"])">
-                <!-- retrieve batch tpm and rp10s limits for the model deployment -->
-                <set-variable name="batch-tpm-threshold" value="@{
+            <when condition="@((string)context.Variables["priority"] == "low")">
+                <!-- retrieve low priority tpm and rp10s limits for the model deployment -->
+                <set-variable name="low-priority-tpm-threshold" value="@{
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
-                    return selectedDeployment.Value<int>("batch-tpm-threshold");
+                    return selectedDeployment.Value<int>("low-priority-tpm-threshold");
                 }" />
-                <set-variable name="batch-rp10s-threshold" value="@{
+                <set-variable name="low-priority-rp10s-threshold" value="@{
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
-                    return selectedDeployment.Value<int>("batch-rp10s-threshold");
+                    return selectedDeployment.Value<int>("low-priority-rp10s-threshold");
                 }" />
-                <!-- apply batch tpm and rp10s limits for the model deployment -->
+                <!-- apply low priority tpm and rp10s limits for the model deployment -->
                 <choose>
-                    <when condition="@((int)context.Variables["remaining-tokens"] < (int)context.Variables["batch-tpm-threshold"])">
+                    <when condition="@((int)context.Variables["remaining-tokens"] < (int)context.Variables["low-priority-tpm-threshold"])">
                         <return-response>
                             <set-status code="429" reason="Too Many Tokens" />
                         </return-response>
                     </when>
-                    <when condition="@((int)context.Variables["remaining-requests"] < (int)context.Variables["batch-rp10s-threshold"])">
+                    <when condition="@((int)context.Variables["remaining-requests"] < (int)context.Variables["low-priority-rp10s-threshold"])">
                         <return-response>
                             <set-status code="429" reason="Too Many Requests" />
                         </return-response>
