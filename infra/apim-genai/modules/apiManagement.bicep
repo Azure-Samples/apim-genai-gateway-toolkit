@@ -182,24 +182,24 @@ resource azureOpenAIUsageTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-
   }
 }
 
-resource azureOpenAIBatchProcessingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+resource azureOpenAIPrioritizationTokenCountingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-api-batch-processing'
+  name: 'aoai-api-prioritization-token-counting'
   properties: {
-    path: '/batch-processing/openai'
-    displayName: 'AOAIAPI-BatchProcessing'
+    path: '/prioritization-token-counting/openai'
+    displayName: 'AOAIAPI-PrioritizationTokenCounting'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
   }
 }
 
-resource azureOpenAIBatchProcessingAlt1API 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+resource azureOpenAIPrioritizationSimpleAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-api-batch-processing-alt1'
+  name: 'aoai-api-prioritization-simple'
   properties: {
-    path: '/batch-processing-alt1/openai'
-    displayName: 'AOAIAPI-BatchProcessing-Alt1'
+    path: '/prioritization-simple/openai'
+    displayName: 'AOAIAPI-Prioritization-Simple'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
@@ -239,8 +239,8 @@ var azureOpenAIAPINames = [
   azureOpenAIAdaptiveRateLimitingAPI.name
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
-  azureOpenAIBatchProcessingAPI.name
-  azureOpenAIBatchProcessingAlt1API.name
+  azureOpenAIPrioritizationTokenCountingAPI.name
+  azureOpenAIPrioritizationSimpleAPI.name
   helperAPI.name
 ]
 
@@ -622,20 +622,20 @@ resource azureOpenAIUsageTrackingPolicy 'Microsoft.ApiManagement/service/apis/po
   dependsOn: [usageTrackingPolicyFragmentInbound, usageTrackingPolicyFragmentOutbound]
 }
 
-resource azureOpenAIBatchProcessingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAPI
+resource azureOpenAIPrioritizationTokenCountingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenCountingAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities/batch-processing/batch-processing-policy.xml')
+    value: loadTextContent('../../../capabilities/prioritization-token-counting/prioritization-token-counting.xml')
     format: 'rawxml'
   }
 }
 
-resource azureOpenAIBatchProcessingAlt1Policy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAlt1API
+resource azureOpenAIPrioritizationSimplePolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationSimpleAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities/batch-processing-alt1/batch-processing-policy.xml')
+    value: loadTextContent('../../../capabilities/prioritization-simple/prioritization-policy.xml')
     format: 'rawxml'
   }
 }
@@ -719,6 +719,39 @@ resource allApisAzureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnos
   name: 'azuremonitor'
   properties: {
     loggerId: azureMonitorLogger.id
+    metrics: true
+    verbosity: 'information'
+    logClientIp: false
+    sampling: {
+      percentage: 100
+      samplingType: 'fixed'
+    }
+    frontend: {
+      request: {
+        headers: [
+          'is-batch'
+        ]
+      }
+      response: {
+        headers: [
+          'x-gw-ratelimit-reason'
+          'x-gw-ratelimit-value'
+          'x-gw-remaining-tokens'
+          'x-gw-remaining-requests'
+        ]
+      }
+    }
+    backend: {
+      request: {
+        headers: []
+      }
+      response: {
+        headers: [
+          'x-ratelimit-remaining-tokens'
+          'x-ratelimit-remaining-requests'
+        ]
+      }
+    }
   }
 }
 
@@ -726,22 +759,22 @@ resource azureOpenAIUsageTrackingAPIDiagnostics 'Microsoft.ApiManagement/service
   parent: azureOpenAIUsageTrackingAPI
   name: 'applicationinsights'
   properties: {
-    loggerId: appInsightsLogger.id  
+    loggerId: appInsightsLogger.id
     metrics: true
   }
 }
 
-resource azureOpenAIBatchProcessingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAPI
+resource azureOpenAIPrioritizationTokenCountingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenCountingAPI
   name: 'applicationinsights'
   properties: {
-    loggerId: appInsightsLogger.id  
+    loggerId: appInsightsLogger.id
     metrics: true
   }
 }
 
-resource azureOpenAIBatchProcessingAlt1APIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
-  parent: azureOpenAIBatchProcessingAlt1API
+resource azureOpenAIPrioritizationSimpleAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationSimpleAPI
   name: 'applicationinsights'
   properties: {
     loggerId: appInsightsLogger.id
