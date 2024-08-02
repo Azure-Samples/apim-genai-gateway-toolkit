@@ -432,21 +432,18 @@ AppMetrics
 | render timechart with (title="rate-limit tokens (with sliding 60s average)")
         """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
         is_chart=True,
+        columns=[
+            "number",
+            "sliding_average",
+        ],
         chart_config={
             "height": 15,
             "min": 0,
             "colors": [
                 asciichart.yellow,
                 asciichart.blue,
-                asciichart.green,
             ],
         },
-        group_definition=GroupDefinition(
-            id_column="TimeGenerated",
-            group_column="deployment",
-            value_column="number",
-            missing_value=float("nan"),
-        ),
         timespan=(test_start_time, test_stop_time),
         show_query=True,
         include_link=True,
