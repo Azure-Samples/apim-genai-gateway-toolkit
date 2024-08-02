@@ -78,6 +78,7 @@
             return selectedDeployment.Value<int>("rp10s-limit");
         }" />
         <!-- calculate consumed tokens from request body -->
+        <!-- TODO - update this to include support for more models and endpoints -->
         <set-variable name="consumed-tokens" value="@{
             JObject requestBody = context.Request.Body.As<JObject>(preserveContent: true);
             if(requestBody.ContainsKey("max_tokens"))
@@ -127,11 +128,27 @@
                     <when condition="@((int)context.Variables["remaining-tokens"] < (int)context.Variables["low-priority-tpm-threshold"])">
                         <return-response>
                             <set-status code="429" reason="Too Many Tokens" />
+                            <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                <value>tokens-below-low-priority-threshold</value>
+                            </set-header>
+                            <!-- return the current value in the logs - useful for validation/debugging -->
+                            <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
+                            </set-header>
+                            <set-body>Low priority rate-limiting triggered by token usage</set-body>
                         </return-response>
                     </when>
                     <when condition="@((int)context.Variables["remaining-requests"] < (int)context.Variables["low-priority-rp10s-threshold"])">
                         <return-response>
                             <set-status code="429" reason="Too Many Requests" />
+                            <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                <value>requests-below-low-priority-threshold</value>
+                            </set-header>
+                            <!-- return the current value in the logs - useful for validation/debugging -->
+                            <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
+                            </set-header>
+                            <set-body>Low priority rate-limiting triggered by requests usage</set-body>
                         </return-response>
                     </when>
                 </choose>
@@ -145,6 +162,14 @@
     </backend>
     <outbound>
         <base />
+        <!-- Return remaining tokens in headers - handy for debugging -->
+        <set-header name="x-gw-remaining-tokens" exists-action="override">
+            <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
+        </set-header>
+        <set-header name="x-gw-remaining-requests" exists-action="override">
+            <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
+        </set-header>
+
     </outbound>
     <on-error>
         <base />

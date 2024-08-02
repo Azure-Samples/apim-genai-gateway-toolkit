@@ -29,6 +29,8 @@ from common.config import (
 
 load_pattern = os.getenv("LOAD_PATTERN", "cycle")
 ramp_rate = int(os.getenv("RAMP_RATE", 1))
+request_type = os.getenv("REQUEST_TYPE", "embeddings")
+max_tokens = int(os.getenv("MAX_TOKENS", "-1"))
 
 test_start_time = None
 deployment_name = "embedding100k"
@@ -37,34 +39,37 @@ deployment_name = "embedding100k"
 print(f"Load pattern: {load_pattern}")
 print(f"Ramp rate: {ramp_rate}")
 print(f"Deployment name: {deployment_name}")
-
+print(f"Request type: {request_type}")
+if request_type == "chat":
+    print(f"Max tokens: {max_tokens}")
+elif max_tokens > 0:
+    raise ValueError("Max tokens should not be set for non-chat requests")
 
 histogram_request_result = metrics.get_meter(__name__).create_histogram(
     "locust.request_result", "Request Response", "count"
 )
 
+# TODO - this file is getting large - needs splitting
 
-#
 # model deployments:
-#
-# embedding
-#  - 10k TPM
-#  - 60 RPM (1 RPS)
 #
 # embedding100k
 #  - 100k TPM
 #  - 600 RPM (10 RPS)
 
 
-# use short input text to validate request-based limiting, longer text to validate token-based limiting
-# TODO - split tests!
-# input_text = "This is some text to generate embeddings for
-input_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Habitant morbi tristique senectus et netus et malesuada. Bibendum neque egestas congue quisque egestas diam. Rutrum quisque non tellus orci ac auctor augue. Diam in arcu cursus euismod quis. Euismod elementum nisi quis eleifend quam adipiscing. Posuere lorem ipsum dolor sit amet consectetur adipiscing elit duis. Pretium vulputate sapien nec sagittis aliquam malesuada bibendum arcu. Adipiscing diam donec adipiscing tristique risus nec. Nec ultrices dui sapien eget mi proin. Odio facilisis mauris sit amet. Eget aliquet nibh praesent tristique magna. Malesuada nunc vel risus commodo viverra maecenas accumsan lacus vel. Maecenas volutpat blandit aliquam etiam erat velit scelerisque in dictum. Venenatis tellus in metus vulputate. Aliquet enim tortor at auctor urna nunc id cursus metus. Sed velit dignissim sodales ut eu sem integer vitae justo."
-
-
-# TODO - use env var to request type (embeddings vs chat vs streaming chat)
 def make_request(client: HttpSession, low_priority: bool):
+    if request_type == "embeddings":
+        make_embedding_request(client, low_priority)
+    elif request_type == "chat":
+        make_chat_request(client, low_priority)
+    else:
+        raise ValueError(f"Unhandled request type: {request_type}")
+
+
+def make_embedding_request(client: HttpSession, low_priority: bool):
     url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15"
+    input_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Habitant morbi tristique senectus et netus et malesuada. Bibendum neque egestas congue quisque egestas diam. Rutrum quisque non tellus orci ac auctor augue. Diam in arcu cursus euismod quis. Euismod elementum nisi quis eleifend quam adipiscing. Posuere lorem ipsum dolor sit amet consectetur adipiscing elit duis. Pretium vulputate sapien nec sagittis aliquam malesuada bibendum arcu. Adipiscing diam donec adipiscing tristique risus nec. Nec ultrices dui sapien eget mi proin. Odio facilisis mauris sit amet. Eget aliquet nibh praesent tristique magna. Malesuada nunc vel risus commodo viverra maecenas accumsan lacus vel. Maecenas volutpat blandit aliquam etiam erat velit scelerisque in dictum. Venenatis tellus in metus vulputate. Aliquet enim tortor at auctor urna nunc id cursus metus. Sed velit dignissim sodales ut eu sem integer vitae justo."
     payload = {
         "input": input_text,
         "model": "embedding",
@@ -76,22 +81,52 @@ def make_request(client: HttpSession, low_priority: bool):
         if low_priority:
             headers["x-priority"] = "low"
 
-        r = client.post(
-            url,
-            json=payload,
-            headers=headers,
-        )
+        r = client.post(url, json=payload, headers=headers)
         histogram_request_result.record(
             1,
             {
                 "status_code": str(r.status_code),
                 "priority": "low" if low_priority else "high",
+                "request_type": "embeddings",
                 "reason": r.reason,
             },
         )
-
     except Exception as e:
+        logging.error(e)
+        raise
 
+
+def make_chat_request(client: HttpSession, low_priority: bool):
+    url = (
+        f"openai/deployments/{deployment_name}/chat/completions?api-version=2023-05-15"
+    )
+    payload = {
+        "messages": [
+            {"role": "user", "content": "Lorem ipsum dolor sit amet?"},
+        ],
+        "model": "gpt-35-turbo",
+        "max_tokens": max_tokens,
+    }
+    if max_tokens > 0:
+        payload["max_tokens"] = max_tokens
+    try:
+        headers = {
+            "ocp-apim-subscription-key": apim_subscription_one_key,
+        }
+        if low_priority:
+            headers["x-priority"] = "low"
+
+        r = client.post(url, json=payload, headers=headers)
+        histogram_request_result.record(
+            1,
+            {
+                "status_code": str(r.status_code),
+                "priority": "low" if low_priority else "high",
+                "request_type": "chat",
+                "reason": r.reason,
+            },
+        )
+    except Exception as e:
         logging.error(e)
         raise
 
@@ -137,6 +172,54 @@ class MixedUser_1_1(HttpUser):
         make_request(self.client, True)
 
 
+cycle_stages = [
+    # Start with low priority
+    {
+        "duration": 120,
+        "users": 9,
+        "spawn_rate": ramp_rate,
+        "user_classes": [LowPriorityUser],
+    },
+    # Add high priority
+    {
+        "duration": 240,
+        "users": 18,
+        "spawn_rate": ramp_rate,
+        "user_classes": [MixedUser_1_1],
+    },
+    # Stop low priority
+    {
+        "duration": 360,
+        "users": 9,
+        "spawn_rate": ramp_rate,
+        "user_classes": [HighPriorityUser],
+    },
+    # Add low priority back in
+    {
+        "duration": 480,
+        "users": 18,
+        "spawn_rate": ramp_rate,
+        "user_classes": [MixedUser_1_1],
+    },
+    # Switch to only low priority
+    {
+        "duration": 600,
+        "users": 9,
+        "spawn_rate": ramp_rate,
+        "user_classes": [LowPriorityUser],
+    },
+]
+low_priority_stages = [
+    # low priority only
+    {
+        "duration": 300,
+        "users": 9,
+        "spawn_rate": ramp_rate,
+        "user_classes": [LowPriorityUser],
+    }
+]
+
+
 class StagesShape(LoadTestShape):
     """
     Custom LoadTestShape to simulate variations in high and low priority processing
@@ -147,53 +230,9 @@ class StagesShape(LoadTestShape):
 
         if load_pattern == "cycle":
             # See https://docs.locust.io/en/stable/custom-load-shape.html
-            self.stages = [
-                # Start with low priority
-                {
-                    "duration": 120,
-                    "users": 9,
-                    "spawn_rate": ramp_rate,
-                    "user_classes": [LowPriorityUser],
-                },
-                # Add high priority
-                {
-                    "duration": 240,
-                    "users": 18,
-                    "spawn_rate": ramp_rate,
-                    "user_classes": [MixedUser_1_1],
-                },
-                # Stop low priority
-                {
-                    "duration": 360,
-                    "users": 9,
-                    "spawn_rate": ramp_rate,
-                    "user_classes": [HighPriorityUser],
-                },
-                # Add low priority back in
-                {
-                    "duration": 480,
-                    "users": 18,
-                    "spawn_rate": ramp_rate,
-                    "user_classes": [MixedUser_1_1],
-                },
-                # Switch to only low priority
-                {
-                    "duration": 600,
-                    "users": 9,
-                    "spawn_rate": ramp_rate,
-                    "user_classes": [LowPriorityUser],
-                },
-            ]
+            self.stages = cycle_stages
         elif load_pattern == "low-priority":
-            self.stages = [
-                # low priority only
-                {
-                    "duration": 300,
-                    "users": 9,
-                    "spawn_rate": ramp_rate,
-                    "user_classes": [LowPriorityUser],
-                }
-            ]
+            self.stages = low_priority_stages
         else:
             raise ValueError(f"Unhandled load pattern: {load_pattern}")
 

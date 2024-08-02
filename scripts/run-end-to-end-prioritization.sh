@@ -11,5 +11,5 @@ endpoint_path=${ENDPOINT_PATH:-prioritization-simple}
 
 USER_COUNT=-1 \
 ENDPOINT_PATH="$endpoint_path" \
-TEST_FILE="scenario_prioritization_simple.py" \
+TEST_FILE="scenario_prioritization.py" \
 "$script_dir/utils/run-end-to-end-test.sh"
