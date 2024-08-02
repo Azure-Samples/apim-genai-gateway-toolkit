@@ -111,9 +111,17 @@
             remaining-calls-variable-name="remaining-requests"
             total-calls-header-name="x-apim-total-requests"/>
         <!-- determine if the request is a low-priority request -->
-        <set-variable name="priority" value="@(context.Request.Url.Query.GetValueOrDefault("priority", "high"))" />
+        <set-variable name="low-priority" value="@{
+            if (context.Request.Url.Query.GetValueOrDefault("priority", "") == "low"){
+                return true;
+            }
+            if (context.Request.Headers.GetValueOrDefault("x-priority", "") == "low"){
+                return true;
+            }
+            return false;
+            }" />
         <choose>
-            <when condition="@((string)context.Variables["priority"] == "low")">
+            <when condition="@((bool)context.Variables["low-priority"])">
                 <!-- retrieve low priority tpm and rp10s limits for the model deployment -->
                 <set-variable name="low-priority-tpm-threshold" value="@{
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
