@@ -330,7 +330,7 @@ ApiManagementGatewayLogs
 | summarize request_count = count() by bin(TimeGenerated, 10s)
 | order by TimeGenerated asc
 | render timechart with (title="Overall request count")
-        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
+        """,
         is_chart=True,
         columns=["request_count"],
         chart_config={
@@ -358,7 +358,7 @@ ApiManagementGatewayLogs
 | summarize request_count = count() by bin(TimeGenerated, 10s), label
 | order by TimeGenerated asc
 | render timechart with (title="Successful request count by request type")
-        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
+        """,
         is_chart=True,
         chart_config={
             "height": 15,
@@ -390,7 +390,7 @@ ApiManagementGatewayLogs
 | summarize max_remaining_tokens=max(remaining_tokens), min_remaining_tokens=min(remaining_tokens), avg_remaining_tokens=sum(remaining_tokens)/count(remaining_tokens) by bin(TimeGenerated, 10s)
 | order by TimeGenerated asc
 | render timechart with (title="Remaining tokens")
-        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
+        """,
         is_chart=True,
         columns=[
             "max_remaining_tokens",
@@ -430,7 +430,7 @@ AppMetrics
                 + coalesce(prev(number, 6),0.0)
 | project TimeGenerated, sliding_average, number
 | render timechart with (title="rate-limit tokens (with sliding 60s average)")
-        """.strip(),  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
+        """,
         is_chart=True,
         columns=[
             "number",
