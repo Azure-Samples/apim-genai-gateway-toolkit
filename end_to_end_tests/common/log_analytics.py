@@ -217,12 +217,15 @@ class QueryProcessor:
                 print(query)
                 print("")
             if include_link:
+                link_query = (
+                    query.strip()
+                )  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
                 url = get_log_analytics_portal_url(
                     self.__tenant_id,
                     self.__subscription_id,
                     self.__resource_group_name,
                     self.__workspace_name,
-                    query,
+                    link_query,
                 )
                 link = get_link("Run in Log Analytics", url)
                 print(link)
