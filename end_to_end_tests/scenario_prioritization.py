@@ -335,6 +335,15 @@ low_priority_stages = [
         "user_classes": [LowPriorityUser],
     }
 ]
+high_priority_stages = [
+    # high priority only
+    {
+        "duration": 300,
+        "users": 9,
+        "spawn_rate": ramp_rate,
+        "user_classes": [HighPriorityUser],
+    }
+]
 
 
 class StagesShape(LoadTestShape):
@@ -352,6 +361,8 @@ class StagesShape(LoadTestShape):
             self.stages = cycle2
         elif load_pattern == "low-priority":
             self.stages = low_priority_stages
+        elif load_pattern == "high-priority":
+            self.stages = high_priority_stages
         else:
             raise ValueError(f"Unhandled load pattern: {load_pattern}")
 
