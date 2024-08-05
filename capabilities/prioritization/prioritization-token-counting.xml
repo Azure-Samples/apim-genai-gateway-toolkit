@@ -81,13 +81,17 @@
         <!-- TODO - update this to include support for more models and endpoints -->
         <set-variable name="consumed-tokens" value="@{
             JObject requestBody = context.Request.Body.As<JObject>(preserveContent: true);
-            if(requestBody.ContainsKey("max_tokens"))
-            {
-                return requestBody.Value<int>("max_tokens");
-            }
-            else
-            {
-                return 16;
+            if(context.Operation.Id == "embeddings_create" || requestBody.Value<string>("model") == "embedding"){
+                return (int)Math.Ceiling((requestBody.Value<string>("input")).Length * 0.25);
+            } else {
+                if(requestBody.ContainsKey("max_tokens"))
+                {
+                    return requestBody.Value<int>("max_tokens");
+                }
+                else
+                {
+                    return 16;
+                }
             }
         }" />
         <!-- apply tpm and rp10s limits for the model deployment -->
