@@ -46,9 +46,9 @@
                             });
                             deployments.Add(new JObject()
                             {
-                                { "deployment-id", "gpt-35-turbo-20k-token" },
-                                { "low-priority-tpm-threshold", 3000},
-                                { "low-priority-rp10s-threshold", 3},
+                                { "deployment-id", "gpt-35-turbo-100k-token" },
+                                { "low-priority-tpm-threshold", 30000},
+                                { "low-priority-rp10s-threshold", 30},
                             });
                             return deployments;   
                         }" />

@@ -31,15 +31,20 @@ load_pattern = os.getenv("LOAD_PATTERN", "cycle")
 ramp_rate = int(os.getenv("RAMP_RATE", 1))
 request_type = os.getenv("REQUEST_TYPE", "embeddings")
 max_tokens = int(os.getenv("MAX_TOKENS", "-1"))
+endpoint_path = os.getenv("ENDPOINT_PATH")
 
 test_start_time = None
-deployment_name = "embedding100k"
+
+embedding_deployment_name = "embedding100k"
+chat_deployment_name = "gpt-35-turbo-100k-token"
 
 
 print(f"Load pattern: {load_pattern}")
 print(f"Ramp rate: {ramp_rate}")
-print(f"Deployment name: {deployment_name}")
+print(f"Embedding deployment name: {embedding_deployment_name}")
+print(f"Chat deployment name: {chat_deployment_name}")
 print(f"Request type: {request_type}")
+print(f"Endpoint path: {endpoint_path}")
 if request_type == "chat":
     print(f"Max tokens: {max_tokens}")
 elif max_tokens > 0:
@@ -49,7 +54,7 @@ histogram_request_result = metrics.get_meter(__name__).create_histogram(
     "locust.request_result", "Request Response", "count"
 )
 
-# TODO - this file is getting large - needs splitting
+# TODO - this file is getting large - consider splitting
 
 # model deployments:
 #
@@ -68,7 +73,7 @@ def make_request(client: HttpSession, low_priority: bool):
 
 
 def make_embedding_request(client: HttpSession, low_priority: bool):
-    url = f"openai/deployments/{deployment_name}/embeddings?api-version=2023-05-15"
+    url = f"openai/deployments/{embedding_deployment_name}/embeddings?api-version=2023-05-15"
     input_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Habitant morbi tristique senectus et netus et malesuada. Bibendum neque egestas congue quisque egestas diam. Rutrum quisque non tellus orci ac auctor augue. Diam in arcu cursus euismod quis. Euismod elementum nisi quis eleifend quam adipiscing. Posuere lorem ipsum dolor sit amet consectetur adipiscing elit duis. Pretium vulputate sapien nec sagittis aliquam malesuada bibendum arcu. Adipiscing diam donec adipiscing tristique risus nec. Nec ultrices dui sapien eget mi proin. Odio facilisis mauris sit amet. Eget aliquet nibh praesent tristique magna. Malesuada nunc vel risus commodo viverra maecenas accumsan lacus vel. Maecenas volutpat blandit aliquam etiam erat velit scelerisque in dictum. Venenatis tellus in metus vulputate. Aliquet enim tortor at auctor urna nunc id cursus metus. Sed velit dignissim sodales ut eu sem integer vitae justo."
     payload = {
         "input": input_text,
@@ -96,16 +101,13 @@ def make_embedding_request(client: HttpSession, low_priority: bool):
         raise
 
 
-def make_chat_request(client: HttpSession, low_priority: bool):
-    url = (
-        f"openai/deployments/{deployment_name}/chat/completions?api-version=2023-05-15"
-    )
+def make_chat_request(client: HttpSession, low_priority: bool, max_tokens: int = 0):
+    url = f"openai/deployments/{chat_deployment_name}/chat/completions?api-version=2023-05-15"
     payload = {
         "messages": [
             {"role": "user", "content": "Lorem ipsum dolor sit amet?"},
         ],
         "model": "gpt-35-turbo",
-        "max_tokens": max_tokens,
     }
     if max_tokens > 0:
         payload["max_tokens"] = max_tokens
@@ -172,6 +174,54 @@ class MixedUser_1_1(HttpUser):
         make_request(self.client, True)
 
 
+class HighPriorityLowTokenChatUser(HttpUser):
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_high_priority(self):
+        make_chat_request(self.client, False, 200)
+
+
+class HighPriorityHighTokenChatUser(HttpUser):
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_high_priority(self):
+        make_chat_request(self.client, False, 1000)
+
+
+class LowPriorityLowTokenChatUser(HttpUser):
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_low_priority(self):
+        make_chat_request(self.client, True, 200)
+
+
+class MixedPriorityLowTokenChatUser(HttpUser):
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_high_priority(self):
+        make_chat_request(self.client, False, 200)
+
+    @task
+    def get_completion_low_priority(self):
+        make_chat_request(self.client, True, 200)
+
+
+class MixedPriorityHighTokenChatUser(HttpUser):
+    wait_time = constant(1)  # wait 1 second between requests
+
+    @task
+    def get_completion_high_priority(self):
+        make_chat_request(self.client, False, 1000)
+
+    @task
+    def get_completion_low_priority(self):
+        make_chat_request(self.client, True, 1000)
+
+
 cycle_stages = [
     # Start with low priority
     {
@@ -209,6 +259,73 @@ cycle_stages = [
         "user_classes": [LowPriorityUser],
     },
 ]
+cycle2 = [
+    # Total Limits: 100000 TPM and 100 RP10S
+    # Low priority Threshold: 30000 TPM and 30 RP10S
+    # 20 RP10S, 24000 TPM (show 200s for high priority requests)
+    {
+        "duration": 60,
+        "users": 2,
+        "spawn_rate": 1,
+        "user_classes": [HighPriorityLowTokenChatUser],
+    },
+    # 120 RP10S, 144000 TPM (show 429s for high priority requests due to rp10s limit)
+    {
+        "duration": 120,
+        "users": 12,
+        "spawn_rate": 1,
+        "user_classes": [HighPriorityLowTokenChatUser],
+    },
+    # 20 RP10S, 24000 TPM (show 200s for high priority requests)
+    {
+        "duration": 180,
+        "users": 2,
+        "spawn_rate": 1,
+        "user_classes": [HighPriorityLowTokenChatUser],
+    },
+    # 30 RP10S, 180000 TPM (show 429s for high priority requests due to tpm limit)
+    {
+        "duration": 250,
+        "users": 3,
+        "spawn_rate": 1,
+        "user_classes": [HighPriorityHighTokenChatUser],
+    },
+    # 50 RP10S, 60000 TPM (show 200s for both high priority and low priority requests)
+    {
+        "duration": 320,
+        "users": 5,
+        "spawn_rate": 1,
+        "user_classes": [MixedPriorityLowTokenChatUser],
+    },
+    # 120 RP10S, 144000 TPM (show 200s for high priority requests and 429s for low priority requests due to rp10s limit)
+    {
+        "duration": 370,
+        "users": 12,
+        "spawn_rate": 1,
+        "user_classes": [MixedPriorityLowTokenChatUser],
+    },
+    # 20 RP10S, 24000 TPM (show 200s for low priority requests)
+    {
+        "duration": 450,
+        "users": 2,
+        "spawn_rate": 1,
+        "user_classes": [LowPriorityLowTokenChatUser],
+    },
+    # 30 RP10S, 180000 TPM (show 200s for high priority requests and 429s for low priority requests due to tpm limit)
+    {
+        "duration": 520,
+        "users": 3,
+        "spawn_rate": 1,
+        "user_classes": [MixedPriorityHighTokenChatUser],
+    },
+    # 50 RP10S, 300000 TPM (show 200s for high priority requests and 429s for low priority requests due to tpm limit)
+    {
+        "duration": 580,
+        "users": 5,
+        "spawn_rate": 1,
+        "user_classes": [MixedPriorityHighTokenChatUser],
+    },
+]
 low_priority_stages = [
     # low priority only
     {
@@ -228,9 +345,11 @@ class StagesShape(LoadTestShape):
     def __init__(self):
         super().__init__()
 
+        # See https://docs.locust.io/en/stable/custom-load-shape.html
         if load_pattern == "cycle":
-            # See https://docs.locust.io/en/stable/custom-load-shape.html
             self.stages = cycle_stages
+        elif load_pattern == "cycle2":
+            self.stages = cycle2
         elif load_pattern == "low-priority":
             self.stages = low_priority_stages
         else:
@@ -238,16 +357,30 @@ class StagesShape(LoadTestShape):
 
         self._current_stage = self.stages[0]
 
+    def user_classes_match(stage1, stage2):
+        users1 = stage1.get("user_classes", [])
+        users2 = stage2.get("user_classes", [])
+        if len(users1) != len(users2):
+            return False
+        for i in range(len(users1)):
+            if users1[i] != users2[i]:
+                return False
+        return True
+
     def tick(self):
         run_time = self.get_run_time()
 
         for stage in self.stages:
             if run_time < stage["duration"]:
                 if self._current_stage and self._current_stage != stage:
-                    # temp scale down as existing users that don't match the user_classes aren't removed
-                    # https://github.com/locustio/locust/issues/2714
-                    self._current_stage = stage
-                    return (0, 100)
+                    if not StagesShape.user_classes_match(self._current_stage, stage):
+                        logging.info(
+                            f"User classes changed from {self._current_stage.get('user_classes', [])} to {stage.get('user_classes', [])} - scaling down to reset"
+                        )
+                        # temp scale down as existing users that don't match the user_classes aren't removed
+                        # https://github.com/locustio/locust/issues/2714
+                        self._current_stage = stage
+                        return (0, 100)
 
                 try:
                     tick_data = (
@@ -380,6 +513,41 @@ ApiManagementGatewayLogs
     )
 
     query_processor.add_query(
+        title="Request count by priority and response code",
+        query=f"""
+{time_vars}
+ApiManagementGatewayLogs
+| where OperationName != "" and  TimeGenerated > startTime and TimeGenerated < endTime
+| where BackendId != ""
+| extend label = strcat(parse_url(Url)["Query Parameters"]["priority"], "-", "priority-", ResponseCode)
+| summarize request_count = count() by bin(TimeGenerated, 10s), tostring(label)
+| project TimeGenerated, request_count, label
+| order by TimeGenerated asc
+| render areachart with (title="Request count by priority and response code")
+""",
+        is_chart=True,
+        chart_config={
+            "height": 15,
+            "min": 0,
+            "colors": [
+                asciichart.yellow,
+                asciichart.lightyellow,
+                asciichart.blue,
+                asciichart.lightblue,
+            ],
+        },
+        group_definition=GroupDefinition(
+            id_column="TimeGenerated",
+            group_column="label",
+            value_column="request_count",
+            missing_value=float("nan"),
+        ),
+        timespan=(test_start_time, test_stop_time),
+        show_query=True,
+        include_link=True,
+    )
+
+    query_processor.add_query(
         title="Remaining tokens (Min -> Blue, Max -> Yellow, Avg -> Green)",
         query=f"""
 {time_vars}
@@ -448,5 +616,32 @@ AppMetrics
         show_query=True,
         include_link=True,
     )
+
+    if endpoint_path == "prioritization-token-counting":
+        # the ConsumedTokens metrics is only available in the prioritization-token-counting endpoint
+        query_processor.add_query(
+            title="Consumed tokens (Gateway)",
+            query=f"""
+{time_vars}
+AppMetrics
+| where Name== "ConsumedTokens" and TimeGenerated > startTime and TimeGenerated < endTime
+| summarize tokens=sum(Sum) by bin(TimeGenerated, 10s)
+| order by TimeGenerated asc
+| render timechart with (title="Consumed tokens (Gateway)")
+    """,
+            is_chart=True,
+            columns=["tokens"],
+            chart_config={
+                "height": 15,
+                "min": 0,
+                "colors": [
+                    asciichart.yellow,
+                    asciichart.blue,
+                ],
+            },
+            timespan=(test_start_time, test_stop_time),
+            show_query=True,
+            include_link=True,
+        )
 
     query_processor.run_queries()
