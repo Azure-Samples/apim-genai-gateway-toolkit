@@ -187,7 +187,7 @@ resource azureOpenAIPrioritizationTokenCountingAPI 'Microsoft.ApiManagement/serv
   name: 'aoai-api-prioritization-token-counting'
   properties: {
     path: '/prioritization-token-counting/openai'
-    displayName: 'AOAIAPI-PrioritizationTokenCounting'
+    displayName: 'AOAIAPI-Prioritization-TokenCounting'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
@@ -626,7 +626,7 @@ resource azureOpenAIPrioritizationTokenCountingPolicy 'Microsoft.ApiManagement/s
   parent: azureOpenAIPrioritizationTokenCountingAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities/prioritization-token-counting/prioritization-token-counting.xml')
+    value: loadTextContent('../../../capabilities/prioritization/prioritization-token-counting.xml')
     format: 'rawxml'
   }
 }
@@ -635,7 +635,7 @@ resource azureOpenAIPrioritizationSimplePolicy 'Microsoft.ApiManagement/service/
   parent: azureOpenAIPrioritizationSimpleAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities/prioritization-simple/prioritization-policy.xml')
+    value: loadTextContent('../../../capabilities/prioritization/prioritization-simple.xml')
     format: 'rawxml'
   }
 }
