@@ -184,6 +184,10 @@
             <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
         </set-header>
 
+        <set-header name="x-gw-priority" exists-action="override">
+            <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+        </set-header>
+        
     </outbound>
     <on-error>
         <base />

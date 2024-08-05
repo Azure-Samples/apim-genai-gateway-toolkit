@@ -498,7 +498,7 @@ ApiManagementGatewayLogs
 | where OperationName != "" and  TimeGenerated > startTime and TimeGenerated < endTime
 | where BackendId != ""
 | where ResponseCode == 200
-| extend label = coalesce(RequestHeaders["x-priority"], "high")
+| extend label = strcat(ResponseHeaders["x-gw-priority"], "-priority")
 | summarize request_count = count() by bin(TimeGenerated, 10s), label
 | order by TimeGenerated asc
 | render timechart with (title="Successful request count by request type")
@@ -530,7 +530,7 @@ ApiManagementGatewayLogs
 ApiManagementGatewayLogs
 | where OperationName != "" and  TimeGenerated > startTime and TimeGenerated < endTime
 | where BackendId != ""
-| extend label = strcat(parse_url(Url)["Query Parameters"]["priority"], "-", "priority-", ResponseCode)
+| extend label = strcat(ResponseHeaders["x-gw-priority"], "-priority-", ResponseCode)
 | summarize request_count = count() by bin(TimeGenerated, 10s), tostring(label)
 | project TimeGenerated, request_count, label
 | order by TimeGenerated asc
