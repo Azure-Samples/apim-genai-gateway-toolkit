@@ -2,7 +2,7 @@
     <inbound>
         <base />
         <set-backend-service backend-id="payg-backend-1" />
-        <!-- apply threshold checks to batch - always allow non-batch through -->
+        <!-- apply threshold checks to low-priority - always allow high-priority through -->
         <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
         <set-variable name="low-priority" value="@{
             if (context.Request.Url.Query.GetValueOrDefault("priority", "") == "low"){
@@ -172,6 +172,10 @@
             <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
         </set-header>
 
+        <set-header name="x-gw-priority" exists-action="override">
+            <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+        </set-header>
+        
     </outbound>
     <on-error>
         <base />
