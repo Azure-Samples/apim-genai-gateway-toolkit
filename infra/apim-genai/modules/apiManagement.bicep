@@ -729,7 +729,7 @@ resource allApisAzureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnos
     frontend: {
       request: {
         headers: [
-          'is-batch'
+          'x-priority'
         ]
       }
       response: {
@@ -738,6 +738,7 @@ resource allApisAzureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnos
           'x-gw-ratelimit-value'
           'x-gw-remaining-tokens'
           'x-gw-remaining-requests'
+          'x-gw-priority'
         ]
       }
     }
