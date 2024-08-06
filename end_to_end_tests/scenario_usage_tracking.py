@@ -172,7 +172,9 @@ AppMetrics
         include_link=True,
     )
 
-    query_processor.run_queries()
+    query_processor.run_queries(
+        all_queries_link_text="Show all queries in Log Analytics"
+    )
 
 
 def get_random_key():
