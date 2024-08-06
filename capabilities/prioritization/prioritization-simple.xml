@@ -103,6 +103,9 @@
                             <set-header name="x-gw-ratelimit-value" exists-action="override">
                                 <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
                             </set-header>
+                            <set-header name="x-gw-priority" exists-action="override">
+                                <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+                            </set-header>
                             <set-body>Low priority rate-limiting triggered by token usage</set-body>
                         </return-response>
                     </when>
@@ -116,6 +119,9 @@
                             <!-- return the current value in the logs - useful for validation/debugging -->
                             <set-header name="x-gw-ratelimit-value" exists-action="override">
                                 <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
+                            </set-header>
+                            <set-header name="x-gw-priority" exists-action="override">
+                                <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
                             </set-header>
                             <set-body>Low priority rate-limiting triggered by requests usage</set-body>
                         </return-response>
@@ -175,7 +181,7 @@
         <set-header name="x-gw-priority" exists-action="override">
             <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
         </set-header>
-        
+
     </outbound>
     <on-error>
         <base />
