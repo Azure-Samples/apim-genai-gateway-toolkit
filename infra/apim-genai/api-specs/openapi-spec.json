@@ -411,6 +411,9 @@
                   "required": [
                     "input"
                   ]
+                },
+                "example": {
+                  "input": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur sodales metus orci, et cursus dolor blandit ac. Nunc eu lacinia."
                 }
               }
             }
