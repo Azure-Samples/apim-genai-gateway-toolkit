@@ -114,9 +114,8 @@ def make_chat_request(client: HttpSession, low_priority: bool, max_tokens: int =
     try:
         headers = {
             "ocp-apim-subscription-key": apim_subscription_one_key,
+            "x-priority": "low" if low_priority else "high",
         }
-        if low_priority:
-            headers["x-priority"] = "low"
 
         r = client.post(url, json=payload, headers=headers)
         histogram_request_result.record(
@@ -260,69 +259,94 @@ cycle_stages = [
     },
 ]
 cycle2 = [
-    # Total Limits: 100000 TPM and 100 RP10S
-    # Low priority Threshold: 30000 TPM and 30 RP10S
-    # 20 RP10S, 24000 TPM (show 200s for high priority requests)
     {
         "duration": 60,
-        "users": 2,
-        "spawn_rate": 1,
+        "users": 10,
+        "spawn_rate": 2,
         "user_classes": [HighPriorityLowTokenChatUser],
     },
-    # 120 RP10S, 144000 TPM (show 429s for high priority requests due to rp10s limit)
     {
         "duration": 120,
-        "users": 12,
-        "spawn_rate": 1,
+        "users": 60,
+        "spawn_rate": 2,
         "user_classes": [HighPriorityLowTokenChatUser],
     },
-    # 20 RP10S, 24000 TPM (show 200s for high priority requests)
     {
         "duration": 180,
-        "users": 2,
-        "spawn_rate": 1,
+        "users": 10,
+        "spawn_rate": 2,
         "user_classes": [HighPriorityLowTokenChatUser],
     },
-    # 30 RP10S, 180000 TPM (show 429s for high priority requests due to tpm limit)
     {
-        "duration": 250,
-        "users": 3,
-        "spawn_rate": 1,
+        "duration": 240,
+        "users": 10,
+        "spawn_rate": 2,
         "user_classes": [HighPriorityHighTokenChatUser],
     },
-    # 50 RP10S, 60000 TPM (show 200s for both high priority and low priority requests)
     {
-        "duration": 320,
-        "users": 5,
-        "spawn_rate": 1,
+        "duration": 300,
+        "users": 30,
+        "spawn_rate": 2,
+        "user_classes": [HighPriorityHighTokenChatUser],
+    },
+    {
+        "duration": 360,
+        "users": 10,
+        "spawn_rate": 2,
+        "user_classes": [HighPriorityHighTokenChatUser],
+    },
+    {
+        "duration": 420,
+        "users": 10,
+        "spawn_rate": 2,
         "user_classes": [MixedPriorityLowTokenChatUser],
     },
-    # 120 RP10S, 144000 TPM (show 200s for high priority requests and 429s for low priority requests due to rp10s limit)
     {
-        "duration": 370,
-        "users": 12,
-        "spawn_rate": 1,
+        "duration": 480,
+        "users": 40,
+        "spawn_rate": 2,
         "user_classes": [MixedPriorityLowTokenChatUser],
     },
-    # 20 RP10S, 24000 TPM (show 200s for low priority requests)
     {
-        "duration": 450,
-        "users": 2,
-        "spawn_rate": 1,
+        "duration": 540,
+        "users": 10,
+        "spawn_rate": 2,
+        "user_classes": [MixedPriorityLowTokenChatUser],
+    },
+    {
+        "duration": 600,
+        "users": 10,
+        "spawn_rate": 2,
         "user_classes": [LowPriorityLowTokenChatUser],
     },
-    # 30 RP10S, 180000 TPM (show 200s for high priority requests and 429s for low priority requests due to tpm limit)
     {
-        "duration": 520,
-        "users": 3,
-        "spawn_rate": 1,
+        "duration": 660,
+        "users": 40,
+        "spawn_rate": 2,
+        "user_classes": [LowPriorityLowTokenChatUser],
+    },
+    {
+        "duration": 720,
+        "users": 10,
+        "spawn_rate": 2,
+        "user_classes": [LowPriorityLowTokenChatUser],
+    },
+    {
+        "duration": 780,
+        "users": 10,
+        "spawn_rate": 2,
         "user_classes": [MixedPriorityHighTokenChatUser],
     },
-    # 50 RP10S, 300000 TPM (show 200s for high priority requests and 429s for low priority requests due to tpm limit)
     {
-        "duration": 580,
-        "users": 5,
-        "spawn_rate": 1,
+        "duration": 840,
+        "users": 40,
+        "spawn_rate": 2,
+        "user_classes": [MixedPriorityHighTokenChatUser],
+    },
+    {
+        "duration": 900,
+        "users": 10,
+        "spawn_rate": 2,
         "user_classes": [MixedPriorityHighTokenChatUser],
     },
 ]
