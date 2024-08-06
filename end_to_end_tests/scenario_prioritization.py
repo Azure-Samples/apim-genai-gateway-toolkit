@@ -259,92 +259,107 @@ cycle_stages = [
     },
 ]
 cycle2 = [
+    # high priority 200s
     {
-        "duration": 60,
+        "duration": 30,
         "users": 10,
         "spawn_rate": 2,
         "user_classes": [HighPriorityLowTokenChatUser],
     },
+    # high priority 429s (requests)
     {
         "duration": 120,
-        "users": 60,
+        "users": 50,
         "spawn_rate": 2,
         "user_classes": [HighPriorityLowTokenChatUser],
     },
+    # ramp down
+    {
+        "duration": 150,
+        "users": 10,
+        "spawn_rate": 2,
+        "user_classes": [HighPriorityLowTokenChatUser],
+    },
+    # high priority 200s
     {
         "duration": 180,
         "users": 10,
         "spawn_rate": 2,
-        "user_classes": [HighPriorityLowTokenChatUser],
-    },
-    {
-        "duration": 240,
-        "users": 10,
-        "spawn_rate": 2,
         "user_classes": [HighPriorityHighTokenChatUser],
     },
+    # high priority 429s (tokens)
     {
-        "duration": 300,
-        "users": 30,
-        "spawn_rate": 2,
-        "user_classes": [HighPriorityHighTokenChatUser],
-    },
-    {
-        "duration": 360,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [HighPriorityHighTokenChatUser],
-    },
-    {
-        "duration": 420,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [MixedPriorityLowTokenChatUser],
-    },
-    {
-        "duration": 480,
+        "duration": 270,
         "users": 40,
         "spawn_rate": 2,
-        "user_classes": [MixedPriorityLowTokenChatUser],
+        "user_classes": [HighPriorityHighTokenChatUser],
     },
+    # ramp down
     {
-        "duration": 540,
+        "duration": 300,
+        "users": 10,
+        "spawn_rate": 2,
+        "user_classes": [HighPriorityHighTokenChatUser],
+    },
+    # mixed priority 200s
+    {
+        "duration": 330,
         "users": 10,
         "spawn_rate": 2,
         "user_classes": [MixedPriorityLowTokenChatUser],
     },
+    # high priority 200s, low priority 429s (requests)
+    {
+        "duration": 420,
+        "users": 30,
+        "spawn_rate": 2,
+        "user_classes": [MixedPriorityLowTokenChatUser],
+    },
+    # ramp down
+    {
+        "duration": 450,
+        "users": 10,
+        "spawn_rate": 2,
+        "user_classes": [MixedPriorityLowTokenChatUser],
+    },
+    # low priority 200s
+    {
+        "duration": 480,
+        "users": 10,
+        "spawn_rate": 2,
+        "user_classes": [LowPriorityLowTokenChatUser],
+    },
+    # low priority 429s (requests)
+    {
+        "duration": 570,
+        "users": 30,
+        "spawn_rate": 2,
+        "user_classes": [LowPriorityLowTokenChatUser],
+    },
+    # ramp down
     {
         "duration": 600,
         "users": 10,
         "spawn_rate": 2,
         "user_classes": [LowPriorityLowTokenChatUser],
     },
+    # mixed priority 200s
     {
-        "duration": 660,
-        "users": 40,
+        "duration": 630,
+        "users": 10,
         "spawn_rate": 2,
-        "user_classes": [LowPriorityLowTokenChatUser],
+        "user_classes": [MixedPriorityHighTokenChatUser],
     },
+    # high priority 200s, low priority 429s (tokens)
     {
         "duration": 720,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [LowPriorityLowTokenChatUser],
-    },
-    {
-        "duration": 780,
-        "users": 10,
+        "users": 30,
         "spawn_rate": 2,
         "user_classes": [MixedPriorityHighTokenChatUser],
     },
+    # ramp down
     {
-        "duration": 840,
-        "users": 40,
-        "spawn_rate": 2,
-        "user_classes": [MixedPriorityHighTokenChatUser],
-    },
-    {
-        "duration": 900,
+        "duration": 750,
         "users": 10,
         "spawn_rate": 2,
         "user_classes": [MixedPriorityHighTokenChatUser],
