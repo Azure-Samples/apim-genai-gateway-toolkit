@@ -192,11 +192,8 @@ class QueryProcessor:
             )
         )
 
-    def run_queries(self):
-        """
-        Runs queries stored in __queries and prints result to stdout.
-        """
-        query_error_count = 0
+    def get_run_all_queries_link(self, link_text):
+        query_text = ""
         for query_index, (
             title,
             query,
@@ -210,6 +207,37 @@ class QueryProcessor:
             include_link,
             missing_value,
         ) in enumerate(self.__queries):
+            query_text += f"\n\n// {title}\n{query.strip()}\n\n\n"
+
+        url = get_log_analytics_portal_url(
+            self.__tenant_id,
+            self.__subscription_id,
+            self.__resource_group_name,
+            self.__workspace_name,
+            query_text,
+        )
+        return get_link(link_text, url)
+
+    def run_queries(self, all_queries_link_text=None):
+        """
+        Runs queries stored in __queries and prints result to stdout.
+        """
+        query_error_count = 0
+        all_queries_text = ""
+        for query_index, (
+            title,
+            query,
+            validation_func,
+            timespan,
+            is_chart,
+            columns,
+            chart_config,
+            group_definition,
+            show_query,
+            include_link,
+            missing_value,
+        ) in enumerate(self.__queries):
+            all_queries_text += f"\n\n// {title}\n{query.strip()}\n\n\n"
             print()
             print(f"Running query {query_index + 1} of {len(self.__queries)}")
             print(f"{asciichart.yellow}{title}{asciichart.reset}")
@@ -271,6 +299,20 @@ class QueryProcessor:
                     query_error_count += 1
                     continue
 
+            print()
+
+        if all_queries_link_text:
+            all_queries_url = get_log_analytics_portal_url(
+                self.__tenant_id,
+                self.__subscription_id,
+                self.__resource_group_name,
+                self.__workspace_name,
+                all_queries_text,
+            )
+            all_queries_link = get_link(all_queries_link_text, all_queries_url)
+
+            print()
+            print(all_queries_link)
             print()
 
         return query_error_count
