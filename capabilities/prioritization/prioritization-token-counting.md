@@ -215,7 +215,3 @@ In this chart, you can see the behavior illustrated in the steps above:
 ![Screenshot of Log Analytics query showing the weighted split of results in the backend](docs/token-output-3.png)
 
 Each of the listed queries will output to the console and are able to be opened in the Azure Portal via the `Run in Log Analytics` link.
-
-## Comparison to simple implementation
-- Token counting approach adds maintenance costs to ensure consumed token calculation remains up to date with AOAI internal logic.
-- Token counting approach returns immediate 429s to callers given tokens are calculated internally, rather than waiting on returned AOAI headers. No requests should reach AOAI that AOAI would disallow on its own.
