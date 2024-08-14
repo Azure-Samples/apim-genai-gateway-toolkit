@@ -84,7 +84,10 @@
             if(context.Operation.Id == "embeddings_create" || requestBody.Value<string>("model") == "embedding"){
                 return (int)Math.Ceiling((requestBody.Value<string>("input")).Length * 0.25);
             } else {
-                if(requestBody.ContainsKey("max_tokens"))
+                if(requestBody.ContainsKey("max_tokens") && requestBody.ContainsKey("best_of")) {
+                    return requestBody.Value<int>("max_tokens") * requestBody.Value<int>("best_of");
+                } 
+                else if(requestBody.ContainsKey("max_tokens"))
                 {
                     return requestBody.Value<int>("max_tokens");
                 }
