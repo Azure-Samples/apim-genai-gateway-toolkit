@@ -114,8 +114,10 @@ def make_chat_request(client: HttpSession, low_priority: bool, max_tokens: int =
     try:
         headers = {
             "ocp-apim-subscription-key": apim_subscription_one_key,
-            "x-priority": "low" if low_priority else "high",
         }
+
+        if low_priority:
+            headers["x-priority"] = "low"
 
         r = client.post(url, json=payload, headers=headers)
         histogram_request_result.record(
