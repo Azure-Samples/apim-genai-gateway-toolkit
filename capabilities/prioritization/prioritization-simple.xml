@@ -18,8 +18,12 @@
             }" />
         <choose>
             <when condition="@((bool)context.Variables["low-priority"])">
-                <!-- get the configuration for the model deployment -->
-                <!-- TODO is this a good candidate for a fragment? -->
+                <!-- 
+                Get the configuration for the model deployments and look up the threshold values
+                for the deployment for the current request
+
+                TODO is this a good candidate for a fragment?
+                -->
                 <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
                 <choose>
                     <when condition="@(context.Variables.ContainsKey("list-deployments") == false)">
@@ -87,13 +91,29 @@
                     JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
                     return selectedDeployment.Value<int>("low-priority-tpm-threshold");
                 }" />
-                <!-- Lookup the last remaining-tokens/remaining-requests values -->
+                
+                <!-- 
+                Lookup the last remaining-tokens/remaining-requests values
+                -->
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|remaining-tokens")" default-value="@(-1)" variable-name="remaining-tokens" />
                 <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|remaining-requests")" default-value="@(-1)" variable-name="remaining-requests" />
                 <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["remaining-tokens"])" namespace="prioritization-simple">
                     <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
                 </emit-metric>
+
                 <!-- Test whether or not to allow the low-priority request through to the backend -->
+                <!--
+                Determine whether to allow the request through based on the remaining tokens/requests.
+                If there are sufficient tokens/requests remaining, allow the request through.
+                If not, then we typically return a 429 response.
+                However, if there are no high-priority requests being processed then we would end up
+                blocking requests for a minute (i.e. until the cached values expire).
+                To avoid this situration, we allow a single request through every 10 seconds to 
+                test the remaining tokens values. This only applies to the token rate-limiting as the 
+                request rate-limiting resets every 10 seconds anyway.
+
+                TODO - should we use a rate-limit for this? (it turns out that the cache approach allows more than a single additional request through)
+                -->
                 <choose>
                     <when condition="@(((int)context.Variables["remaining-tokens"] != -1) && ((int)context.Variables["remaining-tokens"]) < ((int)context.Variables["low-priority-tpm-threshold"]) )">
                         <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|allow-additional-lowpri-request")" default-value="@(true)" variable-name="allow-additional-lowpri-request" />
@@ -104,7 +124,6 @@
                                 <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|allow-additional-lowpri-request")" value="@(false)" duration="10" />
                             
                                 <set-variable name="test" value="allowing-extra-low-pri-request" />
-
                             </when>
                             <when condition="@(((bool)context.Variables["allow-additional-lowpri-request"]) == false)">
                                 <set-variable name="low-priority-threshold-reason" value="tokens" />
@@ -118,9 +137,9 @@
                                         <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
                                     </set-header>
                                     <set-header name="x-gw-priority" exists-action="override">
-                                <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
-                            </set-header>
-                            <set-body>Low priority rate-limiting triggered by token usage</set-body>
+                                        <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+                                    </set-header>
+                                    <set-body>Low priority rate-limiting triggered by token usage</set-body>
                                 </return-response>
                             </when>
                         </choose>
@@ -201,6 +220,10 @@
 
         <set-header name="x-gw-priority" exists-action="override">
             <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+        </set-header>
+
+        <set-header name="x-test" exists-action="override">
+            <value>@((string)context.Variables["test"])</value>
         </set-header>
 
     </outbound>
