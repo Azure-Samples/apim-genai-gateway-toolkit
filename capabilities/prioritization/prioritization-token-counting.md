@@ -167,6 +167,55 @@ The policy checks that the `remaining-tokens` and `remaining-requests` are above
 </choose>
 ```
 
+## How to see this in action
+
+To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
+This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
+
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle2 ENDPOINT_PATH=prioritization-token-counting ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token counting endpoint.
+
+This script runs a load test for 12 minutes, which repeatedly sends chat completion requests to the OpenAI simulator via APIM using the token counting prioritization policy.
+
+1. When the script starts, it sends a low number of high-priority chat completion requests, which fall under the defined limits for the deployment.
+
+2. High priority load increases until the service begins returning 429s, as the number of requests per 10 seconds exceeds defined limits.
+
+3. High priority load decreases, but the `max_tokens` sent in chat completion requests increase five fold. The service returns 429s, as the number of tokens per minute exceeds defined limits. 
+
+4. High priority load decreases, while low priority requests are introduced. The defined low priority thresholds are exceeded and the service begins to return 429s, as the number of requests per 10 seconds exceeds the defined low priority threshold. Overall limits have not been exceeded, so the service returns 200s for high priority requests.
+
+5. High priority requests stop being sent, while low priority load increases. The service initially returns 200s for low priority requests, but the threshold is again exceeded (this time without any effect from high priority requests), and the service returns 429s.
+
+6. Low priority load decreases and high priority requests are re-introduced, but the `max_tokens` sent in chat completion requests increase five fold, once again. While overall load has decreased, the defined low priority token thresholds are exceeded and the service begins to return 429s for low priority requests, specifically.
+
+After the load test is complete, the script waits for the metrics to be ingested into Log Analytics and then queries the results.
+
+The initial output from a test run will look something like this (truncated for length):
+
+![output showing the test steps](docs/token-output-1.png)
+
+Once the script has completed and the metrics have been ingested, the script will show the query results that illustrate the behaviour. There are 6 queries that serve to illustrate the gateway behavior over the course of the test:
+
+- Overall request count
+- Successful request count by request type
+- Request count by priority and response code
+- Remaining tokens
+- Rate-limit tokens consumed (Simulator)
+- Consumed tokens (Gateway)
+
+The query output from `Request count by priority and response code` will look like this:
+
+![output showing the query results](docs/token-output-2.png)
+
+The query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
+
+The query in this example shows the request count over time for different response codes (200/429) returned from APIM for high and low priority requests.
+In this chart, you can see the behavior illustrated in the steps above:
+
+![Screenshot of Log Analytics query showing the weighted split of results in the backend](docs/token-output-3.png)
+
+Each of the listed queries will output to the console and are able to be opened in the Azure Portal via the `Run in Log Analytics` link.
+
 ## Comparison to simple implementation
 - Token counting approach adds maintenance costs to ensure consumed token calculation remains up to date with AOAI internal logic.
 - Token counting approach returns immediate 429s to callers given tokens are calculated internally, rather than waiting on returned AOAI headers. No requests should reach AOAI that AOAI would disallow on its own.
