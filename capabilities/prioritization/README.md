@@ -22,13 +22,19 @@ The two approaches are largely similar, but differ in the way in which they calc
 
 The prioritization end to end test accepts a number of parameters that configure test behavior:
 
-- `ENDPOINT_PATH` - Controls whether to use the simple or token counting approach. Options are `prioritization-simple` and `prioritization-token-counting`
+- `ENDPOINT_PATH` - Controls whether to use the simple or token counting approach. Options are `prioritization-simple` and `prioritization-token-counting`.
 - `LOAD_PATTERN` - Controls which test to run. Options are `low-priority` (only low priority requests), `high-priority` (only high priority requests), `cycle` (both low and high priority requests in custom load pattern), and `cycle2` (both low and high priority requests in custom load pattern). 
 - `REQUEST_TYPE` - Controls whether chat or embeddings requests are sent to the endpoint. Options are `chat` and `embeddings`.
 - `RAMP_RATE` - Controls the ramp rate for the locust users. 
 - `MAX_TOKENS` - Controls the `max_tokens` property set in chat requests.
 
 > **_NOTE:_**  The `cycle2` `LOAD_PATTERN` does not utilize `REQUEST_TYPE`, `RAMP_RATE`, or `MAX_TOKENS` as it is only used to load test chat requests with specific max_token values, for use against the `prioritization-token-counting` endpoint.
+
+The command to run the end to end test is as follows (only `ENDPOINT_PATH` is required):
+
+```bash
+LOAD_PATTERN=<load_pattern> ENDPOINT_PATH=<endpoint_path> REQUEST_TYPE=<request_type> RAMP_RATE=<ramp_rate> MAX_TOKENS=<max_tokens> ./scripts/run-end-to-end-prioritization.sh
+```
 
 ### Examples
 
