@@ -36,11 +36,18 @@ Run the prioritization test with only low-priority requests using the simple imp
 LOAD_PATTERN=low-priority ENDPOINT_PATH=prioritization-simple ./scripts/run-end-to-end-prioritization.sh
 ```
 
-Run the prioritization test cycling through low, high and mixed priority requests using the token-counting implementation:
+Run the prioritization test cycling through low, high and mixed priority requests using the token-counting implementation (defaults to embeddings requests):
 
 ```bash
 LOAD_PATTERN=cycle ENDPOINT_PATH=prioritization-token-counting ./scripts/run-end-to-end-prioritization.sh
 ```
+
+Run the prioritization test cycling through low, high and mixed priority chat requests (with max_tokens=1000) using the simple implementation adding 10 users per second when the load stage changes:
+
+```bash
+LOAD_PATTERN=cycle REQUEST_TYPE=chat MAX_TOKENS=1000 RAMP_RATE=10 ENDPOINT_PATH=prioritization-simple ./scripts/run-end-to-end-prioritization.sh
+```
+
 
 
 
