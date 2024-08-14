@@ -594,11 +594,18 @@ ApiManagementGatewayLogs
         title="Rate-limit tokens consumed (Simulator metric)",
         query=f"""
 {time_vars}
-AppMetrics 
+let interval = 10s;
+let timeRange = range TimeStamp from startTime to endTime step interval
+| summarize count() by bin(TimeStamp, interval) | project TimeStamp; // align values to interval boundaries
+let query = AppMetrics 
 | where TimeGenerated > startTime and TimeGenerated < endTime
 | where Name == "aoai-simulator.tokens.rate-limit" 
 | extend deployment = tostring(Properties["deployment"])
-| summarize number=sum(Sum) by bin(TimeGenerated, 10s), deployment
+| summarize number=sum(Sum) by bin(TimeGenerated, interval), deployment
+| order by TimeGenerated asc;
+timeRange
+| join kind=leftouter query on $left.TimeStamp == $right.TimeGenerated
+| project TimeGenerated=TimeStamp, number= coalesce(number, 0.0), deployment=coalesce(deployment, "")
 | order by TimeGenerated asc
 | serialize 
 | extend sliding_average = number 
@@ -609,7 +616,7 @@ AppMetrics
                 + coalesce(prev(number, 6),0.0)
 | project TimeGenerated, sliding_average, number
 | render timechart with (title="rate-limit tokens (with sliding 60s average)")
-        """,
+""",
         is_chart=True,
         columns=[
             "number",
@@ -622,6 +629,7 @@ AppMetrics
                 asciichart.yellow,
                 asciichart.blue,
             ],
+            "format": "{:9.1f}",  # adjust formatting to avoid graph skew for large y-axis values
         },
         timespan=(test_start_time, test_stop_time),
         show_query=True,
@@ -649,6 +657,7 @@ AppMetrics
                     asciichart.yellow,
                     asciichart.blue,
                 ],
+                "format": "{:9.1f}",  # adjust formatting to avoid graph skew for large y-axis values
             },
             timespan=(test_start_time, test_stop_time),
             show_query=True,
