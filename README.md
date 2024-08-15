@@ -9,6 +9,7 @@
 		- [Prerequisites for non Dev Container setup](#prerequisites-for-non-dev-container-setup)
 	- [Deploying the Accelerator](#deploying-the-accelerator)
 	- [Gateway Capabilities](#gateway-capabilities)
+	- [Gateway Backend Options](#gateway-backend-options)
 	- [Testing Gateway Capabilities](#testing-gateway-capabilities)
 	- [Troubleshooting](#troubleshooting)
 
@@ -93,11 +94,20 @@ This repo currently contains the policies showing how to implement these GenAI G
 | [Adaptive rate limiting](./capabilities/rate-limiting/README.md) | Dynamically adjust rate-limits applied to different workloads|
 | [Tracking token usage](./capabilities/usage-tracking//README.md) | Record the token consumption for usage tracking and attribution|
 
+## Gateway Backend Options
+
+The toolkit is designed to deploy the API Management gateway alongside the OpenAI API Simulator, but can be used with Azure Open AI instances as well. 
+
+To use the simulator, set the `USE_SIMULATOR` option in your `.env` file to `true`.
+
+To use AOAI backends instead, set the `USE_SIMULATOR` option in your `.env` file to `false`, and add the base URLs and API Keys for AOAI (`PTU_DEPLOYMENT_1_BASE_URL`, `PTU_DEPLOYMENT_1_API_KEY`, etc.).
+
 ## Testing Gateway Capabilities
 
-The easiest way to see the gateway capabilities in action is to deploy the gateway along with the OpenAI API Simualtor (set the `USE_SIMULATOR` option in your `.env` file to `true`).
+> [!CAUTION]
+> Testing gateway capabilities with live AOAI backends, rather than the OpenAI API Simulator, could result in excessive costs.
 
-Once you have the gateway and simulator deployed, see the `README.md` in the relevant capability folder for instructions on how to test the capability. (NOTE: currently not all capabilities have tests implemented)
+The easiest way to see the gateway capabilities in action is to deploy the gateway along with the OpenAI API Simulator. Once you have the gateway and simulator deployed, see the `README.md` in the relevant capability folder for instructions on how to test the capability. (NOTE: currently not all capabilities have tests implemented)
 
 ## Troubleshooting
 
