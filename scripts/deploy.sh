@@ -82,6 +82,7 @@ build_image() {
 output_generated_keys="$script_dir/../infra/simulators/generated-keys.json"
 output_simulator_base="$script_dir/../infra/simulators/output-simulator-base.json"
 output_simulators="$script_dir/../infra/simulators/output-simulators.json"
+output_genai_base="$script_dir/../infra/apim-genai/output-genai-base.json"
 
 # Ensure output-keys.json exists and add empty JSON object if not
 if [[ ! -f "$output_generated_keys" ]]; then
@@ -363,6 +364,92 @@ EOF
   fi
   PAYG_DEPLOYMENT_2_BASE_URL="https://${payg2_fqdn}"
 
+  ptu_deployment_1_api_key=$SIMULATOR_API_KEY
+  payg_deployment_1_api_key=$SIMULATOR_API_KEY
+  payg_deployment_2_api_key=$SIMULATOR_API_KEY
+
+else
+
+  cd "$script_dir/../infra/apim-genai"
+
+cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
+{
+  "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workloadName" :{ 
+        "value": "${RESOURCE_NAME_PREFIX}"
+    },
+    "environment" :{ 
+        "value": "${ENVIRONMENT_TAG}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+  }
+}
+EOF
+
+  deployment_name="genai-base-${RESOURCE_NAME_PREFIX}"
+
+  echo -e "\n=="
+  echo "== Starting bicep deployment ${deployment_name}"
+  echo "=="
+  output=$(az deployment sub create \
+    --location "$AZURE_LOCATION" \
+    --template-file base.bicep \
+    --name "$deployment_name" \
+    --parameters azuredeploy.parameters.json \
+    --output json)
+
+  echo "== Completed bicep deployment ${deployment_name}"
+
+  echo "$output" | jq "[.properties.outputs | to_entries | .[] | {key:.key, value: .value.value}] | from_entries" > "$output_genai_base"
+
+  resource_group_name=$(jq -r '.resourceGroupName // ""' < "$output_genai_base")
+  app_insights_name=$(jq -r '.appInsightsName // ""' < "$output_genai_base")
+  log_analytics_name=$(jq -r '.logAnalyticsName // ""' < "$output_genai_base")
+
+  if [[ -z "$resource_group_name" ]]; then
+    echo "Resource group name (resourceGroupName) not found in output-genai-base.json"
+    exit 1
+  fi
+
+  if [[ -z "$app_insights_name" ]]; then
+    echo "App Insights name (appInsightsName) not found in output-genai-base.json"
+    exit 1
+  fi
+
+  if [[ -z "$log_analytics_name" ]]; then
+    echo "Log Analytics name (logAnalyticsName) not found in output-genai-base.json"
+    exit 1
+  fi
+
+  if [[ ${#PTU_DEPLOYMENT_1_API_KEY} -eq 0 ]]; then
+    echo 'ERROR: Missing environment variable PTU_DEPLOYMENT_1_API_KEY' 1>&2
+    exit 6
+  else
+    PTU_DEPLOYMENT_1_API_KEY="${PTU_DEPLOYMENT_1_API_KEY%$'\r'}"
+  fi
+
+  if [[ ${#PAYG_DEPLOYMENT_1_API_KEY} -eq 0 ]]; then
+    echo 'ERROR: Missing environment variable PAYG_DEPLOYMENT_1_API_KEY' 1>&2
+    exit 6
+  else
+    PAYG_DEPLOYMENT_1_API_KEY="${PAYG_DEPLOYMENT_1_API_KEY%$'\r'}"  
+  fi
+
+  if [[ ${#PAYG_DEPLOYMENT_2_API_KEY} -eq 0 ]]; then
+    echo 'ERROR: Missing environment variable PAYG_DEPLOYMENT_2_API_KEY' 1>&2
+    exit 6
+  else
+    PAYG_DEPLOYMENT_2_API_KEY="${PAYG_DEPLOYMENT_2_API_KEY%$'\r'}"  
+  fi
+
+  ptu_deployment_1_api_key=$PTU_DEPLOYMENT_1_API_KEY
+  payg_deployment_1_api_key=$PAYG_DEPLOYMENT_1_API_KEY
+  payg_deployment_2_api_key=$PAYG_DEPLOYMENT_2_API_KEY
+
 fi
 
 #
@@ -398,19 +485,19 @@ cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
         "value": "${PTU_DEPLOYMENT_1_BASE_URL}"
     },
     "ptuDeploymentOneApiKey": {
-        "value": "${SIMULATOR_API_KEY}"
+        "value": "${ptu_deployment_1_api_key}"
     },
     "payAsYouGoDeploymentOneBaseUrl": {
         "value": "${PAYG_DEPLOYMENT_1_BASE_URL}"
     },
     "payAsYouGoDeploymentOneApiKey": {
-        "value": "${SIMULATOR_API_KEY}"
+        "value": "${payg_deployment_1_api_key}"
     },
     "payAsYouGoDeploymentTwoBaseUrl": {
         "value": "${PAYG_DEPLOYMENT_2_BASE_URL}"
     },
     "payAsYouGoDeploymentTwoApiKey": {
-        "value": "${SIMULATOR_API_KEY}"
+        "value": "${payg_deployment_2_api_key}"
     },
     "logAnalyticsName": {
         "value": "${log_analytics_name}"
