@@ -370,7 +370,7 @@ EOF
 
 else
 
-cd "$script_dir/../infra/apim-genai"
+  cd "$script_dir/../infra/apim-genai"
 
 cat << EOF > "$script_dir/../infra/apim-genai/azuredeploy.parameters.json"
 {

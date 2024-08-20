@@ -100,12 +100,12 @@ The toolkit is designed to deploy the API Management gateway alongside the OpenA
 
 To use the simulator, set the `USE_SIMULATOR` option in your `.env` file to `true`.
 
-To use AOAI backends instead, set the `USE_SIMULATOR` option in your `.env` file to `false`, and add the base URLs and API Keys for AOAI (`PTU_DEPLOYMENT_1_BASE_URL`, `PTU_DEPLOYMENT_1_API_KEY`, etc.).
+To use Azure OpenAI backends instead, set the `USE_SIMULATOR` option in your `.env` file to `false`, and add the base URLs and API Keys for each backend (`PTU_DEPLOYMENT_1_BASE_URL`, `PTU_DEPLOYMENT_1_API_KEY`, etc.).
 
 ## Testing Gateway Capabilities
 
 > [!CAUTION]
-> Testing gateway capabilities with live AOAI backends, rather than the OpenAI API Simulator, could result in excessive costs.
+> Testing gateway capabilities with live Azure OpenAI backends, rather than the OpenAI API Simulator, will result in increased costs.
 
 The easiest way to see the gateway capabilities in action is to deploy the gateway along with the OpenAI API Simulator. Once you have the gateway and simulator deployed, see the `README.md` in the relevant capability folder for instructions on how to test the capability. (NOTE: currently not all capabilities have tests implemented)
 
