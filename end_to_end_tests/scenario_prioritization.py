@@ -640,7 +640,7 @@ let timeRange = range TimeStamp from startTime to endTime step interval
 | summarize count() by bin(TimeStamp, interval) | project TimeStamp; // align values to interval boundaries
 let query = AppMetrics 
 | where TimeGenerated > startTime and TimeGenerated < endTime
-| where Name == "aoai-simulator.tokens.rate-limit" 
+| where Name == "aoai-api-simulator.tokens.rate-limit" 
 | extend deployment = tostring(Properties["deployment"])
 | summarize number=sum(Sum) by bin(TimeGenerated, interval), deployment
 | order by TimeGenerated asc;
