@@ -67,7 +67,7 @@ def make_request(client: HttpSession, low_priority: bool):
     if request_type == "embeddings":
         make_embedding_request(client, low_priority)
     elif request_type == "chat":
-        make_chat_request(client, low_priority)
+        make_chat_request(client, low_priority, max_tokens)
     else:
         raise ValueError(f"Unhandled request type: {request_type}")
 
