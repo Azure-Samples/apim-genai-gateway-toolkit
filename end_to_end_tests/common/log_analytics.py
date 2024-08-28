@@ -76,36 +76,7 @@ class Table:
             current_row[distinct_group_column_values.index(group) + 1] = value
 
         return Table(rows=rows, columns=new_columns)
-        
-def get_log_analytics_token_metric_url(
-    tenant_id: str,
-    subscription_id: str,
-    resource_group_name: str,
-    app_insights_name: str,
-    start_time: datetime,
-    end_time: datetime
-):
-    """
-    Build a URL to deep link into the Azure Portal to view APIM token metrics in Log Analytics.
-    """
-    # ensure start and end time are at the top of the minute so that the Azure Metrics blade can properly render the chart
-    start = start_time.isoformat()[:-12] + "000Z"
-    end = end_time.isoformat()[:-12] + "000Z"
-    time_context = {
-        "absolute": {
-            "startTime": start,
-            "endTime": end
-        },
-        "showUTCTime": False,
-        "grain": 1
-    }
-    time_context_string = json.dumps(time_context, separators=(',', ':'))
-    encoded_time_context = urllib.parse.quote(time_context_string)
-    # building and encoding the chart_definition JSON object like time_context does not work properly as nested slashes and other special characters are not encoded correctly
-    encoded_chart_definition = f"%7B%22v2charts%22%3A%5B%7B%22metrics%22%3A%5B%7B%22resourceMetadata%22%3A%7B%22id%22%3A%22%2Fsubscriptions%2F{subscription_id}%2FresourceGroups%2F{resource_group_name}%2Fproviders%2FMicrosoft.Insights%2Fcomponents%2F{app_insights_name}%22%7D%2C%22name%22%3A%22customMetrics%2FTotal%20Tokens%22%2C%22aggregationType%22%3A1%2C%22namespace%22%3A%22microsoft.insights%2Fcomponents%2Fkusto%22%2C%22metricVisualization%22%3A%7B%22displayName%22%3A%22Total%20Tokens%22%7D%7D%5D%2C%22title%22%3A%22Sum%20Total%20Tokens%20for%20{app_insights_name}%20by%20Subscription%20ID%22%2C%22titleKind%22%3A1%2C%22visualization%22%3A%7B%22chartType%22%3A2%2C%22legendVisualization%22%3A%7B%22isVisible%22%3Atrue%2C%22position%22%3A2%2C%22hideHoverCard%22%3Afalse%2C%22hideLabelNames%22%3Atrue%7D%2C%22axisVisualization%22%3A%7B%22x%22%3A%7B%22isVisible%22%3Atrue%2C%22axisType%22%3A2%7D%2C%22y%22%3A%7B%22isVisible%22%3Atrue%2C%22axisType%22%3A1%7D%7D%7D%2C%22grouping%22%3A%7B%22dimension%22%3A%22customDimensions%2FSubscription%20ID%22%2C%22sort%22%3A2%2C%22top%22%3A10%7D%7D%5D%7D"
-    url = f"https://portal.azure.com/#@{tenant_id}/blade/Microsoft_Azure_MonitoringMetrics/Metrics.ReactView/Referer/MetricsExplorer/ResourceId/%2Fsubscriptions%2F{subscription_id}%2FresourceGroups%2F{resource_group_name}%2Fproviders%2FMicrosoft.Insights%2Fcomponents%2F{app_insights_name}/TimeContext/{encoded_time_context}/ChartDefinition/{encoded_chart_definition}"
-    link = get_link("View Token Metrics in Log Analytics", url)
-    return link
+
 
 def get_log_analytics_portal_url(
     tenant_id: str,
@@ -186,6 +157,7 @@ class QueryProcessor:
         chart_config=dict(),
         show_query=False,
         include_link=False,
+        missing_value=float("nan"),
     ):
         """
         Adds a query to be executed.
@@ -216,14 +188,12 @@ class QueryProcessor:
                 group_definition,
                 show_query,
                 include_link,
+                missing_value,
             )
         )
 
-    def run_queries(self):
-        """
-        Runs queries stored in __queries and prints result to stdout.
-        """
-        query_error_count = 0
+    def get_run_all_queries_link(self, link_text):
+        query_text = ""
         for query_index, (
             title,
             query,
@@ -235,7 +205,39 @@ class QueryProcessor:
             group_definition,
             show_query,
             include_link,
+            missing_value,
         ) in enumerate(self.__queries):
+            query_text += f"\n\n// {title}\n{query.strip()}\n\n\n"
+
+        url = get_log_analytics_portal_url(
+            self.__tenant_id,
+            self.__subscription_id,
+            self.__resource_group_name,
+            self.__workspace_name,
+            query_text,
+        )
+        return get_link(link_text, url)
+
+    def run_queries(self, all_queries_link_text=None):
+        """
+        Runs queries stored in __queries and prints result to stdout.
+        """
+        query_error_count = 0
+        all_queries_text = ""
+        for query_index, (
+            title,
+            query,
+            validation_func,
+            timespan,
+            is_chart,
+            columns,
+            chart_config,
+            group_definition,
+            show_query,
+            include_link,
+            missing_value,
+        ) in enumerate(self.__queries):
+            all_queries_text += f"\n\n// {title}\n{query.strip()}\n\n\n"
             print()
             print(f"Running query {query_index + 1} of {len(self.__queries)}")
             print(f"{asciichart.yellow}{title}{asciichart.reset}")
@@ -243,12 +245,15 @@ class QueryProcessor:
                 print(query)
                 print("")
             if include_link:
+                link_query = (
+                    query.strip()
+                )  # When clicking on the link, Log Analytics runs the query automatically if there's no preceding whitespace
                 url = get_log_analytics_portal_url(
                     self.__tenant_id,
                     self.__subscription_id,
                     self.__resource_group_name,
                     self.__workspace_name,
-                    query,
+                    link_query,
                 )
                 link = get_link("Run in Log Analytics", url)
                 print(link)
@@ -280,9 +285,9 @@ class QueryProcessor:
                 columns = sorted(columns)
 
             if is_chart:
-                self.__output_chart(result, title, columns, chart_config)
+                self.__output_chart(result, columns, missing_value, chart_config)
             else:
-                self.__output_table(result, title)
+                self.__output_table(result)
 
             # Validate result
             if validation_func:
@@ -294,6 +299,20 @@ class QueryProcessor:
                     query_error_count += 1
                     continue
 
+            print()
+
+        if all_queries_link_text:
+            all_queries_url = get_log_analytics_portal_url(
+                self.__tenant_id,
+                self.__subscription_id,
+                self.__resource_group_name,
+                self.__workspace_name,
+                all_queries_text,
+            )
+            all_queries_link = get_link(all_queries_link_text, all_queries_url)
+
+            print()
+            print(all_queries_link)
             print()
 
         return query_error_count
@@ -326,10 +345,11 @@ class QueryProcessor:
         columns = table.columns
         return Table(columns=columns, rows=rows), None
 
-    def wait_for_non_zero_count(self, query, max_retries=10, wait_time_seconds=30):
+    def wait_for_non_zero_count(self, query, max_retries=20, wait_time_seconds=30):
         """
         Run a query until it returns a non-zero count.
         """
+        logging.info("Check for metrics data, query: %s", query)
         for _ in range(max_retries):
             r, _ = self.run_query(
                 query=query,
@@ -344,23 +364,7 @@ class QueryProcessor:
 
         raise Exception("❌ No metrics data found")
 
-    def build_token_metric_url(self, start_time, end_time): 
-        """
-        Build the url to view total token metrics over time.
-        """
-        link = get_log_analytics_token_metric_url(
-            self.__tenant_id,
-            self.__subscription_id,
-            self.__resource_group_name,
-            self.__app_insights_name,
-            start_time,
-            end_time
-        )
-        print(link)
-        print("")
-    
-
-    def __output_table(self, query_result: Table, title):
+    def __output_table(self, query_result: Table):
         """
         Outputs the result of the ran query in table format.
 
@@ -370,7 +374,9 @@ class QueryProcessor:
         """
         print(tabulate(query_result.rows, query_result.columns))
 
-    def __output_chart(self, query_result: Table, title, columns, config=dict()):
+    def __output_chart(
+        self, query_result: Table, columns, missing_value, config=dict()
+    ):
         """
         Outputs the result of the ran query in chart format.
 
@@ -389,7 +395,7 @@ class QueryProcessor:
                     f"Column '{column}' not found in table columns: "
                     + ",".join(table.columns)
                 )
-            return [row[column_index] for row in table.rows]
+            return [row[column_index] or missing_value for row in table.rows]
 
         series = [get_column_values(query_result, column) for column in columns]
         print(asciichart.plot(series, config))

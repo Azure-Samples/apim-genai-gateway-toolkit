@@ -1,0 +1,233 @@
+<policies>
+    <inbound>
+        <base />
+        <set-backend-service backend-id="ptu-backend-1" />
+
+        <set-variable name="test" value="" />
+
+        <!-- apply threshold checks to low-priority - always allow high-priority through -->
+        <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
+        <set-variable name="low-priority" value="@{
+            if (context.Request.Url.Query.GetValueOrDefault("priority", "") == "low"){
+                return true;
+            }
+            if (context.Request.Headers.GetValueOrDefault("x-priority", "") == "low"){
+                return true;
+            }
+            return false;
+            }" />
+        <choose>
+            <when condition="@((bool)context.Variables["low-priority"])">
+                <!-- 
+                Get the configuration for the model deployments and look up the threshold values
+                for the deployment for the current request
+
+                TODO is this a good candidate for a fragment?
+                -->
+                <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
+                <choose>
+                    <when condition="@(context.Variables.ContainsKey("list-deployments") == false)">
+                        <set-variable name="list-deployments" value="@{
+                            JArray deployments = new JArray();
+                            deployments.Add(new JObject()
+                            {
+                                { "deployment-id", "embedding100k" },
+                                // embedding100k has a 100,000 TPM limit
+                                // Set low-priority-tpm-threshold to 30,000 to reserve 30,000 TPM for high priority requests
+                                // 100,000 TPM  = 6/1000 * 100,000 = 600 RPM
+                                //              = 10 RP10S (requests per 10 seconds)
+                                { "low-priority-tpm-threshold", 30000},
+                                { "low-priority-rp10s-threshold", 3},
+                            });
+                            deployments.Add(new JObject()
+                            {
+                                { "deployment-id", "embedding" },
+                                { "low-priority-tpm-threshold", 3000},
+                                { "low-priority-rp10s-threshold", 3},
+                            });
+                            deployments.Add(new JObject()
+                            {
+                                { "deployment-id", "gpt-35-turbo-10k-token" },
+                                { "low-priority-tpm-threshold", 3000},
+                                { "low-priority-rp10s-threshold", 3},
+                            });
+                            deployments.Add(new JObject()
+                            {
+                                { "deployment-id", "gpt-35-turbo-100k-token" },
+                                { "low-priority-tpm-threshold", 30000},
+                                { "low-priority-rp10s-threshold", 30},
+                            });
+                            return deployments;   
+                        }" />
+                        <cache-store-value key="list-deployments" value="@((JArray)context.Variables["list-deployments"])" duration="60" />
+                    </when>
+                </choose>
+                <set-variable name="selected-deployment" value="@{
+                    JArray deployments = (JArray)context.Variables["list-deployments"];
+                    for (int i = 0; i < deployments.Count; i++)
+                    {
+                        JObject deployment = (JObject)deployments[i];
+                        if (deployment.Value<string>("deployment-id") == (string)context.Variables["selected-deployment-id"])
+                        {
+                            return deployment;
+                        }
+                    }
+                    // Deployment not found
+                    return null;
+                }" />
+                <choose>
+                    <when condition="@(context.Variables["selected-deployment"] == null)">
+                        <return-response>
+                            <set-status code="404" reason="Deployment not found" />
+                            <set-body>Deployment not found</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+                <set-variable name="low-priority-rp10s-threshold" value="@{
+                    JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+                    return selectedDeployment.Value<int>("low-priority-rp10s-threshold");
+                }" />
+                <set-variable name="low-priority-tpm-threshold" value="@{
+                    JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+                    return selectedDeployment.Value<int>("low-priority-tpm-threshold");
+                }" />
+                
+                <!-- 
+                Lookup the last remaining-tokens/remaining-requests values
+                -->
+                <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|remaining-tokens")" default-value="@(-1)" variable-name="remaining-tokens" />
+                <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|remaining-requests")" default-value="@(-1)" variable-name="remaining-requests" />
+                <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["remaining-tokens"])" namespace="prioritization-simple">
+                    <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
+                </emit-metric>
+
+                <!-- Test whether or not to allow the low-priority request through to the backend -->
+                <!--
+                Determine whether to allow the request through based on the remaining tokens/requests.
+                If there are sufficient tokens/requests remaining, allow the request through.
+                If not, then we typically return a 429 response.
+                However, if there are no high-priority requests being processed then we would end up
+                blocking requests for a minute (i.e. until the cached values expire).
+                To avoid this situration, we allow a single request through every 10 seconds to 
+                test the remaining tokens values. This only applies to the token rate-limiting as the 
+                request rate-limiting resets every 10 seconds anyway.
+
+                TODO - should we use a rate-limit for this? (it turns out that the cache approach allows more than a single additional request through)
+                -->
+                <choose>
+                    <when condition="@(((int)context.Variables["remaining-tokens"] != -1) && ((int)context.Variables["remaining-tokens"]) < ((int)context.Variables["low-priority-tpm-threshold"]) )">
+                        <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|allow-additional-lowpri-request")" default-value="@(true)" variable-name="allow-additional-lowpri-request" />
+                        <choose>
+                            <when condition="@(((bool)context.Variables["allow-additional-lowpri-request"]) == true)">
+                                <!-- Allow a single request through to test the remaining tokens value -->
+                                <!-- Set allow-additional-lowpri-request to false to prevent other requests -->
+                                <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|allow-additional-lowpri-request")" value="@(false)" duration="10" />
+                            
+                                <set-variable name="test" value="allowing-extra-low-pri-request" />
+                            </when>
+                            <when condition="@(((bool)context.Variables["allow-additional-lowpri-request"]) == false)">
+                                <set-variable name="low-priority-threshold-reason" value="tokens" />
+                                <return-response>
+                                    <set-status code="429" reason="Tokens below low-priority threshold for deployment" />
+                                    <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                        <value>tokens-below-low-priority-threshold</value>
+                                    </set-header>
+                                    <!-- return the current value in the logs - useful for validation/debugging -->
+                                    <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                        <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
+                                    </set-header>
+                                    <set-header name="x-gw-priority" exists-action="override">
+                                        <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+                                    </set-header>
+                                    <set-body>Low priority rate-limiting triggered by token usage</set-body>
+                                </return-response>
+                            </when>
+                        </choose>
+                    </when>
+                    <when condition="@(((int)context.Variables["remaining-requests"] != -1) && ((int)context.Variables["remaining-requests"]) < ((int)context.Variables["low-priority-rp10s-threshold"]) )">
+                        <set-variable name="low-priority-threshold-reason" value="tokens" />
+                        <return-response>
+                            <set-status code="429" reason="Requests below low-priority threshold for deployment" />
+                            <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                <value>requests-below-low-priority-threshold</value>
+                            </set-header>
+                            <!-- return the current value in the logs - useful for validation/debugging -->
+                            <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
+                            </set-header>
+                            <set-header name="x-gw-priority" exists-action="override">
+                                <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+                            </set-header>
+                            <set-body>Low priority rate-limiting triggered by requests usage</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+            <otherwise>
+                <!-- Allow the request through -->
+                <!-- Set allow-additional-lowpri-request to false as we don't need that to update the remaining tokens -->
+                <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|allow-additional-lowpri-request")" value="@(false)" duration="10" />
+            </otherwise>
+        </choose>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <!-- Update the remaining tokens/requests count for the deployment -->
+        <set-variable name="remaining-tokens" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-tokens","0")))" />
+        <set-variable name="remaining-requests" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-requests","0")))" />
+        <choose>
+            <when condition="@(context.Response.StatusCode == 200)">
+                <!-- store the remaining-tokens value for up to 60 seconds -->
+                <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|remaining-tokens")" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-tokens","0")))" duration="60" />
+                <!-- store the remaining-requests value for up to 10 seconds -->
+                <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|remaining-requests")" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-remaining-requests","0")))" duration="10" />
+            </when>
+            <when condition="@(context.Response.StatusCode == 429)">
+                <!-- Determine whether the rate-limit was for tokens or requests-->
+                <set-variable name="tokens-reset" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-reset-tokens","-1337")))" />
+                <set-variable name="requests-reset" value="@(int.Parse((string)context.Response.Headers.GetValueOrDefault("x-ratelimit-reset-requests","-1337")))" />
+                <choose>
+                    <when condition="@((int)context.Variables["tokens-reset"]>0)">
+                        <!-- no tokens remaining for the next tokens-reset seconds -->
+                        <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|remaining-tokens")" value="@(0)" duration="@((int)context.Variables["tokens-reset"])" />
+                    </when>
+                    <when condition="@((int)context.Variables["requests-reset"]>0)">
+                        <!-- no requests remaining for the next requests-reset seconds -->
+                        <cache-store-value key="@(context.Variables["selected-deployment-id"] + "|remaining-requests")" value="@(0)" duration="@((int)context.Variables["requests-reset"])" />
+                    </when>
+                    <otherwise>
+                        <return-response>
+                            <set-status code="500" reason="@("Unexpected response headers: Got tokens-reset=" + context.Variables["tokens-reset"] + ", requests-reset=" + context.Variables["requests-reset"])" />
+                            <set-body>Expected to get one of x-ratelimit-remaining-requests or x-ratelimit-remaining-tokens in response headers for a 429 response</set-body>
+                        </return-response>
+                    </otherwise>
+                </choose>
+            </when>
+        </choose>
+        <!-- get latest remaining tokens/requests values -->
+        <!-- Return remaining tokens etc in headers - handy for debugging -->
+        <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|remaining-tokens")" default-value="@(-1)" variable-name="remaining-tokens" />
+        <set-header name="x-gw-remaining-tokens" exists-action="override">
+            <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
+        </set-header>
+        <cache-lookup-value key="@(context.Variables["selected-deployment-id"] + "|remaining-requests")" default-value="@(-1)" variable-name="remaining-requests" />
+        <set-header name="x-gw-remaining-requests" exists-action="override">
+            <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
+        </set-header>
+
+        <set-header name="x-gw-priority" exists-action="override">
+            <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+        </set-header>
+
+        <set-header name="x-test" exists-action="override">
+            <value>@((string)context.Variables["test"])</value>
+        </set-header>
+
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

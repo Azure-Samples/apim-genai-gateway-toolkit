@@ -1,0 +1,208 @@
+<policies>
+    <inbound>
+        <base />
+        <set-backend-service backend-id="ptu-backend-1" />
+        <!-- get the configuration for the model deployments -->
+        <cache-lookup-value key="list-deployments" variable-name="list-deployments" />
+        <choose>
+            <when condition="@(context.Variables.ContainsKey("list-deployments") == false)">
+                <!-- when remaining tokens/requests goes under the low priority threshold, low-priority requests are disallowed  -->
+                <set-variable name="list-deployments" value="@{
+                    JArray deployments = new JArray();
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "embedding" },
+                        { "tpm-limit", 10000},
+                        { "low-priority-tpm-threshold", 3000},
+                        { "rp10s-limit", 10 },
+                        { "low-priority-rp10s-threshold", 3},
+                    });
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "embedding100k" },
+                        { "tpm-limit", 100000},
+                        { "low-priority-tpm-threshold", 30000},
+                        { "rp10s-limit", 100 },
+                        { "low-priority-rp10s-threshold", 30},
+                    });
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "gpt-35-turbo-10k-token" },
+                        { "tpm-limit", 10000},
+                        { "low-priority-tpm-threshold", 3000},
+                        { "rp10s-limit", 10 },
+                        { "low-priority-rp10s-threshold", 3},
+                    });
+                    deployments.Add(new JObject()
+                    {
+                        { "deployment-id", "gpt-35-turbo-100k-token" },
+                        { "tpm-limit", 100000},
+                        { "low-priority-tpm-threshold", 30000},
+                        { "rp10s-limit", 100 },
+                        { "low-priority-rp10s-threshold", 30},
+                    });
+                    return deployments;   
+                }" />
+                <cache-store-value key="list-deployments" value="@((JArray)context.Variables["list-deployments"])" duration="60" />
+            </when>
+        </choose>
+        <!-- retrieve tpm and rp10s limits for the selected model deployment -->
+        <set-variable name="selected-deployment-id" value="@(context.Request.MatchedParameters["deployment-id"])" />
+        <set-variable name="selected-deployment" value="@{
+            JArray deployments = (JArray)context.Variables["list-deployments"];
+            for (int i = 0; i < deployments.Count; i++)
+            {
+                JObject deployment = (JObject)deployments[i];
+                if (deployment.Value<string>("deployment-id") == (string)context.Variables["selected-deployment-id"])
+                {
+                    return deployment;
+                }
+            }
+            // Deployment not found
+            return null;
+        }" />
+        <choose>
+            <when condition="@(context.Variables["selected-deployment"] == null)">
+                <return-response>
+                    <set-status code="404" reason="Deployment not found" />
+                    <set-body>Deployment not found</set-body>
+                </return-response>
+            </when>
+        </choose>
+        <set-variable name="tpm-limit" value="@{
+            JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+            return selectedDeployment.Value<int>("tpm-limit");
+        }" />
+        <set-variable name="rp10s-limit" value="@{
+            JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+            return selectedDeployment.Value<int>("rp10s-limit");
+        }" />
+        <!-- calculate consumed tokens from request body -->
+        <!-- TODO - update this to include support for more models and endpoints -->
+        <set-variable name="consumed-tokens" value="@{
+            JObject requestBody = context.Request.Body.As<JObject>(preserveContent: true);
+            if(context.Operation.Id == "embeddings_create" || requestBody.Value<string>("model") == "embedding"){
+                return (int)Math.Ceiling((requestBody.Value<string>("input")).Length * 0.25);
+            } else {
+                if(requestBody.ContainsKey("max_tokens") && requestBody.ContainsKey("best_of")) {
+                    return requestBody.Value<int>("max_tokens") * requestBody.Value<int>("best_of");
+                } 
+                else if(requestBody.ContainsKey("max_tokens"))
+                {
+                    return requestBody.Value<int>("max_tokens");
+                }
+                else
+                {
+                    return 16;
+                }
+            }
+        }" />
+        <!-- apply tpm and rp10s limits for the model deployment -->
+        <rate-limit-by-key counter-key="@(context.Variables["selected-deployment-id"] + "|tokens-limit")"
+            calls="@((int)context.Variables["tpm-limit"])"
+            renewal-period="60"
+            increment-count="@((int)context.Variables["consumed-tokens"])"
+            increment-condition="@(context.Response.StatusCode != 429)"
+            retry-after-header-name="x-apim-tokens-retry-after"
+            retry-after-variable-name="tokens-retry-after"
+            remaining-calls-header-name="x-apim-remaining-tokens" 
+            remaining-calls-variable-name="remaining-tokens"
+            total-calls-header-name="x-apim-total-tokens"/>
+        <rate-limit-by-key counter-key="@(context.Variables["selected-deployment-id"] + "|requests-limit")"
+            calls="@((int)context.Variables["rp10s-limit"])"
+            renewal-period="10"
+            increment-condition="@(context.Response.StatusCode != 429)"
+            retry-after-header-name="x-apim-requests-retry-after"
+            retry-after-variable-name="requests-retry-after"
+            remaining-calls-header-name="x-apim-remaining-requests"
+            remaining-calls-variable-name="remaining-requests"
+            total-calls-header-name="x-apim-total-requests"/>
+        <!-- determine if the request is a low-priority request -->
+        <set-variable name="low-priority" value="@{
+            if (context.Request.Url.Query.GetValueOrDefault("priority", "") == "low"){
+                return true;
+            }
+            if (context.Request.Headers.GetValueOrDefault("x-priority", "") == "low"){
+                return true;
+            }
+            return false;
+            }" />
+        <choose>
+            <when condition="@((bool)context.Variables["low-priority"])">
+                <!-- retrieve low priority tpm and rp10s limits for the model deployment -->
+                <set-variable name="low-priority-tpm-threshold" value="@{
+                    JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+                    return selectedDeployment.Value<int>("low-priority-tpm-threshold");
+                }" />
+                <set-variable name="low-priority-rp10s-threshold" value="@{
+                    JObject selectedDeployment = (JObject)context.Variables["selected-deployment"];
+                    return selectedDeployment.Value<int>("low-priority-rp10s-threshold");
+                }" />
+                <!-- apply low priority tpm and rp10s limits for the model deployment -->
+                <choose>
+                    <when condition="@((int)context.Variables["remaining-tokens"] < (int)context.Variables["low-priority-tpm-threshold"])">
+                        <return-response>
+                            <set-status code="429" reason="Too Many Tokens" />
+                            <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                <value>tokens-below-low-priority-threshold</value>
+                            </set-header>
+                            <!-- return the current value in the logs - useful for validation/debugging -->
+                            <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
+                            </set-header>
+                            <set-header name="x-gw-priority" exists-action="override">
+                                <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+                            </set-header>
+                            <set-body>Low priority rate-limiting triggered by token usage</set-body>
+                        </return-response>
+                    </when>
+                    <when condition="@((int)context.Variables["remaining-requests"] < (int)context.Variables["low-priority-rp10s-threshold"])">
+                        <return-response>
+                            <set-status code="429" reason="Too Many Requests" />
+                            <set-header name="x-gw-ratelimit-reason" exists-action="override">
+                                <value>requests-below-low-priority-threshold</value>
+                            </set-header>
+                            <!-- return the current value in the logs - useful for validation/debugging -->
+                            <set-header name="x-gw-ratelimit-value" exists-action="override">
+                                <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
+                            </set-header>
+                            <set-header name="x-gw-priority" exists-action="override">
+                                <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+                            </set-header>
+                            <set-body>Low priority rate-limiting triggered by requests usage</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+        </choose>
+        <!-- emit token metrics for e2e test validation -->
+        <emit-metric name="ConsumedTokens" value="@((double)(int)context.Variables["consumed-tokens"])" namespace="prioritization-token-counting">
+            <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
+        </emit-metric>
+        <emit-metric name="aoai-remaining-tokens" value="@((double)(int)context.Variables["remaining-tokens"])" namespace="prioritization-token-counting">
+            <dimension name="deployment-id" value="@((string)context.Variables["selected-deployment-id"])" />
+        </emit-metric>
+
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <!-- Return remaining tokens in headers - handy for debugging -->
+        <set-header name="x-gw-remaining-tokens" exists-action="override">
+            <value>@(((int)context.Variables["remaining-tokens"]).ToString())</value>
+        </set-header>
+        <set-header name="x-gw-remaining-requests" exists-action="override">
+            <value>@(((int)context.Variables["remaining-requests"]).ToString())</value>
+        </set-header>
+
+        <set-header name="x-gw-priority" exists-action="override">
+            <value>@(((bool)context.Variables["low-priority"] == true) ? "low" : "high")</value>
+        </set-header>
+
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

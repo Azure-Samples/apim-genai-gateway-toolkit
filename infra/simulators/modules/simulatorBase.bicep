@@ -23,7 +23,6 @@ param appInsightsName string
 
 var containerRegistryName = replace('${resourceSuffix}', '-', '')
 var keyVaultName = replace('${resourceSuffix}', '-', '')
-var storageAccountName = replace('${resourceSuffix}', '-', '')
 var containerAppEnvName = resourceSuffix
 
 
@@ -78,22 +77,7 @@ resource additionalSecretReader 'Microsoft.Authorization/roleAssignments@2020-04
     }
   }
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: storageAccountName
-  location: location
-  sku: {
-    name: 'Standard_LRS'
-  }
-  kind: 'StorageV2'
-}
-resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' = {
-  parent: storageAccount
-  name: 'default'
-}
-resource simulatorFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
-  parent: fileService
-  name: 'simulator'
-}
+
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01-preview' = {
   name: logAnalyticsName
@@ -129,23 +113,9 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' 
     }
   }
 }
-resource containerAppStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
-  parent: containerAppEnv
-  name: 'simulator-storage'
-  properties: {
-    azureFile: {
-      shareName: simulatorFileShare.name
-      accountName: storageAccount.name
-      accountKey: storageAccount.listKeys().keys[0].value
-      accessMode: 'ReadWrite'
-    }
-  }
-}
 
 output containerRegistryLoginServer string = containerRegistry.properties.loginServer
 output containerRegistryName string = containerRegistry.name
-output storageAccountName string = storageAccount.name
-output fileShareName string = simulatorFileShare.name
 output keyVaultName string = vault.name
 output containerAppEnvName string = containerAppEnv.name
 output appInsightsName string = appInsights.name

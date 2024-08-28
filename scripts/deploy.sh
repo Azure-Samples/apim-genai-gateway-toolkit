@@ -60,13 +60,13 @@ build_image() {
     local acr_login_server=$3
     local image_tag=$4
 
-    src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
+    src_path=$(realpath "$simulator_path/src/aoai-api-simulator")
 
     # create a tik_token_cache folder to avoid failure in the build
     mkdir -p "$src_path/tiktoken_cache"
 
     az acr login --name "$acr_name"
-    az acr build --image "${acr_login_server}/aoai-simulated-api:$image_tag" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
+    az acr build --image "${acr_login_server}/aoai-api-simulator:$image_tag" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
     
     echo -e "\n"
 }
@@ -111,10 +111,16 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   # Clone simulator
   #
   simulator_path="$script_dir/simulator"
-  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.4}
+  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.5}
 
-  simulator_image_tag=$simulator_git_tag
+  if [[ -n "$SIMULATOR_IMAGE_TAG" ]]; then
+    simulator_image_tag=$SIMULATOR_IMAGE_TAG
+  else
+    simulator_image_tag=$simulator_git_tag
+  fi
   simulator_image_tag=${simulator_image_tag//\//_} # Replace slashes with underscores
+  echo "Using simulator git tag: $simulator_git_tag"
+  echo "Using simulator image tag: $simulator_image_tag"
   
   clone_simulator=true
   if [[ -d "$simulator_path" ]]; then
@@ -141,7 +147,7 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
       --depth 1 \
       --branch "$simulator_git_tag" \
       --config advice.detachedHead=false \
-      https://github.com/stuartleeks/aoai-simulated-api \
+      https://github.com/microsoft/aoai-api-simulator \
       "$simulator_path"
     echo "$simulator_git_tag" > "$script_dir/.simulator_tag"
   fi
@@ -233,7 +239,7 @@ EOF
   fi
 
   set +e
-  existing_image=$(az acr repository show-tags --name "$acr_name" --repository "aoai-simulated-api" -o tsv --query "contains(@, '${simulator_image_tag}')" 2>&1)
+  existing_image=$(az acr repository show-tags --name "$acr_name" --repository "aoai-api-simulator" -o tsv --query "contains(@, '${simulator_image_tag}')" 2>&1)
   set -e
 
   if [[ "$existing_image" == "true" ]]; then
@@ -248,26 +254,6 @@ EOF
     build_image "$simulator_path" "$acr_name" "$acr_login_server" "$simulator_image_tag"
   fi
   
-  #
-  # Upload simulator deployment config files to file share
-  #
-  echo "Uploading simulator config files to file share..."
-  storage_account_name=$(jq -r '.storageAccountName // ""' < "$output_simulator_base")
-  if [[ -z "$storage_account_name" ]]; then
-    echo "Storage account name (storageAccountName) not found in output-simulator-base.json"
-    exit 1
-  fi
-
-  file_share_name=$(jq -r '.fileShareName // ""' < "$output_simulator_base")
-  if [[ -z "$file_share_name" ]]; then
-    echo "File share name (fileShareName) not found in output-simulator-base.json"
-    exit 1
-  fi
-
-  storage_key=$(az storage account keys list --account-name "$storage_account_name" -o tsv --query '[0].value')
-
-  az storage file upload-batch --destination "$file_share_name" --source "$script_dir/../infra/simulators/simulator_file_content" --account-name "$storage_account_name" --account-key "$storage_key"
-
   #
   # Deploy simulator instances
   #
@@ -313,9 +299,6 @@ cat << EOF > "$script_dir/../infra/simulators/azuredeploy.parameters.json"
     },
     "keyVaultName": {
       "value": "${key_vault_name}"
-    },
-    "storageAccountName": {
-      "value": "${storage_account_name}"
     },
     "appInsightsName": {
       "value": "${app_insights_name}"

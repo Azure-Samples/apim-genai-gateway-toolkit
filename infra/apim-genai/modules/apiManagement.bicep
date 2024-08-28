@@ -182,6 +182,30 @@ resource azureOpenAIUsageTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-
   }
 }
 
+resource azureOpenAIPrioritizationTokenCountingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-prioritization-token-counting'
+  properties: {
+    path: '/prioritization-token-counting/openai'
+    displayName: 'AOAIAPI-Prioritization-TokenCounting'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
+resource azureOpenAIPrioritizationSimpleAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+  parent: apiManagementService
+  name: 'aoai-api-prioritization-simple'
+  properties: {
+    path: '/prioritization-simple/openai'
+    displayName: 'AOAIAPI-Prioritization-Simple'
+    protocols: ['https']
+    value: loadTextContent('../api-specs/openapi-spec.json')
+    format: 'openapi+json'
+  }
+}
+
 resource helperAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'helper-apis'
@@ -215,6 +239,8 @@ var azureOpenAIAPINames = [
   azureOpenAIAdaptiveRateLimitingAPI.name
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
+  azureOpenAIPrioritizationTokenCountingAPI.name
+  azureOpenAIPrioritizationSimpleAPI.name
   helperAPI.name
 ]
 
@@ -227,7 +253,7 @@ resource azureOpenAIProductAPIAssociation 'Microsoft.ApiManagement/service/produ
 resource ptuBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'ptu-backend-1'
-  properties:{
+  properties: {
     protocol: 'http'
     url: ptuDeploymentOneBaseUrl
     credentials: {
@@ -241,7 +267,7 @@ resource ptuBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-prev
 resource ptuBackendOneWithCircuitBreaker 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'ptu-backend-1-with-circuit-breaker'
-  properties:{
+  properties: {
     protocol: 'http'
     url: ptuDeploymentOneBaseUrl
     credentials: {
@@ -257,7 +283,7 @@ resource ptuBackendOneWithCircuitBreaker 'Microsoft.ApiManagement/service/backen
             errorReasons: [
               '429s'
             ]
-            interval: 'PT10S' 
+            interval: 'PT10S'
             statusCodeRanges: [
               {
                 min: 429
@@ -266,7 +292,7 @@ resource ptuBackendOneWithCircuitBreaker 'Microsoft.ApiManagement/service/backen
             ]
           }
           name: 'retry-with-payg-breaker-rule'
-          tripDuration: 'PT1M'  
+          tripDuration: 'PT1M'
           acceptRetryAfter: true
         }
       ]
@@ -277,7 +303,7 @@ resource ptuBackendOneWithCircuitBreaker 'Microsoft.ApiManagement/service/backen
 resource payAsYouGoBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'payg-backend-1'
-  properties:{
+  properties: {
     protocol: 'http'
     url: payAsYouGoDeploymentOneBaseUrl
     credentials: {
@@ -291,7 +317,7 @@ resource payAsYouGoBackendOne 'Microsoft.ApiManagement/service/backends@2023-05-
 resource payAsYouGoBackendTwo 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'payg-backend-2'
-  properties:{
+  properties: {
     protocol: 'http'
     url: payAsYouGoDeploymentTwoBaseUrl
     credentials: {
@@ -305,10 +331,10 @@ resource payAsYouGoBackendTwo 'Microsoft.ApiManagement/service/backends@2023-05-
 resource simpleRoundRobinBackendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview' = {
   parent: apiManagementService
   name: 'simple-round-robin-backend-pool'
-  properties:{
+  properties: {
     type: 'Pool'
     pool: {
-      services:[
+      services: [
         {
           id: payAsYouGoBackendOne.id
           weight: 1
@@ -327,10 +353,10 @@ resource simpleRoundRobinBackendPool 'Microsoft.ApiManagement/service/backends@2
 resource weightedRoundRobinBackendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview' = {
   parent: apiManagementService
   name: 'weighted-round-robin-backend-pool'
-  properties:{
+  properties: {
     type: 'Pool'
     pool: {
-      services:[
+      services: [
         {
           id: payAsYouGoBackendOne.id
           weight: 2
@@ -349,10 +375,10 @@ resource weightedRoundRobinBackendPool 'Microsoft.ApiManagement/service/backends
 resource retryWithPayAsYouGoBackendPool 'Microsoft.ApiManagement/service/backends@2023-09-01-preview' = {
   parent: apiManagementService
   name: 'retry-with-payg-backend-pool'
-  properties:{
+  properties: {
     type: 'Pool'
     pool: {
-      services:[
+      services: [
         {
           id: ptuBackendOneWithCircuitBreaker.id
           weight: 1
@@ -586,7 +612,7 @@ resource usageTrackingPolicyFragmentOutbound 'Microsoft.ApiManagement/service/po
   dependsOn: [eventHubLogger]
 }
 
-resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+resource azureOpenAIUsageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
   parent: azureOpenAIUsageTrackingAPI
   name: 'policy'
   properties: {
@@ -594,6 +620,24 @@ resource usageTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023
     format: 'rawxml'
   }
   dependsOn: [usageTrackingPolicyFragmentInbound, usageTrackingPolicyFragmentOutbound]
+}
+
+resource azureOpenAIPrioritizationTokenCountingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenCountingAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities/prioritization/prioritization-token-counting.xml')
+    format: 'rawxml'
+  }
+}
+
+resource azureOpenAIPrioritizationSimplePolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationSimpleAPI
+  name: 'policy'
+  properties: {
+    value: loadTextContent('../../../capabilities/prioritization/prioritization-simple.xml')
+    format: 'rawxml'
+  }
 }
 
 resource helperAPISetPreferredBackends 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
@@ -615,7 +659,12 @@ resource eventHubsDataSenderRoleDefinition 'Microsoft.Authorization/roleDefiniti
 }
 
 resource assignEventHubsDataSenderToApiManagement 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, eventHubNamespace.name, apiManagementService.name, 'assignEventHubsDataSenderToApiManagement')
+  name: guid(
+    resourceGroup().id,
+    eventHubNamespace.name,
+    apiManagementService.name,
+    'assignEventHubsDataSenderToApiManagement'
+  )
   scope: eventHubNamespace
   properties: {
     description: 'Assign EventHubsDataSender role to API Management'
@@ -639,7 +688,7 @@ resource eventHubLogger 'Microsoft.ApiManagement/service/loggers@2022-04-01-prev
   }
 }
 
-resource appInsights 'Microsoft.Insights/components@2020-02-02' existing= {
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   name: appInsightsName
 }
 
@@ -670,6 +719,40 @@ resource allApisAzureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnos
   name: 'azuremonitor'
   properties: {
     loggerId: azureMonitorLogger.id
+    metrics: true
+    verbosity: 'information'
+    logClientIp: false
+    sampling: {
+      percentage: 100
+      samplingType: 'fixed'
+    }
+    frontend: {
+      request: {
+        headers: [
+          'x-priority'
+        ]
+      }
+      response: {
+        headers: [
+          'x-gw-ratelimit-reason'
+          'x-gw-ratelimit-value'
+          'x-gw-remaining-tokens'
+          'x-gw-remaining-requests'
+          'x-gw-priority'
+        ]
+      }
+    }
+    backend: {
+      request: {
+        headers: []
+      }
+      response: {
+        headers: [
+          'x-ratelimit-remaining-tokens'
+          'x-ratelimit-remaining-requests'
+        ]
+      }
+    }
   }
 }
 
@@ -677,7 +760,25 @@ resource azureOpenAIUsageTrackingAPIDiagnostics 'Microsoft.ApiManagement/service
   parent: azureOpenAIUsageTrackingAPI
   name: 'applicationinsights'
   properties: {
-    loggerId: appInsightsLogger.id  
+    loggerId: appInsightsLogger.id
+    metrics: true
+  }
+}
+
+resource azureOpenAIPrioritizationTokenCountingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenCountingAPI
+  name: 'applicationinsights'
+  properties: {
+    loggerId: appInsightsLogger.id
+    metrics: true
+  }
+}
+
+resource azureOpenAIPrioritizationSimpleAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationSimpleAPI
+  name: 'applicationinsights'
+  properties: {
+    loggerId: appInsightsLogger.id
     metrics: true
   }
 }
@@ -691,7 +792,7 @@ resource apiManagementDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@
   scope: apiManagementService
   properties: {
     workspaceId: logAnalytics.id
-    logAnalyticsDestinationType: 'Dedicated' 
+    logAnalyticsDestinationType: 'Dedicated'
     logs: [
       {
         categoryGroup: 'allLogs'
