@@ -1,4 +1,4 @@
-# Prioritization - Token Counting
+# Prioritization - Token Calculating
 
 ## Capability
 
@@ -172,9 +172,9 @@ The policy checks that the `remaining-tokens` and `remaining-requests` are above
 To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
 This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
 
-Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle2 ENDPOINT_PATH=prioritization-token-counting ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token counting endpoint.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle2 ENDPOINT_PATH=prioritization-token-calculating ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint.
 
-This script runs a load test for 12 minutes, which repeatedly sends chat completion requests to the OpenAI simulator via APIM using the token counting prioritization policy.
+This script runs a load test for 12 minutes, which repeatedly sends chat completion requests to the OpenAI simulator via APIM using the token calculating prioritization policy.
 
 1. When the script starts, it sends a low number of high-priority chat completion requests, which fall under the defined limits for the deployment.
 
