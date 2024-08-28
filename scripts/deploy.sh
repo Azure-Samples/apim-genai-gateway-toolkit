@@ -60,13 +60,13 @@ build_image() {
     local acr_login_server=$3
     local image_tag=$4
 
-    src_path=$(realpath "$simulator_path/src/aoai-simulated-api")
+    src_path=$(realpath "$simulator_path/src/aoai-api-simulator")
 
     # create a tik_token_cache folder to avoid failure in the build
     mkdir -p "$src_path/tiktoken_cache"
 
     az acr login --name "$acr_name"
-    az acr build --image "${acr_login_server}/aoai-simulated-api:$image_tag" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
+    az acr build --image "${acr_login_server}/aoai-api-simulator:$image_tag" --registry "$acr_name" --file "$src_path/Dockerfile" "$src_path"
     
     echo -e "\n"
 }
@@ -110,7 +110,7 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
   # Clone simulator
   #
   simulator_path="$script_dir/simulator"
-  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.4}
+  simulator_git_tag=${SIMULATOR_GIT_TAG:=v0.5}
 
   if [[ -n "$SIMULATOR_IMAGE_TAG" ]]; then
     simulator_image_tag=$SIMULATOR_IMAGE_TAG
@@ -146,7 +146,7 @@ if [[ "${USE_SIMULATOR}" == "true" ]]; then
       --depth 1 \
       --branch "$simulator_git_tag" \
       --config advice.detachedHead=false \
-      https://github.com/stuartleeks/aoai-simulated-api \
+      https://github.com/microsoft/aoai-api-simulator \
       "$simulator_path"
     echo "$simulator_git_tag" > "$script_dir/.simulator_tag"
   fi
@@ -238,7 +238,7 @@ EOF
   fi
 
   set +e
-  existing_image=$(az acr repository show-tags --name "$acr_name" --repository "aoai-simulated-api" -o tsv --query "contains(@, '${simulator_image_tag}')" 2>&1)
+  existing_image=$(az acr repository show-tags --name "$acr_name" --repository "aoai-api-simulator" -o tsv --query "contains(@, '${simulator_image_tag}')" 2>&1)
   set -e
 
   if [[ "$existing_image" == "true" ]]; then

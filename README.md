@@ -16,7 +16,7 @@
 
 The aim of this toolkit is to provide a quick start for deploying a GenAI Gateway using Azure API Management (APIM), and to demonstrate some of the GenAI capabilities in a controlled environment.
 
-The APIM gateway that's provisioned by this toolkit contains policies that demonstrate different [GenAI Gateway capabilities](#gateway-capabilities) and the `end-to-end` tests allows to simulate different scenarios and demonstrate the capabilities by adjusting the configuration of the [OpenAI API simulator](https://github.com/stuartleeks/aoai-simulated-api) that's used as a backend.
+The APIM gateway that's provisioned by this toolkit contains policies that demonstrate different [GenAI Gateway capabilities](#gateway-capabilities) and the `end-to-end` tests allows to simulate different scenarios and demonstrate the capabilities by adjusting the configuration of the [OpenAI API simulator](https://github.com/microsoft/aoai-api-simulator) that's used as a backend.
 
 <video src="https://github.com/Azure-Samples/apim-genai-gateway-toolkit/assets/16926044/b1844049-01b3-4956-822b-eb6cb3f99c1c" title="demo" width="360" height="240" controls></video>
 
@@ -31,7 +31,7 @@ To read more about considerations when implementing a GenAI Gateway, see [this a
 At a high level the toolkit contains 3 main components,
 
 1. **APIM Gateway** - The API Management Gateway that will host the GenAI Gateway policies.
-2. [**OpenAI API Simulator**](https://github.com/stuartleeks/aoai-simulated-api) - A simple API that simulates the OpenAI API. The simulator will allow to control the latency, and response to simulate different scenarios.
+2. [**OpenAI API Simulator**](https://github.com/microsoft/aoai-api-simulator) - A simple API that simulates the OpenAI API. The simulator will allow to control the latency, and response to simulate different scenarios.
 3. **End-to-End Tests** - A set of tests that will demonstrate the GenAI Gateway capabilities in action. These are python scripts written on top of locust.io to simulate the traffic and demonstrate the capabilities.
 
 ![Architecture](./docs/assets/genai-accelerator.jpg)

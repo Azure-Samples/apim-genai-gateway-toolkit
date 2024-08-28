@@ -161,8 +161,8 @@ resource apiSim 'Microsoft.App/containerApps@2023-05-01' = {
     template: {
       containers: [
         {
-          name: 'aoai-simulated-api'
-          image: '${containerRegistry.properties.loginServer}/aoai-simulated-api:${simulatorImageTag}'
+          name: 'aoai-api-simulator'
+          image: '${containerRegistry.properties.loginServer}/aoai-api-simulator:${simulatorImageTag}'
           resources: {
             cpu: json('1')
             memory: '2Gi'
