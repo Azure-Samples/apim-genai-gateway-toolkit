@@ -260,113 +260,6 @@ cycle_stages = [
         "user_classes": [LowPriorityUser],
     },
 ]
-cycle2 = [
-    # high priority 200s
-    {
-        "duration": 30,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [HighPriorityLowTokenChatUser],
-    },
-    # high priority 429s (requests)
-    {
-        "duration": 120,
-        "users": 50,
-        "spawn_rate": 2,
-        "user_classes": [HighPriorityLowTokenChatUser],
-    },
-    # ramp down
-    {
-        "duration": 150,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [HighPriorityLowTokenChatUser],
-    },
-    # high priority 200s
-    {
-        "duration": 180,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [HighPriorityHighTokenChatUser],
-    },
-    # high priority 429s (tokens)
-    {
-        "duration": 270,
-        "users": 40,
-        "spawn_rate": 2,
-        "user_classes": [HighPriorityHighTokenChatUser],
-    },
-    # ramp down
-    {
-        "duration": 300,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [HighPriorityHighTokenChatUser],
-    },
-    # mixed priority 200s
-    {
-        "duration": 330,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [MixedPriorityLowTokenChatUser],
-    },
-    # high priority 200s, low priority 429s (requests)
-    {
-        "duration": 420,
-        "users": 30,
-        "spawn_rate": 2,
-        "user_classes": [MixedPriorityLowTokenChatUser],
-    },
-    # ramp down
-    {
-        "duration": 450,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [MixedPriorityLowTokenChatUser],
-    },
-    # low priority 200s
-    {
-        "duration": 480,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [LowPriorityLowTokenChatUser],
-    },
-    # low priority 429s (requests)
-    {
-        "duration": 570,
-        "users": 30,
-        "spawn_rate": 2,
-        "user_classes": [LowPriorityLowTokenChatUser],
-    },
-    # ramp down
-    {
-        "duration": 600,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [LowPriorityLowTokenChatUser],
-    },
-    # mixed priority 200s
-    {
-        "duration": 630,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [MixedPriorityHighTokenChatUser],
-    },
-    # high priority 200s, low priority 429s (tokens)
-    {
-        "duration": 720,
-        "users": 30,
-        "spawn_rate": 2,
-        "user_classes": [MixedPriorityHighTokenChatUser],
-    },
-    # ramp down
-    {
-        "duration": 750,
-        "users": 10,
-        "spawn_rate": 2,
-        "user_classes": [MixedPriorityHighTokenChatUser],
-    },
-]
 low_priority_stages = [
     # low priority only
     {
@@ -398,8 +291,6 @@ class StagesShape(LoadTestShape):
         # See https://docs.locust.io/en/stable/custom-load-shape.html
         if load_pattern == "cycle":
             self.stages = cycle_stages
-        elif load_pattern == "cycle2":
-            self.stages = cycle2
         elif load_pattern == "low-priority":
             self.stages = low_priority_stages
         elif load_pattern == "high-priority":
