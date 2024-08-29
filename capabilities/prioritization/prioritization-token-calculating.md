@@ -172,7 +172,7 @@ The policy checks that the `remaining-tokens` and `remaining-requests` are above
 To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
 This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
 
-Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle ENDPOINT_PATH=prioritization-token-counting REQUEST_TYPE=chat MAX_TOKENS=50 ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint, using chat requests with a `max_token` value set to `50`.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle ENDPOINT_PATH=prioritization-token-calculating REQUEST_TYPE=chat MAX_TOKENS=50 ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint, using chat requests with a `max_token` value set to `50`.
 
 This script runs a load test that cycles between high and low priority requests sending chat requests:
 - Initially, the script only sends low priority requests
