@@ -182,24 +182,24 @@ resource azureOpenAIUsageTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-
   }
 }
 
-resource azureOpenAIPrioritizationTokenCountingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+resource azureOpenAIPrioritizationTokenCalculatingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-api-prioritization-token-counting'
+  name: 'aoai-api-prioritization-token-calculating'
   properties: {
-    path: '/prioritization-token-counting/openai'
-    displayName: 'AOAIAPI-Prioritization-TokenCounting'
+    path: '/prioritization-token-calculating/openai'
+    displayName: 'AOAIAPI-Prioritization-TokenCalculating'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
   }
 }
 
-resource azureOpenAIPrioritizationSimpleAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
+resource azureOpenAIPrioritizationTokenTrackingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
-  name: 'aoai-api-prioritization-simple'
+  name: 'aoai-api-prioritization-tracking'
   properties: {
-    path: '/prioritization-simple/openai'
-    displayName: 'AOAIAPI-Prioritization-Simple'
+    path: '/prioritization-token-tracking/openai'
+    displayName: 'AOAIAPI-Prioritization-TokenTracking'
     protocols: ['https']
     value: loadTextContent('../api-specs/openapi-spec.json')
     format: 'openapi+json'
@@ -239,8 +239,8 @@ var azureOpenAIAPINames = [
   azureOpenAIAdaptiveRateLimitingAPI.name
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
-  azureOpenAIPrioritizationTokenCountingAPI.name
-  azureOpenAIPrioritizationSimpleAPI.name
+  azureOpenAIPrioritizationTokenCalculatingAPI.name
+  azureOpenAIPrioritizationTokenTrackingAPI.name
   helperAPI.name
 ]
 
@@ -622,20 +622,20 @@ resource azureOpenAIUsageTrackingPolicy 'Microsoft.ApiManagement/service/apis/po
   dependsOn: [usageTrackingPolicyFragmentInbound, usageTrackingPolicyFragmentOutbound]
 }
 
-resource azureOpenAIPrioritizationTokenCountingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIPrioritizationTokenCountingAPI
+resource azureOpenAIPrioritizationTokenCalculatingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenCalculatingAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities/prioritization/prioritization-token-counting.xml')
+    value: loadTextContent('../../../capabilities/prioritization/prioritization-token-calculating.xml')
     format: 'rawxml'
   }
 }
 
-resource azureOpenAIPrioritizationSimplePolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIPrioritizationSimpleAPI
+resource azureOpenAIPrioritizationTokenTrackingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenTrackingAPI
   name: 'policy'
   properties: {
-    value: loadTextContent('../../../capabilities/prioritization/prioritization-simple.xml')
+    value: loadTextContent('../../../capabilities/prioritization/prioritization-token-tracking.xml')
     format: 'rawxml'
   }
 }
@@ -765,8 +765,8 @@ resource azureOpenAIUsageTrackingAPIDiagnostics 'Microsoft.ApiManagement/service
   }
 }
 
-resource azureOpenAIPrioritizationTokenCountingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
-  parent: azureOpenAIPrioritizationTokenCountingAPI
+resource azureOpenAIPrioritizationTokenCalculatingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenCalculatingAPI
   name: 'applicationinsights'
   properties: {
     loggerId: appInsightsLogger.id
@@ -774,8 +774,8 @@ resource azureOpenAIPrioritizationTokenCountingAPIDiagnostics 'Microsoft.ApiMana
   }
 }
 
-resource azureOpenAIPrioritizationSimpleAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
-  parent: azureOpenAIPrioritizationSimpleAPI
+resource azureOpenAIPrioritizationTokenTrackingAPIDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@2023-05-01-preview' = {
+  parent: azureOpenAIPrioritizationTokenTrackingAPI
   name: 'applicationinsights'
   properties: {
     loggerId: appInsightsLogger.id
