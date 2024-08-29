@@ -1,6 +1,6 @@
-# Prioritization - Simple
+# Prioritization - Token Tracking
 
-- [Prioritization - Simple](#prioritization---simple)
+- [Prioritization - Token Tracking](#prioritization---token-tracking)
 	- [Capability](#capability)
 	- [How to see this in action](#how-to-see-this-in-action)
 	- [How the policy works](#how-the-policy-works)
@@ -20,7 +20,7 @@ For details of how this implementation compares to the other implementations, se
 To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
 This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
 
-Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle ENDPOINT_PATH=prioritization-simple ./scripts/run-end-to-end-prioritization.sh`.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle ENDPOINT_PATH=prioritization-token-tracking ./scripts/run-end-to-end-prioritization.sh`.
 
 This script runs a load test that cycles between high and low priority requests sending embeddings requests:
 - Initially, the script only sends low priority requests
@@ -63,7 +63,7 @@ The final query uses metrics from the Azure OpenAI API simulator to show the rat
 
 ## How the policy works
 
-The general approach to the simple prioritization implementation is to use the `x-ratelimit-remaining-tokens` and `x-ratelimit-remaining-requests` headers that the Azure OpenAI service returns to determine the available capacity for a given deployment.
+The general approach to the token tracking prioritization implementation is to use the `x-ratelimit-remaining-tokens` and `x-ratelimit-remaining-requests` headers that the Azure OpenAI service returns to determine the available capacity for a given deployment.
 
 The rough flow for the prioritization policy is as follows:
 1. The policy checks the priority of the request. Low priority requests are identified by either an `priority` query parameter or an `x-priority` header with a value of `low`.
@@ -71,7 +71,7 @@ The rough flow for the prioritization policy is as follows:
 3. If there is sufficient spare capacity, the request is allowed through to the backend. Otherwise it is rejected with a 429 response.
 4. When a response is received from the backend, the policy retrieves the `x-ratelimit-remaining-tokens` and `x-ratelimit-remaining-requests` headers and stores this in the API Management cache. These values are used to determine available capacity the when the next request is received.
 
-The full implementation can be found in `prioritization-simple.xml`.
+The full implementation can be found in `prioritization-token-tracking.xml`.
 There are a few aspects of the policy implementation that are worth digging into further and these are covered in the following sections.
 
 ### Prioritization configuration
@@ -133,14 +133,14 @@ The cached capacity value is only updated when a response is received from the b
 This situation continues until the cached capacity value expires (60s for tokens), resulting in a 60s window where no requests are processed.
 This cycle can repeat indefinitely if there are no high-priority requests to trigger an update to the cached capacity value, as shown in the following chart.
 
-![chart showing low-priority requests being blocked for 1 minute periods](./docs/simple-no-additional-requests.png)
+![chart showing low-priority requests being blocked for 1 minute periods](./docs/token-tracking-no-additional-requests.png)
 
 The configuration for the deployment being tested in the previous chart has 100,000 tokens per minute (TPM) available and reserves 30,000 for high-priority requests.
 In this scenario (low-priority requets only), that allows for up to 70,000 TPM for low-priority requests.
 Using the metrics from the API simulator, we can see that in the following chart that the 60s average TPM peaks at around 70,000 TPM and then drops to around 25,000 TPM by the time low-priority requests are resumed.
 This results in a much lower rate of low-priority requests than would be expected from the configuration.
 
-![chart showing the rate-limit token usage values](./docs/simple-no-additional-requests-token-usage.png)
+![chart showing the rate-limit token usage values](./docs/token-tracking-no-additional-requests-token-usage.png)
 
 
 To address this issue, the policy uses a `allow-additional-lowpri-request` cache value.
@@ -149,14 +149,14 @@ If this value is not present in the cache then an additional low-priority reques
 Whenever there is a successful request, this value is set to `false` with a 10s expiry time which ensures that we wait 10s before allowing one of the additional low-priority requests through.
 The following chart shows the impact of this additional request on the processing of low-priority requests.
 
-![chart showing smaller periods of 429 responses for low-priority requests](./docs/simple-with-additional-requests.png)
+![chart showing smaller periods of 429 responses for low-priority requests](./docs/token-tracking-with-additional-requests.png)
 
 In the previous chart, there are still periods where low-priority requests are blocked, but these are much shorter than in the previous chart.
 In particular, note that there is only a single 10s data point where there are no low-priority requests processed.
 Allowing the additional requests has a positive impact on the responsiveness of the gateway to low-priority requests when there are no high-priority requests, but it does come at the cost of intermittently allowing higher low-priority usage than the configured threshold.
 This can be seen in the following chart.
 
-![chart showing higher than configured threshold with additional requests allowed](./docs/simple-with-additional-requests-token-usage.png)
+![chart showing higher than configured threshold with additional requests allowed](./docs/token-tracking-with-additional-requests-token-usage.png)
 
 
 
