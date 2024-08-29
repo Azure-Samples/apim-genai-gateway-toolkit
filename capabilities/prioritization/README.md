@@ -15,7 +15,7 @@ There are two implementations of the prioritization policy:
 
 The two approaches are largely similar, but differ in the way in which they determine the available token capacity for rate limiting purposes. The token calculating approach calculates the numer of tokens using a policy expression with logic meant to approximate Azure Open AI Service's internal algorithm, while the token tracking approach relies on the returned headers from the AOAI service to set remaining capacity. The main concerns when selecting an approach to adopt are as follows:
 
-- Token-tracking approach introduces a lag when rate-limited by the backend (especially when no high-priority requests are processed). The token calculting approach returns immediate 429s to callers given tokens are calculated internally, rather than waiting on returned AOAI headers.
+- Token-tracking approach introduces a lag when rate-limited by the backend (especially when no high-priority requests are processed). The token calculating approach returns immediate 429s to callers given tokens are calculated internally, rather than waiting on returned AOAI headers.
 - Token calculating approach adds maintenance costs to ensure consumed token calculation remains up to date with AOAI internal logic.
 
 ## Running the prioritization end-to-end test
