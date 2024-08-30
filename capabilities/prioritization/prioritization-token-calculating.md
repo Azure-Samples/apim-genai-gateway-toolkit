@@ -172,46 +172,47 @@ The policy checks that the `remaining-tokens` and `remaining-requests` are above
 To see this policy in action, first deploy the accelerator using the instructions [here](../../README.md) setting the `USE_SIMULATOR` value to `true`.
 This will deploy OpenAI API simulators to enable testing the APIM policies without the cost of Azure OpenAI API calls.
 
-Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle2 ENDPOINT_PATH=prioritization-token-calculating ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle ENDPOINT_PATH=prioritization-token-calculating REQUEST_TYPE=chat MAX_TOKENS=50 ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint, using chat requests with a `max_token` value set to `50`.
 
-This script runs a load test for 12 minutes, which repeatedly sends chat completion requests to the OpenAI simulator via APIM using the token calculating prioritization policy.
-
-1. When the script starts, it sends a low number of high-priority chat completion requests, which fall under the defined limits for the deployment.
-
-2. High priority load increases until the service begins returning 429s, as the number of requests per 10 seconds exceeds defined limits.
-
-3. High priority load decreases, but the `max_tokens` sent in chat completion requests increase five fold. The service returns 429s, as the number of tokens per minute exceeds defined limits. 
-
-4. High priority load decreases, while low priority requests are introduced. The defined low priority thresholds are exceeded and the service begins to return 429s, as the number of requests per 10 seconds exceeds the defined low priority threshold. Overall limits have not been exceeded, so the service returns 200s for high priority requests.
-
-5. High priority requests stop being sent, while low priority load increases. The service initially returns 200s for low priority requests, but the threshold is again exceeded (this time without any effect from high priority requests), and the service returns 429s.
-
-6. Low priority load decreases and high priority requests are re-introduced, but the `max_tokens` sent in chat completion requests increase five fold, once again. While overall load has decreased, the defined low priority token thresholds are exceeded and the service begins to return 429s for low priority requests, specifically.
+This script runs a load test that cycles between high and low priority requests sending chat requests:
+- Initially, the script only sends low priority requests
+- Then high priority requests are sent alongside the low priority requests
+- Next, only high priority requests are sent
+- Then low priority requests are sent alongside the high priority requests
+- Finally, only low priority requests are sent
 
 After the load test is complete, the script waits for the metrics to be ingested into Log Analytics and then queries the results.
 
-The initial output from a test run will look something like this (truncated for length):
+The initial output from a test run will look something like this (the output shows the variation in test users at each step):
 
-![output showing the test steps](docs/token-output-1.png)
+![output showing the test steps](./docs/token-calculation-steps.png)
 
-Once the script has completed and the metrics have been ingested, the script will show the query results that illustrate the behaviour. There are 6 queries that serve to illustrate the gateway behavior over the course of the test:
+Once the metrics are ingested, the script will show the results of a number of queries that illustrate the behaviour (truncated for length):
 
-- Overall request count
-- Successful request count by request type
-- Request count by priority and response code
-- Remaining tokens
-- Rate-limit tokens consumed (Simulator)
-- Consumed tokens (Gateway)
+![output showing the query results](./docs/token-calculation-output.png)
 
-The query output from `Request count by priority and response code` will look like this:
+For each of these queries, the query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
-![output showing the query results](docs/token-output-2.png)
+The first query shows the overall request count and shows that the number of requests increases when we have both high and low priority requests in the load pattern:
 
-The query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
+![chart showing requests over time](./docs/token-calculation-request-count.png)
 
-The query in this example shows the request count over time for different response codes (200/429) returned from APIM for high and low priority requests.
-In this chart, you can see the behavior illustrated in the steps above:
+The next query shows the number of successful requests (i.e. with a 200 status response) split by priority. Here you can see that there are only successful low priority requests at the start and end of the test (when there are only low priority requests):
 
-![Screenshot of Log Analytics query showing the weighted split of results in the backend](docs/token-output-3.png)
+![chart showing the number of successful requests by priority](./docs/token-calculation-successful-requests.png)
 
-Each of the listed queries will output to the console and are able to be opened in the Azure Portal via the `Run in Log Analytics` link.
+The third query shows all responses split by priority and response status code. This has more detail than the previous query and shows that there are 429 responses for low priority requests when there is not enough capacity available:
+
+![chart showing responses split by priority and response code](./docs/token-calculation-requests-priority-status.png)
+
+The next query shows the remaining tokens value (min/max/mean) over time, taken from the backend service response headers:
+
+![chart showing the remaining tokens over time](./docs/token-calculation-remaining-tokens.png)
+
+The next query uses metrics from the Azure OpenAI API simulator to show the rate limit token usage over time showing both the point in time value and the 60s sliding total. This is a useful way to evaluate the effectiveness of the policy:
+
+![chart showing the rate-limit token usage](./docs/token-calculation-rate-limit-tokens.png)
+
+The final query displays the `consumed-tokens` values that API Management tracks and uses to determine if there is available capacity for a given chat request.
+
+![chart showing the consumed tokens](./docs/token-calculation-consumed-tokens.png)
