@@ -146,18 +146,6 @@ resource azureOpenAIRetryWithPayAsYouGoAPIv2 'Microsoft.ApiManagement/service/ap
   }
 }
 
-resource azureOpenAIAdaptiveRateLimitingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'aoai-api-rate-limiting'
-  properties: {
-    path: '/rate-limiting/openai'
-    displayName: 'AOAIAPI-RateLimiting'
-    protocols: ['https']
-    value: loadTextContent('../api-specs/openapi-spec.json')
-    format: 'openapi+json'
-  }
-}
-
 resource azureOpenAILatencyRoutingAPI 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apiManagementService
   name: 'aoai-api-latency-routing'
@@ -236,7 +224,6 @@ var azureOpenAIAPINames = [
   azureOpenAIWeightedRoundRobinAPIv2.name
   azureOpenAIRetryWithPayAsYouGoAPI.name
   azureOpenAIRetryWithPayAsYouGoAPIv2.name
-  azureOpenAIAdaptiveRateLimitingAPI.name
   azureOpenAILatencyRoutingAPI.name
   azureOpenAIUsageTrackingAPI.name
   azureOpenAIPrioritizationTokenCalculatingAPI.name
@@ -502,25 +489,6 @@ resource azureOpenAIWeightedRoundRobinAPIPolicyv2 'Microsoft.ApiManagement/servi
     format: 'rawxml'
   }
   dependsOn: [weightedRoundRobinPolicyFragmentv2]
-}
-
-resource adaptiveRateLimitingPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {
-  parent: apiManagementService
-  name: 'adaptive-rate-limiting'
-  properties: {
-    value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting.xml')
-    format: 'rawxml'
-  }
-}
-
-resource azureOpenAIAdaptiveRateLimitingPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-05-01-preview' = {
-  parent: azureOpenAIAdaptiveRateLimitingAPI
-  name: 'policy'
-  properties: {
-    value: loadTextContent('../../../capabilities/rate-limiting/adaptive-rate-limiting-policy.xml')
-    format: 'rawxml'
-  }
-  dependsOn: [payAsYouGoBackendOne, adaptiveRateLimitingPolicyFragment]
 }
 
 resource retryWithPayAsYouGoPolicyFragment 'Microsoft.ApiManagement/service/policyFragments@2023-05-01-preview' = {

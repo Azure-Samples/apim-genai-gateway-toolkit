@@ -86,13 +86,13 @@ az login
 
 This repo currently contains the policies showing how to implement these GenAI Gateway capabilities:
 
-| Capability                                                                      | Description                                                             |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [Latency based routing](./capabilities/latency-routing/README.md) | Route traffic to the endpoint with the lowest latency. |
-| [Load balancing (round-robin)](./capabilities/load-balancing/README.md) | Load balance traffic across PAYG endpoints using round-robin algorithm. |
-| [Managing spikes with PAYG](./capabilities/manage-spikes-with-payg/README.md) | Manage spikes in traffic by routing traffic to PAYG endpoints when a PTU is out of capacity. |
-| [Adaptive rate limiting](./capabilities/rate-limiting/README.md) | Dynamically adjust rate-limits applied to different workloads|
-| [Tracking token usage](./capabilities/usage-tracking//README.md) | Record the token consumption for usage tracking and attribution|
+| Capability                                                                    | Description                                                                                                               |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [Latency based routing](./capabilities/latency-routing/README.md)             | Route traffic to the endpoint with the lowest latency.                                                                    |
+| [Load balancing (round-robin)](./capabilities/load-balancing/README.md)       | Load balance traffic across PAYG endpoints using round-robin algorithm.                                                   |
+| [Managing spikes with PAYG](./capabilities/manage-spikes-with-payg/README.md) | Manage spikes in traffic by routing traffic to PAYG endpoints when a PTU is out of capacity.                              |
+| [Prioritization](./capabilities/prioritization/README.md)                     | Enable prioritization between requests and dynamically apply throttling to low-priority requests when capacity is limited |
+| [Tracking token usage](./capabilities/usage-tracking//README.md)              | Record the token consumption for usage tracking and attribution                                                           |
 
 ## Gateway Backend Options
 
