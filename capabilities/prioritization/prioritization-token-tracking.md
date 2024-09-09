@@ -1,12 +1,11 @@
 # Prioritization - Token Tracking
 
 - [Prioritization - Token Tracking](#prioritization---token-tracking)
-	- [Capability](#capability)
-	- [How to see this in action](#how-to-see-this-in-action)
-	- [How the policy works](#how-the-policy-works)
-		- [Prioritization configuration](#prioritization-configuration)
-		- [Managing low-priority only requests](#managing-low-priority-only-requests)
-
+ 	- [Capability](#capability)
+ 	- [How to see this in action](#how-to-see-this-in-action)
+ 	- [How the policy works](#how-the-policy-works)
+  		- [Prioritization configuration](#prioritization-configuration)
+  		- [Managing low-priority only requests](#managing-low-priority-only-requests)
 
 ## Capability
 
@@ -15,19 +14,19 @@ High priority requests should always be allowed through to the backend, while lo
 
 For details of how this implementation compares to the other implementations, see the the [main prioritization README](./README.md).
 
-
 ## How to see this in action
 
 Due to the complexity of this capability, there are a number of end-to-end tests that can be run to see the policy in action:
 
-  - [Embeddings: single priority](./prioritization-token-tracking-embeddings-simple.md) - single priority requests, sending either just high or low priority requests
-  - [Embeddings: cycle test](./prioritization-token-tracking-embeddings-cycle.md) - cycles between high and low priority requests sending embeddings requests
+- [Embeddings: single priority](./prioritization-token-tracking-embeddings-simple.md) - single priority requests, sending either just high or low priority requests
+- [Embeddings: cycle test](./prioritization-token-tracking-embeddings-cycle.md) - cycles between high and low priority requests sending embeddings requests
 
 ## How the policy works
 
 The general approach to the token tracking prioritization implementation is to use the `x-ratelimit-remaining-tokens` and `x-ratelimit-remaining-requests` headers that the Azure OpenAI service returns to determine the available capacity for a given deployment.
 
 The rough flow for the prioritization policy is as follows:
+
 1. The policy checks the priority of the request. Low priority requests are identified by either an `priority` query parameter or an `x-priority` header with a value of `low`.
 2. If the request is a low priority request, the policy checks if there is sufficient available capacity to allow the request through.
 3. If there is sufficient spare capacity, the request is allowed through to the backend. Otherwise it is rejected with a 429 response.
@@ -104,7 +103,6 @@ This results in a much lower rate of low-priority requests than would be expecte
 
 ![chart showing the rate-limit token usage values](./docs/token-tracking/no-additional-requests-token-usage.png)
 
-
 To address this issue, the policy uses a `allow-additional-lowpri-request` cache value.
 Whenever there is a low-priority request and the cached capacity value is below the threshold, the policy checks the `allow-additional-lowpri-request` value.
 If this value is not present in the cache then an additional low-priority request is allowed through which enables the gateway to update the cached capacity value.
@@ -119,6 +117,3 @@ Allowing the additional requests has a positive impact on the responsiveness of 
 This can be seen in the following chart.
 
 ![chart showing higher than configured threshold with additional requests allowed](./docs/token-tracking/with-additional-requests-token-usage.png)
-
-
-

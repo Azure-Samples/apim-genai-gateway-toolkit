@@ -15,8 +15,7 @@ Using this data, the task calls the `/helpers/set-preferred-backends` endpoint t
 
 The different components in this setup are shown below:
 
-
-```
+```asciiart
                                                                                                           
                                                   +------------------+                                    
                     +------------------+          |                  |                                    
@@ -37,6 +36,7 @@ The different components in this setup are shown below:
 ```
 
 To summarize:
+
 - Using the `set-preferred-backends` endpoint, the preferred backends are stored in the cache. The preferred backends are an array of backend IDs of the hosts in the preferred order.
 - The `latency-routing` policy will use the `preferred-backends` array from cache to route the request to the preferred instance.
 - In cases, where the `preferred-instance` responds back with 429s, the request will then be routed to the second preferred instance.

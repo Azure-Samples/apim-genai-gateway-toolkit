@@ -10,7 +10,6 @@
     - [Determining request priority](#determining-request-priority)
     - [Rate limiting low priority requests](#rate-limiting-low-priority-requests)
 
-
 ## Capability
 
 In this capability we have different priorities of request (high and low).
@@ -22,15 +21,16 @@ For details of how this implementation compares to the other implementations, se
 
 Due to the complexity of this capability, there are a number of end-to-end tests that can be run to see the policy in action:
 
-  - [Embeddings: single priority](./prioritization-token-calculating-embeddings-single.md) - single priority requests, sending either just high or low priority requests
-  - [Embeddings: cycle test](./prioritization-token-calculating-embeddings-cycle.md) - cycles between high and low priority requests sending embeddings requests
-  - [ Chat: cycle test](./prioritization-token-calculating-chat-cycle.md) - cycles between high and low priority requests sending chat requests
+- [Embeddings: single priority](./prioritization-token-calculating-embeddings-single.md) - single priority requests, sending either just high or low priority requests
+- [Embeddings: cycle test](./prioritization-token-calculating-embeddings-cycle.md) - cycles between high and low priority requests sending embeddings requests
+- [Chat: cycle test](./prioritization-token-calculating-chat-cycle.md) - cycles between high and low priority requests sending chat requests
 
 ## How the policy works
 
 The general flow for the prioritization policy is as follows:
+
 1. Tokens-per-minute and requests-per-10-seconds values are retrieved for the deployment passed in the request.
-2. The number of tokens utilized by the request are calculated using the same methods Azure Open AI Service [uses to compute the values for rate limiting purposes internally](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota?tabs=rest#understanding-rate-limits). 
+2. The number of tokens utilized by the request are calculated using the same methods Azure Open AI Service [uses to compute the values for rate limiting purposes internally](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota?tabs=rest#understanding-rate-limits).
 3. The policy checks that there is capacity for the request using the selected deployment's token and request limits and rejects requests beyond those limits with a 429 response.
 4. Assuming there is available capacity, the policy checks the priority of the request. Low priority requests are identified by either an `priority` query parameter or an `x-priority` header with a value of `low`.
 5. If the request is a high priority request, it will be passed through to the backend.
@@ -187,6 +187,3 @@ The policy checks that the `remaining-tokens` and `remaining-requests` are above
     </when>
 </choose>
 ```
-
-
-

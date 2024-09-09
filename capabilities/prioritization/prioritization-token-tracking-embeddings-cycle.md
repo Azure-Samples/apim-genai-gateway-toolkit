@@ -11,6 +11,7 @@ This will deploy OpenAI API simulators to enable testing the APIM policies witho
 Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle ENDPOINT_PATH=prioritization-token-tracking ./scripts/run-end-to-end-prioritization.sh`.
 
 This script runs a load test that cycles between high and low priority requests sending embeddings requests:
+
 - Initially, the script only sends low priority requests
 - Then high priority requests are sent alongside the low priority requests
 - Next, only high priority requests are sent
@@ -48,4 +49,3 @@ The next query shows the remaining tokens value (min/max/mean) over time. This i
 The final query uses metrics from the Azure OpenAI API simulator to show the rate limit token usage over time showing both the point in time value and the 60s sliding total. This is a useful way to evaluate the effectiveness of the policy:
 
 ![chart showing the rate-limit token usage](./docs/token-tracking/embeddings-cycle/query-rate-limit-tokens.png)
-
