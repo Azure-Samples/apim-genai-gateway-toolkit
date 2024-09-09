@@ -24,7 +24,7 @@ Due to the complexity of this capability, there are a number of end-to-end tests
 
   - [Embeddings: single priority](./prioritization-token-calculating-embeddings-single.md) - single priority requests, sending either just high or low priority requests
   - [Embeddings: cycle test](./prioritization-token-calculating-embeddings-cycle.md) - cycles between high and low priority requests sending embeddings requests
-  - [ Chat: cycle test](./prioritization-token-calculating-chat-cycle.md) - cycles between high and low priority requests sending chat requests
+  - [Chat: cycle test](./prioritization-token-calculating-chat-cycle.md) - cycles between high and low priority requests sending chat requests
 
 ## How the policy works
 
