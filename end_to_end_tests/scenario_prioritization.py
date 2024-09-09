@@ -568,8 +568,8 @@ timeRange
         include_link=True,
     )
 
-    if endpoint_path == "prioritization-token-counting":
-        # the ConsumedTokens metrics is only available in the prioritization-token-counting endpoint
+    if endpoint_path == "prioritization-token-calculating":
+        # the ConsumedTokens metrics is only available in the prioritization-token-calculating endpoint
         query_processor.add_query(
             title="Consumed tokens (Gateway)",
             query=f"""
