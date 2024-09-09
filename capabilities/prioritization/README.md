@@ -8,6 +8,7 @@ High priority requests should always be allowed through to the backend, while lo
 An example use for this capability would be when you have purchased provisioned throughput and want to utilize any spare capacity for low-priority requests.
 
 There are two implementations of the prioritization policy:
+
 - [Token tracking](./prioritization-token-tracking.md)
 - [Token calculating](./prioritization-token-calculating.md)
 
@@ -23,9 +24,9 @@ The two approaches are largely similar, but differ in the way in which they dete
 The prioritization end to end test accepts a number of parameters that configure test behavior:
 
 - `ENDPOINT_PATH` - Controls whether to use the token tracking or token calculating approach. Options are `prioritization-token-tracking` and `prioritization-token-calculating`.
-- `LOAD_PATTERN` - Controls which test to run. Options are `low-priority` (only low priority requests), `high-priority` (only high priority requests), and `cycle` (both low and high priority requests in custom load pattern). 
+- `LOAD_PATTERN` - Controls which test to run. Options are `low-priority` (only low priority requests), `high-priority` (only high priority requests), and `cycle` (both low and high priority requests in custom load pattern).
 - `REQUEST_TYPE` - Controls whether chat or embeddings requests are sent to the endpoint. Options are `chat` and `embeddings`.
-- `RAMP_RATE` - Controls the ramp rate for the locust users. 
+- `RAMP_RATE` - Controls the ramp rate for the locust users.
 - `MAX_TOKENS` - Controls the `max_tokens` property set in chat requests.
 
 The command to run the end to end test is as follows (only `ENDPOINT_PATH` is required):
@@ -59,7 +60,3 @@ Run the prioritization test cycling through low, high and mixed priority chat re
 ```bash
 LOAD_PATTERN=cycle REQUEST_TYPE=chat MAX_TOKENS=1000 RAMP_RATE=10 ENDPOINT_PATH=prioritization-token-tracking ./scripts/run-end-to-end-prioritization.sh
 ```
-
-
-
-
