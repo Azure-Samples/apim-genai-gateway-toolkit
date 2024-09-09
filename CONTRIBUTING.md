@@ -67,6 +67,12 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 - Make your changes in a new git fork:
 
 - Commit your changes using a descriptive commit message
+- Run the markdown linter to ensure the markdown is formatted correctly:
+
+  ```shell
+  docker run -v $PWD:/workdir ghcr.io/igorshubovych/markdownlint-cli:latest "**/*.md"
+  ```
+  
 - Push your fork to GitHub:
 - In GitHub, create a pull request
 - If we suggest changes then:
