@@ -11,6 +11,7 @@ This will deploy OpenAI API simulators to enable testing the APIM policies witho
 Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=cycle ENDPOINT_PATH=prioritization-token-calculating REQUEST_TYPE=chat MAX_TOKENS=50 ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint, using chat requests with a `max_token` value set to `50`.
 
 This script runs a load test that cycles between high and low priority requests sending chat requests:
+
 - Initially, the script only sends low priority requests
 - Then high priority requests are sent alongside the low priority requests
 - Next, only high priority requests are sent

@@ -72,15 +72,15 @@ To see the GenAI Gateway capabilities in action, you can deploy the infrastructu
 
 2. Sign in with the Azure CLI:
 
-```bash
-az login
-```
+	```bash
+	az login
+	```
 
 3. Deploy the Bicep infrastructure:
 
-```bash
-./scripts/deploy.sh
-```
+	```bash
+	./scripts/deploy.sh
+	```
 
 ## Gateway Capabilities
 
@@ -96,7 +96,7 @@ This repo currently contains the policies showing how to implement these GenAI G
 
 ## Gateway Backend Options
 
-The toolkit is designed to deploy the API Management gateway alongside the OpenAI API Simulator, but can be used with Azure Open AI instances as well. 
+The toolkit is designed to deploy the API Management gateway alongside the OpenAI API Simulator, but can be used with Azure Open AI instances as well.
 
 To use the simulator, set the `USE_SIMULATOR` option in your `.env` file to `true`.
 

@@ -1,0 +1,20 @@
+# Run the linter using: `docker run -v $PWD:/workdir ghcr.io/igorshubovych/markdownlint-cli:latest "**/*.md"`
+
+# MD007/ul-indent : Unordered list indentation : https://github.com/DavidAnson/markdownlint/blob/v0.35.0/doc/md007.md
+MD007: false # markdown-all-in-one generated table of contents fail this rule
+
+# MD010/no-hard-tabs : Hard tabs : https://github.com/DavidAnson/markdownlint/blob/v0.35.0/doc/md010.md
+MD010: false # markdown-all-in-one table of contents have hard tabs
+
+# MD013/line-length : Line length : https://github.com/DavidAnson/markdownlint/blob/v0.35.0/doc/md013.md
+MD013:
+  line_length: 500 # initial setting to aid getting markdownlint added. Not ideal, but better than nothing
+
+
+# # MD033/no-inline-html : Inline HTML : https://github.com/DavidAnson/markdownlint/blob/v0.35.0/doc/md033.md
+MD033:
+  # Allowed elements
+  allowed_elements: 
+    - a # used in some of the standard repo content
+    - video # used to link to demo video in README
+

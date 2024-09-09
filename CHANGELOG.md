@@ -1,13 +1,7 @@
-## [project-title] Changelog
+# apim-genai-gateway-toolkit Changelog
+
+TODO
 
 <a name="x.y.z"></a>
-# x.y.z (yyyy-mm-dd)
 
-*Features*
-* ...
-
-*Bug Fixes*
-* ...
-
-*Breaking Changes*
-* ...
+## x.y.z (yyyy-mm-dd)
