@@ -8,7 +8,7 @@ This will deploy OpenAI API simulators to enable testing the APIM policies witho
 
 ## Running the low priority test
 
-Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=low-priority ENDPOINT_PATH=prioritization-token-calculating REQUEST_TYPE=embeddings ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint, using embeddings requests.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=low-priority ENDPOINT_PATH=prioritization-token-calculating REQUEST_TYPE=embeddings ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint using embeddings requests.
 
 This script runs a load test that sends low priority embeddings requests over the course of five minutes.
 
@@ -24,7 +24,7 @@ Once the metrics are ingested, the script will show the results of a number of q
 
 For each of these queries, the query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
-The first query shows the overall request count and shows that the number of low requests increases, then holds steady:
+The first query shows the overall request count and shows that the number of low priority requests increases, then holds steady:
 
 ![chart showing requests over time](./docs/token-calculating/embeddings-low/request-count.png)
 
@@ -50,7 +50,7 @@ The final query displays the `consumed-tokens` values that API Management tracks
 
 ## Running the high priority test
 
-Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=high-priority ENDPOINT_PATH=prioritization-token-calculating REQUEST_TYPE=embeddings ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint, using embeddings requests.
+Once the accelerator is deployed, open a bash terminal in the root directory of the repo and run `LOAD_PATTERN=high-priority ENDPOINT_PATH=prioritization-token-calculating REQUEST_TYPE=embeddings ./scripts/run-end-to-end-prioritization.sh`. The command will run a prioritization end to end test against the token calculating endpoint using embeddings requests.
 
 This script runs a load test that sends high priority embeddings requests over the course of five minutes.
 
@@ -66,7 +66,7 @@ Once the metrics are ingested, the script will show the results of a number of q
 
 For each of these queries, the query text is included, as well as a `Run in Log Analytics` link, which will take you directly to the Log Analytics blade in the Azure Portal so that you can run the query and explore the data further.
 
-The first query shows the overall request count and shows that the number of high requests increases, then holds steady:
+The first query shows the overall request count and shows that the number of high priority requests increases, then holds steady:
 
 ![chart showing requests over time](./docs/token-calculating/embeddings-high/request-count.png)
 
