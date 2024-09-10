@@ -38,7 +38,7 @@ The next query shows the number of successful requests (i.e. with a 200 status r
 
 ![chart showing the number of successful requests by priority](./docs/token-calculating/embeddings-cycle/successful-requests.png)
 
-The third query shows all responses split by priority and response status code. This has more detail than the previous query and shows that there are 429 responses for both high and low priority requests when there is not enough capacity available:
+The third query shows all responses split by priority and response status code. This has more detail than the previous query and shows that there are 429 responses for both high and low priority requests when there is not enough capacity available. Limits are reached when low and high priority requests are sent in isolation (with the low priority requests reaching their lower limits faster than the high priority) as well as when both requests types are sent in parallel:
 
 ![chart showing responses split by priority and response code](./docs/token-calculating/embeddings-cycle/requests-priority-status.png)
 
