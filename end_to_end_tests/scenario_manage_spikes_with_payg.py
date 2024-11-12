@@ -111,7 +111,7 @@ class ChatCompletionUser(HttpUser):
             self.client.post(
                 url,
                 json=payload,
-                headers={"ocp-apim-subscription-key": apim_subscription_one_key},
+                headers={"api-key": apim_subscription_one_key},
             )
         except Exception as e:
             print()

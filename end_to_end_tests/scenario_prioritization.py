@@ -81,7 +81,7 @@ def make_embedding_request(client: HttpSession, low_priority: bool):
     }
     try:
         headers = {
-            "ocp-apim-subscription-key": apim_subscription_one_key,
+            "api-key": apim_subscription_one_key,
         }
         if low_priority:
             headers["x-priority"] = "low"
@@ -113,7 +113,7 @@ def make_chat_request(client: HttpSession, low_priority: bool, max_tokens: int =
         payload["max_tokens"] = max_tokens
     try:
         headers = {
-            "ocp-apim-subscription-key": apim_subscription_one_key,
+            "api-key": apim_subscription_one_key,
         }
 
         if low_priority:
