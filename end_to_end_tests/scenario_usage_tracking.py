@@ -53,7 +53,7 @@ class CompletionUser(HttpUser):
         self.client.post(
             url,
             json=payload,
-            headers={"ocp-apim-subscription-key": apim_key},
+            headers={"api-key": apim_key},
         )
 
 

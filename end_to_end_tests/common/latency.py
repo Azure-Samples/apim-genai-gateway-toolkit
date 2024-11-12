@@ -148,7 +148,7 @@ def measure_latency_and_update_apim():
     response = requests.post(
         url=f"{apim_endpoint}/helpers/set-preferred-backends",
         json=payload,
-        headers={"ocp-apim-subscription-key": apim_subscription_one_key},
+        headers={"api-key": apim_subscription_one_key},
     )
     response.raise_for_status()
     logging.info("    Updated APIM with preferred backends: %s", response.text)
