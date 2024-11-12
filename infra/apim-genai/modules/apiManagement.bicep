@@ -68,6 +68,9 @@ resource apiManagementService 'Microsoft.ApiManagement/service@2023-05-01-previe
   properties: {
     publisherEmail: publisherEmail
     publisherName: publisherName
+    apiVersionConstraint: {
+      minApiVersion: '2019-12-01'
+    }
   }
   identity: {
     type: 'SystemAssigned'
