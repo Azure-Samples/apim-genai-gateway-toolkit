@@ -25,6 +25,7 @@ from common.config import (
     resource_group_name,
     log_analytics_workspace_id,
     log_analytics_workspace_name,
+    apim_gateway_logs_table,
 )
 
 test_start_time = None
@@ -170,7 +171,7 @@ def on_test_stop(environment, **kwargs):
     query_processor.add_query(
         title="Request latency (PAYG1 -> Blue, PAYG2 -> Yellow)",
         query=f"""
-ApiManagementGatewayLogs
+{apim_gateway_logs_table}
 | where OperationName != "" and  {time_range}
 | where BackendId != ""
 | summarize latency_s = avg(TotalTime) by bin(TimeGenerated, 10s), BackendId
@@ -200,7 +201,7 @@ ApiManagementGatewayLogs
     query_processor.add_query(
         title="Request count by backend (PTU1 -> Blue, PAYG1 -> Yellow)",
         query=f"""
-ApiManagementGatewayLogs
+{apim_gateway_logs_table}
 | where OperationName != "" and  {time_range}
 | where BackendId != ""
 | summarize request_count = count() by bin(TimeGenerated, 10s), BackendId

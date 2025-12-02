@@ -25,6 +25,7 @@ from common.config import (
     app_insights_connection_string,
     log_analytics_workspace_id,
     log_analytics_workspace_name,
+    apim_gateway_logs_table,
 )
 
 load_pattern = os.getenv("LOAD_PATTERN", "cycle")
@@ -390,7 +391,7 @@ def on_test_stop(environment, **kwargs):
 
     metric_check_time = test_stop_time - timedelta(seconds=10)
     check_results_query = f"""
-    ApiManagementGatewayLogs
+    {apim_gateway_logs_table}
     | where TimeGenerated >= datetime({metric_check_time.strftime('%Y-%m-%dT%H:%M:%SZ')})
     | count
     """
@@ -400,7 +401,7 @@ def on_test_stop(environment, **kwargs):
         title="Overall request count",
         query=f"""
 {time_vars}
-ApiManagementGatewayLogs
+{apim_gateway_logs_table}
 | where OperationName != "" and  TimeGenerated > startTime and TimeGenerated < endTime
 | where BackendId != ""
 | summarize request_count = count() by bin(TimeGenerated, 10s)
@@ -426,7 +427,7 @@ ApiManagementGatewayLogs
         title="Successful request count by request type (High Priority -> Blue, Low Priority -> Yellow)",
         query=f"""
 {time_vars}
-ApiManagementGatewayLogs
+{apim_gateway_logs_table}
 | where OperationName != "" and  TimeGenerated > startTime and TimeGenerated < endTime
 | where BackendId != ""
 | where ResponseCode == 200
@@ -459,7 +460,7 @@ ApiManagementGatewayLogs
         title="Request count by priority and response code",
         query=f"""
 {time_vars}
-ApiManagementGatewayLogs
+{apim_gateway_logs_table}
 | where OperationName != "" and  TimeGenerated > startTime and TimeGenerated < endTime
 | where BackendId != ""
 | extend label = strcat(ResponseHeaders["x-gw-priority"], "-priority-", ResponseCode)
@@ -494,7 +495,7 @@ ApiManagementGatewayLogs
         title="Remaining tokens (Min -> Blue, Max -> Yellow, Avg -> Green)",
         query=f"""
 {time_vars}
-ApiManagementGatewayLogs
+{apim_gateway_logs_table}
 | where TimeGenerated > startTime and TimeGenerated < endTime
 | extend 
     remaining_tokens = toint(ResponseHeaders["x-gw-remaining-tokens"])
