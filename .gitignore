@@ -407,3 +407,5 @@ FodyWeavers.xsd
 __pycache__
 
 .simulator_tag
+/infra/simulators/*.parameters.json
+/infra/simulators/*.json
