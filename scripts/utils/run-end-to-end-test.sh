@@ -112,13 +112,11 @@ if [[ -z "${apim_subscription_three_key}" ]]; then
 	exit 1
 fi
 
-apim_name=$(jq -r '.apiManagementName // ""' < "$output_main")
-if [[ -z "${apim_name}" ]]; then
-	echo "APIM Name not found in output.json"
+apim_base_url=$(jq -r '.apiManagementGatewayHostname // ""' < "$output_main")
+if [[ -z "${apim_base_url}" ]]; then
+    echo "APIM Hostname not found in output.json"
 	exit 1
 fi
-apim_base_url="https://${apim_name}.azure-api.net"
-
 
 subscription_id=$(az account show --output tsv --query id)
 tenant_id=$(az account show --output tsv --query tenantId)
